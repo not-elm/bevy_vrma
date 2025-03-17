@@ -18,14 +18,17 @@ pub struct CurrentRetargeting;
 pub struct VrmaRetargetPlugin;
 
 impl Plugin for VrmaRetargetPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.add_plugins((VrmaRetargetingBonePlugin, VrmaRetargetExpressionsPlugin))
             .add_systems(Update, request_redraw.run_if(playing_animation));
     }
 }
 
 fn playing_animation(
-    changed_bones: Query<Entity, (Changed<Transform>, With<CurrentRetargeting>)>,
+    changed_bones: Query<Entity, (Changed<Transform>, With<CurrentRetargeting>)>
 ) -> bool {
     !changed_bones.is_empty()
 }

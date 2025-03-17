@@ -10,11 +10,17 @@ use bevy::utils::default;
 pub struct VrmLoaderPlugin;
 
 impl Plugin for VrmLoaderPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.preregister_asset_loader::<VrmLoader>(&["vrm"]);
     }
 
-    fn finish(&self, app: &mut App) {
+    fn finish(
+        &self,
+        app: &mut App,
+    ) {
         let supported_compressed_formats = match app.world().get_resource::<RenderDevice>() {
             Some(render_device) => CompressedImageFormats::from_features(render_device.features()),
             None => CompressedImageFormats::NONE,
@@ -27,17 +33,17 @@ impl Plugin for VrmLoaderPlugin {
 }
 
 #[derive(Debug, Component)]
-pub struct VrmHandle(pub Handle<Vrm>);
+pub struct VrmHandle(pub Handle<VrmAsset>);
 
 #[derive(Debug, Asset, TypePath)]
-pub struct Vrm {
+pub struct VrmAsset {
     pub(crate) gltf: Gltf,
 }
 
 struct VrmLoader(GltfLoader);
 
 impl AssetLoader for VrmLoader {
-    type Asset = Vrm;
+    type Asset = VrmAsset;
     type Settings = ();
     type Error = GltfError;
     async fn load(
@@ -51,7 +57,7 @@ impl AssetLoader for VrmLoader {
             ..default()
         };
         let gltf = self.0.load(reader, &settings, load_context).await?;
-        Ok(Vrm { gltf })
+        Ok(VrmAsset { gltf })
     }
 
     fn extensions(&self) -> &[&str] {

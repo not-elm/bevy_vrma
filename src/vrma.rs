@@ -17,7 +17,10 @@ use std::time::Duration;
 pub struct VrmaPlugin;
 
 impl Plugin for VrmaPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.register_type::<Vrma>()
             .register_type::<VrmaEntity>()
             .register_type::<VrmaHandle>()
@@ -42,7 +45,7 @@ pub struct VrmaHandle(pub Handle<VrmaAsset>);
 pub struct Vrma;
 
 /// A new type pattern object to explicitly indicate the entity is VRMA.
-#[derive(Debug, Reflect, Copy, Clone, Serialize, Deserialize)]
+#[derive(Debug, Reflect, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
 pub struct VrmaEntity(pub Entity);
 
 /// The component that holds the duration of VRMA's animation.

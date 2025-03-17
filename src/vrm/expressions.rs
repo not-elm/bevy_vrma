@@ -46,7 +46,10 @@ impl VrmExpressionRegistry {
 pub struct VrmExpressionPlugin;
 
 impl Plugin for VrmExpressionPlugin {
-    fn build(&self, app: &mut bevy::app::App) {
+    fn build(
+        &self,
+        app: &mut bevy::app::App,
+    ) {
         app.register_type::<VrmExpressionRegistry>();
     }
 }

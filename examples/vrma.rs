@@ -1,11 +1,10 @@
 use bevy::prelude::*;
-use bevy::time::common_conditions::on_timer;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_vrma::vrm::loader::VrmHandle;
-use bevy_vrma::vrm::VrmPlugin;
-use bevy_vrma::vrma::animation::player::PlayAnimation;
-use bevy_vrma::vrma::{VrmaHandle, VrmaPlugin};
-use std::time::Duration;
+use bevy_vrma::vrm::{Vrm, VrmPlugin};
+use bevy_vrma::vrma::animation::play::PlayVrma;
+use bevy_vrma::vrma::animation::AnimationPlayerEntityTo;
+use bevy_vrma::vrma::{VrmaDuration, VrmaEntity, VrmaHandle, VrmaPlugin};
 
 fn main() {
     App::new()
@@ -15,14 +14,26 @@ fn main() {
             VrmPlugin,
             VrmaPlugin,
         ))
-        .init_resource::<Animations>()
+        .add_event::<ChangeAnimation>()
         .add_systems(Startup, (spawn_camera, spawn_vrm))
         .add_systems(
             Update,
-            change_animation.run_if(on_timer(Duration::from_secs(5))),
+            (
+                change_animation
+                    .run_if(resource_exists_and_changed::<Animations>.or(added_animation_player)),
+                detect_animation_finish.run_if(resource_exists::<VrmaTimer>),
+            ),
         )
         .run();
 }
+
+/// TODO: Provides a way to wait for the preparation of animation settings.
+fn added_animation_player(players: Query<Entity, Added<AnimationPlayerEntityTo>>) -> bool {
+    !players.is_empty()
+}
+
+#[derive(Resource)]
+struct VrmaTimer(Timer);
 
 #[derive(Default, Resource)]
 struct Animations {
@@ -30,31 +41,64 @@ struct Animations {
     animations: Vec<Entity>,
 }
 
+#[derive(Event)]
+struct ChangeAnimation;
+
 fn spawn_camera(mut commands: Commands) {
     commands.spawn((Camera3d::default(), Transform::from_xyz(0., 1., 2.5)));
 }
 
 fn spawn_vrm(
     mut commands: Commands,
-    mut animations: ResMut<Animations>,
     asset_server: Res<AssetServer>,
 ) {
-    let rotate = commands
-        .spawn(VrmaHandle(asset_server.load("vrma/rotate.vrma")))
-        .id();
+    let mut animations = Animations::default();
+    let mut vrma = |index: usize, cmd: &mut ChildBuilder| {
+        let entity = cmd
+            .spawn(VrmaHandle(
+                asset_server.load(format!("vrma/VRMA_0{index}.vrma")),
+            ))
+            .id();
+        animations.animations.push(entity);
+    };
+
     commands
         .spawn(VrmHandle(asset_server.load("models/sample.vrm")))
-        .add_child(rotate);
-    animations.animations.push(rotate);
+        .with_children(|cmd| {
+            vrma(1, cmd);
+            vrma(2, cmd);
+            vrma(3, cmd);
+            vrma(4, cmd);
+            vrma(5, cmd);
+            vrma(6, cmd);
+            vrma(7, cmd);
+        });
+    commands.insert_resource(animations);
 }
 
-fn change_animation(mut commands: Commands, mut animations: ResMut<Animations>) {
-    if animations.animations.is_empty() {
+fn change_animation(
+    mut commands: Commands,
+    animations: ResMut<Animations>,
+    vrm: Query<Entity, With<Vrm>>,
+    vrma: Query<&VrmaDuration>,
+) {
+    let current = animations.animations[animations.current_index];
+    let Ok(duration) = vrma.get(current) else {
         return;
+    };
+    commands.entity(vrm.single()).trigger(PlayVrma {
+        vrma: VrmaEntity(current),
+        repeat: false,
+    });
+    commands.insert_resource(VrmaTimer(Timer::new(duration.0, TimerMode::Once)));
+}
+
+fn detect_animation_finish(
+    mut timer: ResMut<VrmaTimer>,
+    mut animations: ResMut<Animations>,
+    time: Res<Time>,
+) {
+    if timer.0.tick(time.delta()).just_finished() {
+        animations.current_index = (animations.current_index + 1) % animations.animations.len();
     }
-    let next = (animations.current_index + 1) % animations.animations.len();
-    commands
-        .entity(animations.animations[next])
-        .trigger(PlayAnimation { repeat: true });
-    animations.current_index = next;
 }

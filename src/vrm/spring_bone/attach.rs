@@ -10,7 +10,10 @@ use bevy::prelude::{Added, Children, Entity, ParallelCommands, Plugin, Query, Tr
 pub struct SpringBoneAttachPlugin;
 
 impl Plugin for SpringBoneAttachPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.add_systems(
             Update,
             (

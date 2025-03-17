@@ -48,7 +48,7 @@ pub struct VrmNode {
 }
 
 pub(crate) fn obtain_extensions(
-    gltf: &Gltf,
+    gltf: &Gltf
 ) -> AppResult<&serde_json::map::Map<String, serde_json::Value>> {
     gltf.source
         .as_ref()
@@ -57,7 +57,7 @@ pub(crate) fn obtain_extensions(
 }
 
 pub(crate) fn obtain_vrmc_vrm(
-    json: &serde_json::map::Map<String, serde_json::Value>,
+    json: &serde_json::map::Map<String, serde_json::Value>
 ) -> AppResult<serde_json::Value> {
     Ok(json
         .get("VRMC_vrm")
@@ -67,7 +67,7 @@ pub(crate) fn obtain_vrmc_vrm(
 }
 
 pub(crate) fn obtain_vrmc_springs(
-    json: &serde_json::map::Map<String, serde_json::Value>,
+    json: &serde_json::map::Map<String, serde_json::Value>
 ) -> AppResult<serde_json::Value> {
     Ok(json
         .get("VRMC_springBone")

@@ -1,6 +1,6 @@
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrm::VrmExpression;
-use crate::vrma::animation::{AnimationPlayerEntities, VrmAnimationGraph};
+use crate::vrma::animation::VrmAnimationGraph;
 use crate::vrma::extensions::VrmaExtensions;
 use crate::vrma::loader::VrmaAsset;
 use crate::vrma::{RetargetTo, Vrma, VrmaDuration, VrmaHandle};
@@ -20,7 +20,10 @@ use std::time::Duration;
 pub struct VrmaSpawnPlugin;
 
 impl Plugin for VrmaSpawnPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.add_systems(Update, spawn_vrma);
     }
 }
@@ -82,7 +85,6 @@ fn spawn_vrma(
             Name::new(name),
             RetargetTo(parent.get()),
             SceneRoot(scene_root),
-            AnimationPlayerEntities::default(),
             obtain_vrma_duration(&clip_assets, &vrma.gltf.animations),
             VrmAnimationGraph::new(vrma.gltf.animations.to_vec(), &mut animation_graphs),
             VrmaExpressionNames::new(&extensions),

@@ -10,12 +10,18 @@ use bevy::utils::default;
 pub struct VrmaLoaderPlugin;
 
 impl Plugin for VrmaLoaderPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.init_asset::<VrmaAsset>()
             .preregister_asset_loader::<VrmaLoader>(&["vrma"]);
     }
 
-    fn finish(&self, app: &mut App) {
+    fn finish(
+        &self,
+        app: &mut App,
+    ) {
         let supported_compressed_formats = match app.world().get_resource::<RenderDevice>() {
             Some(render_device) => CompressedImageFormats::from_features(render_device.features()),
             None => CompressedImageFormats::NONE,

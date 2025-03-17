@@ -8,7 +8,7 @@ mod spring_bone;
 use crate::new_type;
 use crate::vrm::expressions::VrmExpressionPlugin;
 use crate::vrm::humanoid_bone::VrmHumanoidBonePlugin;
-use crate::vrm::loader::{Vrm, VrmLoaderPlugin};
+use crate::vrm::loader::{VrmAsset, VrmLoaderPlugin};
 use crate::vrm::spawn::VrmSpawnPlugin;
 use crate::vrm::spring_bone::VrmSpringBonePlugin;
 use bevy::app::{App, Plugin};
@@ -27,6 +27,10 @@ new_type!(
     name: VrmExpression,
     ty: String,
 );
+
+/// A marker component attached to the entity of VRM.
+#[derive(Debug, Component, Reflect, Copy, Clone)]
+pub struct Vrm;
 
 /// The path to the VRM file.
 #[derive(Debug, Reflect, Clone, Component)]
@@ -54,8 +58,12 @@ pub struct VrmHipsBoneTo(pub Entity);
 pub struct VrmPlugin;
 
 impl Plugin for VrmPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_asset::<Vrm>()
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
+        app.init_asset::<VrmAsset>()
+            .register_type::<Vrm>()
             .register_type::<VrmPath>()
             .register_type::<BoneRestTransform>()
             .register_type::<BoneRestGlobalTransform>()

@@ -16,7 +16,10 @@ use bevy::prelude::{
 pub struct VrmaRetargetingBonePlugin;
 
 impl Plugin for VrmaRetargetingBonePlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.register_type::<RetargetBoneTo>().add_systems(
             Update,
             (
@@ -104,12 +107,18 @@ fn bind_bone_rotations(
 }
 
 #[inline]
-fn calc_scaling(dist_rest_global_pos: Vec3, source_rest_global_pos: Vec3) -> f32 {
+fn calc_scaling(
+    dist_rest_global_pos: Vec3,
+    source_rest_global_pos: Vec3,
+) -> f32 {
     dist_rest_global_pos.y / source_rest_global_pos.y
 }
 
 #[inline]
-fn calc_delta(source_pose_pos: Vec3, source_rest_global_pos: Vec3) -> Vec3 {
+fn calc_delta(
+    source_pose_pos: Vec3,
+    source_rest_global_pos: Vec3,
+) -> Vec3 {
     source_pose_pos - source_rest_global_pos
 }
 
