@@ -49,7 +49,10 @@ pub struct SpringJointProps {
 pub struct VrmSpringBonePlugin;
 
 impl Plugin for VrmSpringBonePlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.add_plugins((
             SpringBoneAttachPlugin,
             SpringBoneRegistryPlugin,

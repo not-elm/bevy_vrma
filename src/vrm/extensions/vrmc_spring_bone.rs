@@ -27,7 +27,10 @@ impl VRMCSpringBone {
             .collect()
     }
 
-    pub fn spring_colliders(&self, collider_group_indices: &[usize]) -> Vec<Collider> {
+    pub fn spring_colliders(
+        &self,
+        collider_group_indices: &[usize],
+    ) -> Vec<Collider> {
         collider_group_indices
             .iter()
             .flat_map(|index| self.collider_groups[*index].colliders.clone())

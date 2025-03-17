@@ -17,11 +17,19 @@ pub struct ChildSearcher<'w, 's> {
 }
 
 impl ChildSearcher<'_, '_> {
-    pub fn find_from_name(&self, root: Entity, target_name: &str) -> Option<Entity> {
+    pub fn find_from_name(
+        &self,
+        root: Entity,
+        target_name: &str,
+    ) -> Option<Entity> {
         find_entity(target_name, false, root, &self.entities)
     }
 
-    pub fn find_from_bone_name(&self, root: Entity, target_name: &VrmBone) -> Option<Entity> {
+    pub fn find_from_bone_name(
+        &self,
+        root: Entity,
+        target_name: &VrmBone,
+    ) -> Option<Entity> {
         find_entity(target_name, true, root, &self.entities)
     }
 }

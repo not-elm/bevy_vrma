@@ -15,7 +15,10 @@ use bevy::prelude::{
 pub struct VrmaRetargetExpressionsPlugin;
 
 impl Plugin for VrmaRetargetExpressionsPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.register_type::<RetargetExpressionTo>()
             .register_type::<BindExpressionNode>()
             .add_systems(

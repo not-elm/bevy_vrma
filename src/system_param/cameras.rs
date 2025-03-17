@@ -20,7 +20,10 @@ impl Cameras<'_, '_> {
     }
 
     #[inline]
-    pub fn find_camera_from_window(&self, window_entity: Entity) -> Option<CameraQuery> {
+    pub fn find_camera_from_window(
+        &self,
+        window_entity: Entity,
+    ) -> Option<CameraQuery> {
         self
             .cameras
             .iter()
@@ -30,7 +33,10 @@ impl Cameras<'_, '_> {
     }
 
     #[inline]
-    pub fn find_camera_from_world_pos(&self, world_pos: Vec3) -> Option<CameraQuery> {
+    pub fn find_camera_from_world_pos(
+        &self,
+        world_pos: Vec3,
+    ) -> Option<CameraQuery> {
         self.cameras.iter().find(|(camera, gtf, _)| {
             camera.logical_viewport_rect().is_some_and(|viewport| {
                 let Ok(pos) = camera.world_to_viewport(gtf, world_pos) else {
@@ -42,14 +48,21 @@ impl Cameras<'_, '_> {
     }
 
     #[inline]
-    pub fn find_camera_from_layers(&self, layers: &RenderLayers) -> Option<CameraQuery> {
+    pub fn find_camera_from_layers(
+        &self,
+        layers: &RenderLayers,
+    ) -> Option<CameraQuery> {
         self.cameras
             .iter()
             .find(|(_, _, layer)| layers.intersects(layer))
     }
 
     #[inline]
-    pub fn to_viewport_pos(&self, layers: &RenderLayers, world_pos: Vec3) -> Option<Vec2> {
+    pub fn to_viewport_pos(
+        &self,
+        layers: &RenderLayers,
+        world_pos: Vec3,
+    ) -> Option<Vec2> {
         let (camera, camera_tf, _) = self.find_camera_from_layers(layers)?;
         camera.world_to_viewport(camera_tf, world_pos).ok()
     }

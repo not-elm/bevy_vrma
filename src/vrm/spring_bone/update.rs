@@ -10,7 +10,10 @@ use bevy::time::Time;
 pub struct SpringBoneUpdatePlugin;
 
 impl Plugin for SpringBoneUpdatePlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.add_systems(PostUpdate, update_spring_bones);
     }
 }

@@ -1,9 +1,9 @@
 use crate::vrm::expressions::VrmExpressionRegistry;
 use crate::vrm::extensions::VrmExtensions;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
-use crate::vrm::loader::{Vrm, VrmHandle};
+use crate::vrm::loader::{VrmAsset, VrmHandle};
 use crate::vrm::spring_bone::registry::*;
-use crate::vrm::VrmPath;
+use crate::vrm::{Vrm, VrmPath};
 use bevy::app::{App, Update};
 use bevy::asset::Assets;
 use bevy::core::Name;
@@ -15,7 +15,10 @@ use bevy::scene::SceneRoot;
 pub struct VrmSpawnPlugin;
 
 impl Plugin for VrmSpawnPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.add_systems(Update, spawn_vrm);
     }
 }
@@ -23,7 +26,7 @@ impl Plugin for VrmSpawnPlugin {
 fn spawn_vrm(
     mut commands: Commands,
     node_assets: Res<Assets<GltfNode>>,
-    vrm_assets: Res<Assets<Vrm>>,
+    vrm_assets: Res<Assets<VrmAsset>>,
     handles: Query<(Entity, &VrmHandle)>,
 ) {
     for (vrm_handle_entity, handle) in handles.iter() {
@@ -45,6 +48,7 @@ fn spawn_vrm(
 
         let mut cmd = commands.entity(vrm_handle_entity);
         cmd.insert((
+            Vrm,
             SceneRoot(scene.clone()),
             VrmExpressionRegistry::new(&extensions, &node_assets, &vrm.gltf.nodes),
             HumanoidBoneRegistry::new(

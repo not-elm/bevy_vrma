@@ -39,7 +39,10 @@ impl HumanoidBoneRegistry {
 pub struct VrmHumanoidBonePlugin;
 
 impl Plugin for VrmHumanoidBonePlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.register_type::<HumanoidBonesAttached>()
             .register_type::<HumanoidBoneRegistry>()
             .register_type::<Hips>()

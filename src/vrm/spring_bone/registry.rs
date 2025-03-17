@@ -13,7 +13,10 @@ use bevy::utils::HashMap;
 pub struct SpringBoneRegistryPlugin;
 
 impl Plugin for SpringBoneRegistryPlugin {
-    fn build(&self, app: &mut App) {
+    fn build(
+        &self,
+        app: &mut App,
+    ) {
         app.register_type::<SpringColliderRegistry>()
             .register_type::<SpringJointRegistry>()
             .register_type::<SpringNodeRegistry>();
