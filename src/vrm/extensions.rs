@@ -33,7 +33,7 @@ impl VrmExtensions {
     }
 
     /// Gets the name of the VRM avatar.
-    /// 
+    ///
     /// Returns `None` if the name does not exist in the meta information.
     pub fn name(&self) -> Option<String> {
         self.vrmc_vrm.meta.as_ref()?.name.clone()
