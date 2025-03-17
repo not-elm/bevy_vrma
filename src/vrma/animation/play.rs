@@ -135,8 +135,7 @@ mod tests {
     use bevy::ecs::system::RunSystemOnce;
     use bevy::hierarchy::ChildBuild;
     use bevy::prelude::{
-        AnimationClip, AnimationPlayer, BuildChildren, Commands, Component, Entity, Query, Res,
-        ResMut, With,
+        AnimationClip, AnimationPlayer, BuildChildren, Commands, Component, Entity, Query, With,
     };
     use bevy::utils::default;
 

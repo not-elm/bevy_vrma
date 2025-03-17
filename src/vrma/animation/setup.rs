@@ -2,7 +2,7 @@ use crate::vrma::animation::{AnimationPlayerEntityTo, VrmAnimationGraph};
 use bevy::app::{App, Update};
 use bevy::hierarchy::Parent;
 use bevy::prelude::{
-    Added, AnimationGraphHandle, AnimationPlayer, Commands, Entity, ParallelCommands, Plugin, Query,
+    Added, AnimationGraphHandle, AnimationPlayer, Entity, ParallelCommands, Plugin, Query,
 };
 
 /// At the timing when the spawn of the Vrma's animation player is completed,
@@ -54,7 +54,7 @@ mod tests {
     use crate::tests::{test_app, TestResult};
     use crate::vrma::animation::setup::setup_vrma_player;
     use crate::vrma::animation::{AnimationPlayerEntityTo, VrmAnimationGraph};
-    use bevy::app::Update;
+    
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::{AnimationPlayer, BuildChildren, Commands};
 
