@@ -47,7 +47,7 @@ pub struct VrmaEntity(pub Entity);
 
 /// The component that holds the duration of VRMA's animation.
 /// This component is automatically attached to the entity with the same entity as [`VrmaHandle`] after loading VRMA.
-/// 
+///
 /// This component's structure will be changed in the future if VRMA can have multiple animations.
 #[derive(Debug, Component, Reflect)]
 pub struct VrmaDuration(pub Duration);
