@@ -54,7 +54,7 @@ mod tests {
     use crate::tests::{test_app, TestResult};
     use crate::vrma::animation::setup::setup_vrma_player;
     use crate::vrma::animation::{AnimationPlayerEntityTo, VrmAnimationGraph};
-    
+
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::{AnimationPlayer, BuildChildren, Commands};
 

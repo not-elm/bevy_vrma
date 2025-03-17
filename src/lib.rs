@@ -8,8 +8,7 @@ pub mod vrma;
 
 #[cfg(test)]
 pub(crate) mod tests {
-    
-    
+
     use bevy::asset::AssetPlugin;
     use bevy::prelude::ImagePlugin;
     use bevy::render::camera::CameraPlugin;
