@@ -18,14 +18,14 @@ impl Plugin for SpringBoneRegistryPlugin {
         app: &mut App,
     ) {
         app.register_type::<SpringColliderRegistry>()
-            .register_type::<SpringJointRegistry>()
+            .register_type::<SpringJointPropsRegistry>()
             .register_type::<SpringNodeRegistry>();
     }
 }
 
 #[derive(Component, Deref, Reflect, PartialEq, Clone)]
 #[reflect(Component)]
-pub struct SpringColliderRegistry(HashMap<Name, ColliderShape>);
+pub struct SpringColliderRegistry(pub(crate) HashMap<Name, ColliderShape>);
 
 impl SpringColliderRegistry {
     pub fn new(
@@ -47,9 +47,9 @@ impl SpringColliderRegistry {
 }
 
 #[derive(Component, Deref, Reflect)]
-pub struct SpringJointRegistry(HashMap<Name, SpringJointProps>);
+pub struct SpringJointPropsRegistry(pub(crate) HashMap<Name, SpringJointProps>);
 
-impl SpringJointRegistry {
+impl SpringJointPropsRegistry {
     pub fn new(
         joints: &[SpringJoint],
         node_assets: &Assets<GltfNode>,

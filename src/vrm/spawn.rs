@@ -61,7 +61,11 @@ fn spawn_vrm(
 
         if let Some(spring_bone) = extensions.vrmc_spring_bone.as_ref() {
             cmd.insert((
-                SpringJointRegistry::new(&spring_bone.all_joints(), &node_assets, &vrm.gltf.nodes),
+                SpringJointPropsRegistry::new(
+                    &spring_bone.all_joints(),
+                    &node_assets,
+                    &vrm.gltf.nodes,
+                ),
                 SpringColliderRegistry::new(&spring_bone.colliders, &node_assets, &vrm.gltf.nodes),
                 SpringNodeRegistry::new(spring_bone, &node_assets, &vrm.gltf.nodes),
             ));

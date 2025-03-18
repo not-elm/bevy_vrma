@@ -17,6 +17,14 @@ pub struct ChildSearcher<'w, 's> {
 }
 
 impl ChildSearcher<'_, '_> {
+    #[inline]
+    pub fn has_not_root_bone(
+        &self,
+        root: Entity,
+    ) -> bool {
+        self.find_from_name(root, "Root").is_none()
+    }
+
     pub fn find_from_name(
         &self,
         root: Entity,
