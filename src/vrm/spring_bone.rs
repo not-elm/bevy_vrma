@@ -33,10 +33,12 @@ pub struct SpringRoot {
 
     pub colliders: Vec<Entity>,
 
+    /// If the spring chain has a center node,
+    /// the inertia of the spring bone is evaluated in the [`Center Space`](https://github.com/vrm-c/vrm-specification/tree/master/specification/VRMC_springBone-1.0#center-space).
     pub center_node: Option<Entity>,
 }
 
-#[derive(Component, Reflect, Debug, Serialize, Deserialize, Copy, Clone)]
+#[derive(Component, Reflect, Debug, Serialize, Deserialize, Copy, Clone, Default)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct SpringJointProps {
     pub drag_force: f32,

@@ -96,6 +96,12 @@ pub enum ColliderShape {
     Capsule(Capsule),
 }
 
+impl Default for ColliderShape {
+    fn default() -> Self {
+        Self::Sphere(Sphere::default())
+    }
+}
+
 impl ColliderShape {
     /// Returns the collision vector from the collider to the target position.
     pub fn calc_collision(
@@ -129,7 +135,7 @@ impl ColliderShape {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Component, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Component, Reflect, Default)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct Sphere {
     /// Local coordinate of the sphere center
@@ -139,7 +145,7 @@ pub struct Sphere {
 }
 
 /// 楕円形の
-#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Component, Reflect)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq, Component, Reflect, Default)]
 #[reflect(Component, Serialize, Deserialize)]
 pub struct Capsule {
     /// Local coordinate of the center of the half sphere at the start point of the capsule

@@ -1,9 +1,9 @@
 use crate::vrm::extensions::vrmc_spring_bone::ColliderShape;
 use crate::vrm::spring_bone::{SpringJointProps, SpringJointState, SpringRoot};
-use bevy::app::App;
+use bevy::app::{App, PostUpdate};
 use bevy::math::Vec3;
 use bevy::prelude::{
-    Entity, GlobalTransform, Parent, Plugin, PostUpdate, Quat, Query, Res, Transform, Without,
+    Entity, GlobalTransform, Parent, Plugin, Quat, Query, Res, Transform, Without,
 };
 use bevy::time::Time;
 
@@ -26,13 +26,13 @@ fn update_spring_bones(
     time: Res<Time>,
 ) {
     let delta_time = time.delta_secs();
-    for spring in spring_roots.iter() {
-        for joint in spring.joints.iter().copied() {
+    for spring_root in spring_roots.iter() {
+        for joint in spring_root.joints.iter().copied() {
             let Ok((parent, mut state, props)) = joints.get_mut(joint) else {
                 continue;
             };
             let parent_gtf = transforms
-                .get(parent.get())
+                .get(spring_root.center_node.unwrap_or(parent.get()))
                 .map(|(_, gtf)| *gtf)
                 .unwrap_or_default();
             let Ok(joint_global_pos) = transforms.get(joint).map(|(_, gtf)| gtf.translation())
@@ -57,7 +57,7 @@ fn update_spring_bones(
 
             collision(
                 &mut next_tail,
-                spring.colliders.iter().copied(),
+                spring_root.colliders.iter().copied(),
                 joint,
                 &transforms,
                 &colliders,
@@ -71,6 +71,7 @@ fn update_spring_bones(
             let Ok((mut tf, mut gtf)) = transforms.get_mut(joint) else {
                 continue;
             };
+
             tf.rotation =
                 state.initial_local_rotation * Quat::from_rotation_arc(state.bone_axis, to);
             *gtf = parent_gtf.mul_transform(*tf);

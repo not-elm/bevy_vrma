@@ -63,7 +63,7 @@ fn spawn_vrm(
     };
 
     commands
-        .spawn(VrmHandle(asset_server.load("models/sample.vrm")))
+        .spawn(VrmHandle(asset_server.load("models/AliciaSolid.vrm")))
         .with_children(|cmd| {
             vrma(1, cmd);
             vrma(2, cmd);
