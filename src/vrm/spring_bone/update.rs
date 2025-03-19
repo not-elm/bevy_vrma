@@ -1,11 +1,13 @@
 use crate::vrm::extensions::vrmc_spring_bone::ColliderShape;
 use crate::vrm::spring_bone::{SpringJointProps, SpringJointState, SpringRoot};
 use bevy::app::{App, PostUpdate};
+use bevy::ecs::relationship::Relationship;
 use bevy::math::Vec3;
 use bevy::prelude::{
-    Entity, GlobalTransform, Parent, Plugin, Quat, Query, Res, Transform, Without,
+    ChildOf, Entity, GlobalTransform, Plugin, Quat, Query, Res, Transform, Without,
 };
 use bevy::time::Time;
+use std::ops::Mul;
 
 pub struct SpringBoneUpdatePlugin;
 
@@ -20,7 +22,7 @@ impl Plugin for SpringBoneUpdatePlugin {
 
 fn update_spring_bones(
     mut transforms: Query<(&mut Transform, &mut GlobalTransform)>,
-    mut joints: Query<(&Parent, &mut SpringJointState, &SpringJointProps), Without<SpringRoot>>,
+    mut joints: Query<(&ChildOf, &mut SpringJointState, &SpringJointProps), Without<SpringRoot>>,
     spring_roots: Query<&SpringRoot>,
     colliders: Query<&ColliderShape>,
     time: Res<Time>,
@@ -41,11 +43,11 @@ fn update_spring_bones(
             };
 
             let inertia = (state.current_tail - state.prev_tail) * (1. - props.drag_force);
-            let stiffness = delta_time
-                * (parent_gtf.rotation()
-                    * state.initial_local_rotation
-                    * state.bone_axis
-                    * props.stiffness);
+            let stiffness = (parent_gtf.rotation()
+                * state.initial_local_rotation
+                * state.bone_axis
+                * props.stiffness)
+                .mul(delta_time);
             let external = delta_time * props.gravity_dir * props.gravity_power;
 
             let next_tail = state.current_tail + inertia + stiffness + external;

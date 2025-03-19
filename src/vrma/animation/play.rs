@@ -42,7 +42,7 @@ fn observe_play_animation(
     vrma: Query<Entity, With<Vrma>>,
     entities: Query<(Option<&Children>, Option<&RetargetSource>), Without<Vrm>>,
 ) {
-    let Ok(children) = children.get(trigger.entity()) else {
+    let Ok(children) = children.get(trigger.target()) else {
         return;
     };
     for child in children.iter() {
@@ -86,7 +86,7 @@ fn observe_stop_animation(
     vrma: Query<Entity, With<Vrma>>,
     entities: Query<(Option<&Children>, Option<&RetargetSource>), Without<Vrm>>,
 ) {
-    let Ok(children) = children.get(trigger.entity()) else {
+    let Ok(children) = children.get(trigger.target()) else {
         return;
     };
     for child in children {
@@ -96,7 +96,7 @@ fn observe_stop_animation(
         vrma_player.stop(VrmaEntity(vrma_entity));
         foreach_children(
             &mut commands,
-            trigger.entity(),
+            trigger.target(),
             &entities,
             &|commands, entity, retargeting_marker| {
                 if retargeting_marker.is_some() {

@@ -5,7 +5,7 @@ use crate::vrma::retarget::bone::VrmaRetargetingBonePlugin;
 use crate::vrma::retarget::expressions::VrmaRetargetExpressionsPlugin;
 use bevy::app::{App, Plugin, Update};
 use bevy::prelude::{
-    Changed, Component, Entity, EventWriter, IntoSystemConfigs, Query, SystemSet, Transform, With,
+    Changed, Component, Entity, EventWriter, IntoScheduleConfigs, Query, SystemSet, Transform, With,
 };
 use bevy::window::RequestRedraw;
 

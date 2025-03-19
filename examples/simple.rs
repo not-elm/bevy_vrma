@@ -1,12 +1,16 @@
 use bevy::prelude::*;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
+/*use bevy_inspector_egui::quick::WorldInspectorPlugin;*/
 use bevy_vrma::vrm::loader::VrmHandle;
-use bevy_vrma::vrm::VrmPlugin;
+use bevy_vrma::vrm::{VrmBone, VrmPlugin};
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, WorldInspectorPlugin::default(), VrmPlugin))
+        .add_plugins((
+            DefaultPlugins,
+            /* WorldInspectorPlugin::default(), */ VrmPlugin,
+        ))
         .add_systems(Startup, (spawn_camera, spawn_vrm))
+        .add_systems(Update, bone_names)
         .run();
 }
 
@@ -18,5 +22,11 @@ fn spawn_vrm(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
-    commands.spawn(VrmHandle(asset_server.load("models/sample.vrm")));
+    commands.spawn(VrmHandle(asset_server.load("models/AliciaSolid2.vrm")));
+}
+
+fn bone_names(query: Query<&VrmBone>) {
+    for bone in query.iter() {
+        //println!("{}", bone.0);
+    }
 }

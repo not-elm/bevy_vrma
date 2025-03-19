@@ -3,11 +3,9 @@ use crate::vrm::extensions::VrmNode;
 use crate::vrm::{BoneRestGlobalTransform, BoneRestTransform, VrmBone, VrmHipsBoneTo};
 use bevy::app::{App, Plugin, Update};
 use bevy::asset::{Assets, Handle};
-use bevy::core::Name;
 use bevy::gltf::GltfNode;
-use bevy::hierarchy::Children;
+use bevy::platform_support::collections::HashMap;
 use bevy::prelude::*;
-use bevy::utils::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Component, Reflect, Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
@@ -60,9 +58,13 @@ fn attach_bones(
     transforms: Query<(&Transform, &GlobalTransform)>,
 ) {
     for (vrm_entity, humanoid_bones) in vrm.iter() {
-        if searcher.find_from_name(vrm_entity, "Root").is_none() {
+        /*if searcher.find_from_name(vrm_entity, "Root").is_none() &&
+            // for blender export names it Root_ instead of Root
+            searcher.find_from_name(vrm_entity, "Root_").is_none() &&
+            searcher.find_from_name(vrm_entity, "Armature_rootJoint").is_none() {
+            println!("NO BONES");
             continue;
-        }
+        }*/
 
         for (bone, name) in humanoid_bones.iter() {
             let Some(bone_entity) = searcher.find_from_name(vrm_entity, name.as_str()) else {

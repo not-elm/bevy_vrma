@@ -7,12 +7,12 @@ use crate::vrma::{RetargetTo, Vrma, VrmaDuration, VrmaHandle};
 use bevy::animation::AnimationClip;
 use bevy::app::{App, Plugin, Update};
 use bevy::asset::Assets;
-use bevy::core::Name;
+use bevy::ecs::relationship::Relationship;
 use bevy::gltf::GltfNode;
 use bevy::log::error;
 use bevy::prelude::{
-    AnimationGraph, Commands, Component, Deref, Entity, GlobalTransform, Handle, Parent, Query,
-    Reflect, Res, ResMut,
+    AnimationGraph, ChildOf, Commands, Component, Deref, Entity, GlobalTransform, Handle, Name,
+    Query, Reflect, Res, ResMut,
 };
 use bevy::scene::SceneRoot;
 use std::time::Duration;
@@ -52,7 +52,7 @@ fn spawn_vrma(
     vrma_assets: Res<Assets<VrmaAsset>>,
     node_assets: Res<Assets<GltfNode>>,
     clip_assets: Res<Assets<AnimationClip>>,
-    vrma_handles: Query<(Entity, &VrmaHandle, &Parent)>,
+    vrma_handles: Query<(Entity, &VrmaHandle, &ChildOf)>,
     global_transform: Query<&GlobalTransform>,
 ) {
     for (handle_entity, handle, parent) in vrma_handles.iter() {

@@ -1,7 +1,6 @@
 use crate::vrm::VrmBone;
-use bevy::core::Name;
 use bevy::ecs::system::SystemParam;
-use bevy::prelude::{Children, Entity, Query};
+use bevy::prelude::{Children, Entity, Name, Query};
 
 #[derive(SystemParam)]
 pub struct ChildSearcher<'w, 's> {

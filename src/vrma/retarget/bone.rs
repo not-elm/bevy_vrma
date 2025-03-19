@@ -4,13 +4,11 @@ use crate::vrm::{BoneRestGlobalTransform, BoneRestTransform};
 use crate::vrma::retarget::{CurrentRetargeting, RetargetBindingSystemSet};
 use crate::vrma::{RetargetSource, RetargetTo};
 use bevy::app::{App, Update};
-use bevy::core::Name;
-use bevy::hierarchy::Children;
 use bevy::log::error;
 use bevy::math::Vec3;
 use bevy::prelude::{
-    Added, Changed, Component, Entity, GlobalTransform, IntoSystemConfigs, ParallelCommands,
-    Plugin, Query, Reflect, Transform, With, Without,
+    Added, Changed, Children, Component, Entity, GlobalTransform, IntoScheduleConfigs, Name,
+    ParallelCommands, Plugin, Query, Reflect, Transform, With, Without,
 };
 
 pub struct VrmaRetargetingBonePlugin;
