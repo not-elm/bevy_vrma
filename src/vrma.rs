@@ -10,7 +10,7 @@ use crate::vrma::retarget::VrmaRetargetPlugin;
 use crate::vrma::spawn::VrmaSpawnPlugin;
 use bevy::app::App;
 use bevy::asset::Handle;
-use bevy::prelude::{Component, Entity, Plugin, Reflect};
+use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::Duration;
@@ -39,8 +39,7 @@ impl Plugin for VrmaPlugin {
 }
 
 /// An asset handle to spawn VRMA.
-#[derive(Debug, Component, Reflect, Serialize, Deserialize)]
-#[reflect(Component, Serialize, Deserialize)]
+#[derive(Debug, Component, Reflect)]
 pub struct VrmaHandle(pub Handle<VrmaAsset>);
 
 /// A marker component attached to the entity of VRMA.
