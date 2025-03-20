@@ -87,12 +87,6 @@ fn spawn_vrma(
             }
         };
 
-        std::fs::write(
-            "extensions.json",
-            serde_json::to_string_pretty(&extensions).unwrap(),
-        )
-        .unwrap();
-
         commands.entity(handle_entity).insert((
             Vrma,
             Name::new(name),
