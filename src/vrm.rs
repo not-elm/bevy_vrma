@@ -14,6 +14,7 @@ use crate::vrm::spring_bone::VrmSpringBonePlugin;
 use bevy::app::{App, Plugin};
 use bevy::asset::AssetApp;
 use bevy::prelude::{Component, Entity, GlobalTransform, Reflect, Transform};
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 new_type!(
@@ -29,11 +30,13 @@ new_type!(
 );
 
 /// A marker component attached to the entity of VRM.
-#[derive(Debug, Component, Reflect, Copy, Clone)]
+#[derive(Debug, Component, Reflect, Copy, Clone, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct Vrm;
 
 /// The path to the VRM file.
-#[derive(Debug, Reflect, Clone, Component)]
+#[derive(Debug, Reflect, Clone, Component, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct VrmPath(pub PathBuf);
 
 impl VrmPath {
@@ -44,15 +47,18 @@ impl VrmPath {
 }
 
 /// The bone's initial transform.
-#[derive(Debug, Reflect, Copy, Clone, Component)]
+#[derive(Debug, Reflect, Copy, Clone, Component, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct BoneRestTransform(pub Transform);
 
 /// The bone's initial global transform.
-#[derive(Debug, Reflect, Copy, Clone, Component)]
+#[derive(Debug, Reflect, Copy, Clone, Component, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct BoneRestGlobalTransform(pub GlobalTransform);
 
 /// Holds the entity of the hips bone.
-#[derive(Debug, Reflect, Copy, Clone, Component)]
+#[derive(Debug, Reflect, Copy, Clone, Component, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct VrmHipsBoneTo(pub Entity);
 
 pub struct VrmPlugin;

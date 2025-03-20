@@ -3,7 +3,7 @@ use crate::vrm::VrmExpression;
 use crate::vrma::animation::VrmAnimationGraph;
 use crate::vrma::extensions::VrmaExtensions;
 use crate::vrma::loader::VrmaAsset;
-use crate::vrma::{RetargetTo, Vrma, VrmaDuration, VrmaHandle};
+use crate::vrma::{RetargetTo, Vrma, VrmaDuration, VrmaHandle, VrmaPath};
 use bevy::animation::AnimationClip;
 use bevy::app::{App, Plugin, Update};
 use bevy::asset::Assets;
@@ -60,6 +60,9 @@ fn spawn_vrma(
         if !global_transform.contains(vrm_entity) {
             continue;
         }
+        let Some(vrma_path) = handle.0.path().map(|path| path.path().to_path_buf()) else {
+            continue;
+        };
         let Some(name) = handle.0.path().map(|p| p.to_string()) else {
             continue;
         };
@@ -85,7 +88,8 @@ fn spawn_vrma(
             Name::new(name),
             RetargetTo(parent.get()),
             SceneRoot(scene_root),
-            obtain_vrma_duration(&clip_assets, &vrma.gltf.animations),
+            VrmaDuration(obtain_vrma_duration(&clip_assets, &vrma.gltf.animations)),
+            VrmaPath(vrma_path),
             VrmAnimationGraph::new(vrma.gltf.animations.to_vec(), &mut animation_graphs),
             VrmaExpressionNames::new(&extensions),
             HumanoidBoneRegistry::new(
@@ -100,11 +104,11 @@ fn spawn_vrma(
 fn obtain_vrma_duration(
     assets: &Assets<AnimationClip>,
     handles: &[Handle<AnimationClip>],
-) -> VrmaDuration {
+) -> Duration {
     let duration = handles
         .iter()
         .filter_map(|handle| assets.get(handle))
         .map(|clip| clip.duration() as f64)
         .fold(0., |v1, v2| v2.max(v1));
-    VrmaDuration(Duration::from_secs_f64(duration))
+    Duration::from_secs_f64(duration)
 }
