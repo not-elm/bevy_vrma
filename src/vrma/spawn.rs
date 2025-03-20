@@ -1,4 +1,4 @@
-use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
+use crate::vrm::humanoid_bone::{HumanoidBoneRegistry, HumanoidBonesAttached};
 use crate::vrm::VrmExpression;
 use crate::vrma::animation::VrmAnimationGraph;
 use crate::vrma::extensions::VrmaExtensions;
@@ -12,7 +12,7 @@ use bevy::gltf::GltfNode;
 use bevy::log::error;
 use bevy::prelude::{
     AnimationGraph, Commands, Component, Deref, Entity, GlobalTransform, Handle, Parent, Query,
-    Reflect, Res, ResMut,
+    Reflect, Res, ResMut, With,
 };
 use bevy::scene::SceneRoot;
 use std::time::Duration;
@@ -53,10 +53,14 @@ fn spawn_vrma(
     node_assets: Res<Assets<GltfNode>>,
     clip_assets: Res<Assets<AnimationClip>>,
     vrma_handles: Query<(Entity, &VrmaHandle, &Parent)>,
+    complements: Query<Entity, With<HumanoidBonesAttached>>,
     global_transform: Query<&GlobalTransform>,
 ) {
     for (handle_entity, handle, parent) in vrma_handles.iter() {
         let vrm_entity = parent.get();
+        if complements.get(vrm_entity).is_err() {
+            continue;
+        }
         if !global_transform.contains(vrm_entity) {
             continue;
         }
@@ -82,6 +86,12 @@ fn spawn_vrma(
                 continue;
             }
         };
+
+        std::fs::write(
+            "extensions.json",
+            serde_json::to_string_pretty(&extensions).unwrap(),
+        )
+        .unwrap();
 
         commands.entity(handle_entity).insert((
             Vrma,

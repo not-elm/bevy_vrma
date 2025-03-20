@@ -5,7 +5,6 @@ use bevy::app::{App, Plugin, Update};
 use bevy::asset::{Assets, Handle};
 use bevy::core::Name;
 use bevy::gltf::GltfNode;
-use bevy::hierarchy::Children;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use serde::{Deserialize, Serialize};
@@ -14,7 +13,7 @@ use serde::{Deserialize, Serialize};
 #[reflect(Component, Serialize, Deserialize)]
 pub struct Hips;
 
-#[derive(Component, Deref, Reflect)]
+#[derive(Component, Deref, Reflect, Default)]
 pub struct HumanoidBoneRegistry(HashMap<VrmBone, Name>);
 
 impl HumanoidBoneRegistry {
@@ -51,16 +50,16 @@ impl Plugin for VrmHumanoidBonePlugin {
 }
 
 #[derive(Component, Reflect, Serialize, Deserialize)]
-struct HumanoidBonesAttached;
+pub struct HumanoidBonesAttached;
 
 fn attach_bones(
     mut commands: Commands,
     searcher: ChildSearcher,
-    vrm: Query<(Entity, &HumanoidBoneRegistry), (Without<HumanoidBonesAttached>, With<Children>)>,
+    vrm: Query<(Entity, &HumanoidBoneRegistry), Without<HumanoidBonesAttached>>,
     transforms: Query<(&Transform, &GlobalTransform)>,
 ) {
     for (vrm_entity, humanoid_bones) in vrm.iter() {
-        if searcher.find_from_name(vrm_entity, "Root").is_none() {
+        if !searcher.has_been_spawned_all_bones(vrm_entity, humanoid_bones) {
             continue;
         }
 
