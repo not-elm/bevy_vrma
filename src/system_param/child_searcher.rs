@@ -1,3 +1,4 @@
+use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrm::VrmBone;
 use bevy::core::Name;
 use bevy::ecs::system::SystemParam;
@@ -17,12 +18,14 @@ pub struct ChildSearcher<'w, 's> {
 }
 
 impl ChildSearcher<'_, '_> {
-    #[inline]
-    pub fn has_not_root_bone(
+    pub fn has_been_spawned_all_bones(
         &self,
         root: Entity,
+        bone_registry: &HumanoidBoneRegistry,
     ) -> bool {
-        self.find_from_name(root, "Root").is_none()
+        bone_registry
+            .values()
+            .all(|bone_name| self.find_from_name(root, bone_name.as_str()).is_some())
     }
 
     pub fn find_from_name(

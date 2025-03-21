@@ -19,8 +19,7 @@ fn main() {
         .add_systems(
             Update,
             (
-                change_animation
-                    .run_if(resource_exists_and_changed::<Animations>.or(added_animation_player)),
+                change_animation.run_if(added_animation_player),
                 detect_animation_finish.run_if(resource_exists::<VrmaTimer>),
             ),
         )
@@ -88,7 +87,7 @@ fn change_animation(
     };
     commands.entity(vrm.single()).trigger(PlayVrma {
         vrma: VrmaEntity(current),
-        repeat: false,
+        repeat: true,
     });
     commands.insert_resource(VrmaTimer(Timer::new(duration.0, TimerMode::Once)));
 }

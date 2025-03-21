@@ -10,11 +10,7 @@ license = "MIT OR Apache-2.0"
 readme = "README.md"
 
 [dependencies]
-bevy = { version = "0.15", features = [
-    "file_watcher",
-    "bevy_picking",
-    "serialize",
-] }
+bevy = { version = "0.15", features = ["serialize"] }
 serde = "1"
 serde_json = "1"
 anyhow = "1"

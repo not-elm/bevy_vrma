@@ -60,3 +60,29 @@ macro_rules! new_type {
         }
     };
 }
+
+macro_rules! marker_component {
+        (
+            $(#[$meta:meta])*
+            $name: ident
+        ) => {
+            $(#[$meta])*
+            #[derive(
+                Component,
+                Default,
+                Debug,
+                Copy,
+                Clone,
+                Eq,
+                PartialEq,
+                Hash,
+                Reflect,
+                Serialize,
+                Deserialize,
+            )]
+            #[reflect(Component, Serialize, Deserialize, Default)]
+            pub struct $name;
+        };
+    }
+
+pub(crate) use marker_component;

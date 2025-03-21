@@ -1,4 +1,4 @@
-#![allow(clippy::type_complexity)]
+#![allow(clippy::type_complexity, clippy::too_many_arguments)]
 
 mod error;
 mod macros;
@@ -8,7 +8,6 @@ pub mod vrma;
 
 #[cfg(test)]
 pub(crate) mod tests {
-
     use bevy::asset::AssetPlugin;
     use bevy::prelude::ImagePlugin;
     use bevy::render::camera::CameraPlugin;

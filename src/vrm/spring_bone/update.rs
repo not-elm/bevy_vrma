@@ -32,7 +32,7 @@ fn update_spring_bones(
                 continue;
             };
             let parent_gtf = transforms
-                .get(spring_root.center_node.unwrap_or(parent.get()))
+                .get(parent.get())
                 .map(|(_, gtf)| *gtf)
                 .unwrap_or_default();
             let Ok(joint_global_pos) = transforms.get(joint).map(|(_, gtf)| gtf.translation())

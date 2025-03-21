@@ -1,4 +1,6 @@
+use crate::macros::marker_component;
 use crate::system_param::child_searcher::ChildSearcher;
+use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrm::spring_bone::registry::{
     SpringColliderRegistry, SpringJointPropsRegistry, SpringNodeRegistry,
 };
@@ -30,55 +32,67 @@ impl Plugin for SpringBoneAttachPlugin {
     }
 }
 
-#[derive(
-    Component, Default, Debug, Copy, Clone, Eq, PartialEq, Hash, Reflect, Serialize, Deserialize,
-)]
-#[reflect(Component, Serialize, Deserialize, Default)]
-struct AttachedJointProps;
+marker_component!(
+    /// A marker component that indicates that initialization of joint props has been completed.
+    ///
+    /// This is attached to the VRM entity.
+    AttachedJointProps
+);
 
-#[derive(
-    Component, Default, Debug, Copy, Clone, Eq, PartialEq, Hash, Reflect, Serialize, Deserialize,
-)]
-#[reflect(Component, Serialize, Deserialize, Default)]
-struct AttachedColliderShapes;
+marker_component!(
+    /// A marker component that indicates that initialization of collider shapes has been completed.
+    ///
+    /// This is attached to the VRM entity.
+    AttachedColliderShapes
+);
 
-#[derive(
-    Component, Default, Debug, Copy, Clone, Eq, PartialEq, Hash, Reflect, Serialize, Deserialize,
-)]
-#[reflect(Component, Serialize, Deserialize, Default)]
-struct AttachedSpringRoots;
+marker_component!(
+    /// A marker component that indicates that initialization of spring chains has been completed.
+    ///
+    /// This is attached to the VRM entity.
+    AttachedSpringRoots
+);
 
 fn attach_joint_props(
     par_commands: ParallelCommands,
     child_searcher: ChildSearcher,
-    mascots: Query<(Entity, &SpringJointPropsRegistry), Without<AttachedJointProps>>,
+    mascots: Query<
+        (Entity, &SpringJointPropsRegistry, &HumanoidBoneRegistry),
+        Without<AttachedJointProps>,
+    >,
 ) {
-    mascots.par_iter().for_each(|(entity, nodes)| {
-        if child_searcher.has_not_root_bone(entity) {
-            return;
-        }
+    mascots
+        .par_iter()
+        .for_each(|(entity, nodes, bone_registry)| {
+            if !child_searcher.has_been_spawned_all_bones(entity, bone_registry) {
+                return;
+            }
 
-        for (name, props) in nodes.iter() {
-            let Some(joint_entity) = child_searcher.find_from_name(entity, name.as_str()) else {
-                continue;
-            };
+            for (name, props) in nodes.iter() {
+                let Some(joint_entity) = child_searcher.find_from_name(entity, name.as_str())
+                else {
+                    continue;
+                };
+                par_commands.command_scope(|mut commands| {
+                    commands.entity(joint_entity).insert(*props);
+                });
+            }
             par_commands.command_scope(|mut commands| {
-                commands.entity(joint_entity).insert(*props);
+                commands.entity(entity).insert(AttachedJointProps);
             });
-        }
-        par_commands.command_scope(|mut commands| {
-            commands.entity(entity).insert(AttachedJointProps);
         });
-    });
 }
 
 fn attach_collider_shapes(
     par_commands: ParallelCommands,
     child_searcher: ChildSearcher,
-    vrm: Query<(Entity, &SpringColliderRegistry), Without<AttachedColliderShapes>>,
+    vrm: Query<
+        (Entity, &SpringColliderRegistry, &HumanoidBoneRegistry),
+        Without<AttachedColliderShapes>,
+    >,
 ) {
-    vrm.par_iter().for_each(|(entity, nodes)| {
-        if child_searcher.has_not_root_bone(entity) {
+    vrm.par_iter().for_each(|(entity, nodes, bone_registry)| {
+        if !child_searcher.has_been_spawned_all_bones(entity, bone_registry) {
             return;
         }
         for (name, shape) in nodes.iter() {
@@ -98,41 +112,46 @@ fn attach_collider_shapes(
 fn attach_spring_roots(
     par_commands: ParallelCommands,
     child_searcher: ChildSearcher,
-    mascots: Query<(Entity, &SpringNodeRegistry), Without<AttachedSpringRoots>>,
+    mascots: Query<
+        (Entity, &SpringNodeRegistry, &HumanoidBoneRegistry),
+        Without<AttachedSpringRoots>,
+    >,
 ) {
-    mascots.par_iter().for_each(|(entity, registry)| {
-        if child_searcher.has_not_root_bone(entity) {
-            return;
-        }
+    mascots
+        .par_iter()
+        .for_each(|(entity, registry, bone_registry)| {
+            if !child_searcher.has_been_spawned_all_bones(entity, bone_registry) {
+                return;
+            }
 
-        for spring_root in registry.0.iter().map(|spring| SpringRoot {
-            center_node: spring
-                .center
-                .as_ref()
-                .and_then(|center| child_searcher.find_from_name(entity, center.as_str())),
-            joints: spring
-                .joints
-                .iter()
-                .filter_map(|joint| child_searcher.find_from_name(entity, joint.as_str()))
-                .collect(),
-            colliders: spring
-                .colliders
-                .iter()
-                .filter_map(|collider| child_searcher.find_from_name(entity, collider.as_str()))
-                .collect(),
-        }) {
-            let Some(root) = spring_root.joints.first() else {
-                continue;
-            };
-            let root = *root;
+            for spring_root in registry.0.iter().map(|spring| SpringRoot {
+                center_node: spring
+                    .center
+                    .as_ref()
+                    .and_then(|center| child_searcher.find_from_name(entity, center.as_str())),
+                joints: spring
+                    .joints
+                    .iter()
+                    .filter_map(|joint| child_searcher.find_from_name(entity, joint.as_str()))
+                    .collect(),
+                colliders: spring
+                    .colliders
+                    .iter()
+                    .filter_map(|collider| child_searcher.find_from_name(entity, collider.as_str()))
+                    .collect(),
+            }) {
+                let Some(root) = spring_root.joints.first() else {
+                    continue;
+                };
+                let root = *root;
+                par_commands.command_scope(|mut commands| {
+                    commands.entity(root).insert(spring_root);
+                });
+            }
             par_commands.command_scope(|mut commands| {
-                commands.entity(root).insert(spring_root);
+                commands.entity(entity).insert(AttachedSpringRoots);
             });
-        }
-        par_commands.command_scope(|mut commands| {
-            commands.entity(entity).insert(AttachedSpringRoots);
         });
-    });
 }
 
 fn init_spring_joint_states(
@@ -167,6 +186,7 @@ mod tests {
     use crate::success;
     use crate::tests::{test_app, TestResult};
     use crate::vrm::extensions::vrmc_spring_bone::ColliderShape;
+    use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
     use crate::vrm::spring_bone::attach::{
         attach_collider_shapes, attach_joint_props, attach_spring_roots, init_spring_joint_states,
         AttachedColliderShapes, AttachedJointProps, AttachedSpringRoots,
@@ -188,11 +208,14 @@ mod tests {
         let head: Entity = app.world_mut().run_system_once(|mut commands: Commands| {
             let head = commands.spawn(Name::new("head")).id();
             commands
-                .spawn(SpringNodeRegistry(vec![SpringNode {
-                    center: None,
-                    joints: vec![Name::new("head")],
-                    ..default()
-                }]))
+                .spawn((
+                    SpringNodeRegistry(vec![SpringNode {
+                        center: None,
+                        joints: vec![Name::new("head")],
+                        ..default()
+                    }]),
+                    HumanoidBoneRegistry::default(),
+                ))
                 .with_child(Name::new("Root"))
                 .add_child(head);
             head
@@ -229,11 +252,14 @@ mod tests {
                 let center = commands.spawn(Name::new("center")).id();
                 let head = commands.spawn(Name::new("head")).id();
                 commands
-                    .spawn(SpringNodeRegistry(vec![SpringNode {
-                        center: Some(Name::new("center")),
-                        joints: vec![Name::new("head")],
-                        ..default()
-                    }]))
+                    .spawn((
+                        SpringNodeRegistry(vec![SpringNode {
+                            center: Some(Name::new("center")),
+                            joints: vec![Name::new("head")],
+                            ..default()
+                        }]),
+                        HumanoidBoneRegistry::default(),
+                    ))
                     .with_child(Name::new("Root"))
                     .add_child(head)
                     .add_child(center);
@@ -272,11 +298,14 @@ mod tests {
                 .spawn((Name::new("head"), Transform::from_xyz(0.0, 0.0, 0.0)))
                 .id();
             commands
-                .spawn(SpringNodeRegistry(vec![SpringNode {
-                    center: None,
-                    joints: vec![Name::new("head"), Name::new("tail")],
-                    ..default()
-                }]))
+                .spawn((
+                    SpringNodeRegistry(vec![SpringNode {
+                        center: None,
+                        joints: vec![Name::new("head"), Name::new("tail")],
+                        ..default()
+                    }]),
+                    HumanoidBoneRegistry::default(),
+                ))
                 .with_child(Name::new("Root"))
                 .add_child(head)
                 .with_child((Name::new("tail"), Transform::from_xyz(0.0, 2.0, 0.0)));
@@ -377,6 +406,7 @@ mod tests {
                             .into_iter()
                             .collect(),
                     ),
+                    HumanoidBoneRegistry::default(),
                 ))
                 .with_child(Name::new("Root"))
                 .with_child(Name::new("head"));

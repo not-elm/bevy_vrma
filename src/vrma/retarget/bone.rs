@@ -1,17 +1,12 @@
+use crate::macros::marker_component;
 use crate::system_param::child_searcher::ChildSearcher;
-use crate::vrm::humanoid_bone::{Hips, HumanoidBoneRegistry};
-use crate::vrm::{BoneRestGlobalTransform, BoneRestTransform};
+use crate::vrm::humanoid_bone::{Hips, HumanoidBoneRegistry, HumanoidBonesAttached};
+use crate::vrm::{BoneRestGlobalTransform, VrmHipsBoneTo};
 use crate::vrma::retarget::{CurrentRetargeting, RetargetBindingSystemSet};
 use crate::vrma::{RetargetSource, RetargetTo};
-use bevy::app::{App, Update};
-use bevy::core::Name;
-use bevy::hierarchy::Children;
 use bevy::log::error;
-use bevy::math::Vec3;
-use bevy::prelude::{
-    Added, Changed, Component, Entity, GlobalTransform, IntoSystemConfigs, ParallelCommands,
-    Plugin, Query, Reflect, Transform, With, Without,
-};
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 pub struct VrmaRetargetingBonePlugin;
 
@@ -20,51 +15,59 @@ impl Plugin for VrmaRetargetingBonePlugin {
         &self,
         app: &mut App,
     ) {
-        app.register_type::<RetargetBoneTo>().add_systems(
-            Update,
-            (
-                retarget_bones_to_vrm,
-                bind_bone_rotations.in_set(RetargetBindingSystemSet),
-            ),
-        );
+        app.register_type::<RetargetedHumanBones>()
+            .register_type::<RetargetBoneTo>()
+            // For some reason, it might not retarget unless the system runs on `PreUpdate`.
+            .add_systems(PreUpdate, retarget_bones_to_vrm)
+            .add_systems(Update, bind_bone_rotations.in_set(RetargetBindingSystemSet));
     }
 }
 
 #[derive(Debug, Component, Reflect)]
 struct RetargetBoneTo(pub Entity);
 
-fn retarget_bones_to_vrm(
+marker_component!(
+    /// A marker component that indicates that initialization of humanoid bones has been completed.
+    ///
+    /// This is attached to the VRM entity.
+    RetargetedHumanBones
+);
+
+pub fn retarget_bones_to_vrm(
     par_commands: ParallelCommands,
-    bones: Query<(Entity, &RetargetTo, &HumanoidBoneRegistry), Added<Children>>,
-    transforms: Query<(&Transform, &GlobalTransform)>,
+    bones: Query<
+        (Entity, &RetargetTo, &HumanoidBoneRegistry),
+        (Without<RetargetedHumanBones>, With<HumanoidBonesAttached>),
+    >,
+    hips: Query<&VrmHipsBoneTo>,
     names: Query<&Name>,
     searcher: ChildSearcher,
 ) {
     bones
         .par_iter()
         .for_each(|(entity, retarget, humanoid_bones)| {
-            for (bone, name) in humanoid_bones.iter() {
-                let Some(src_bone_entity) = searcher.find_from_name(entity, name.as_str()) else {
+            let Ok(dist_hips) = hips.get(retarget.0) else {
+                return;
+            };
+            for (bone, _) in humanoid_bones.iter() {
+                let Some(src_bone_entity) = searcher.find_from_bone_name(entity, bone) else {
                     continue;
                 };
-                let Some(dist_bone_entity) = searcher.find_from_bone_name(retarget.0, bone) else {
+                let Some(dist_bone_entity) = searcher.find_from_bone_name(dist_hips.0, bone) else {
                     let dist_name = names.get(retarget.0).unwrap();
                     error!("[Bone] {dist_name}'s {bone} not found");
                     continue;
                 };
-                let Ok((src_tf, src_gtf)) = transforms.get(src_bone_entity) else {
-                    continue;
-                };
-
                 par_commands.command_scope(|mut commands| {
-                    commands.entity(src_bone_entity).insert((
-                        RetargetSource,
-                        BoneRestTransform(*src_tf),
-                        BoneRestGlobalTransform(*src_gtf),
-                        RetargetBoneTo(dist_bone_entity),
-                    ));
+                    commands
+                        .entity(src_bone_entity)
+                        .insert((RetargetSource, RetargetBoneTo(dist_bone_entity)));
                 });
             }
+
+            par_commands.command_scope(|mut commands| {
+                commands.entity(entity).insert(RetargetedHumanBones);
+            });
         });
 }
 
@@ -79,7 +82,7 @@ fn bind_bone_rotations(
         ),
         (Changed<Transform>, With<CurrentRetargeting>),
     >,
-    dist_bones: Query<(&Transform, &BoneRestGlobalTransform), Without<CurrentRetargeting>>,
+    dist_bones: Query<(&Transform, &BoneRestGlobalTransform)>,
 ) {
     sources.par_iter().for_each(
         |(retarget_bone_to, src_pose_tf, src_rest_gtf, maybe_hips)| {
@@ -134,8 +137,16 @@ fn calc_hips_position(
 
 #[cfg(test)]
 mod tests {
-    use crate::vrma::retarget::bone::{calc_delta, calc_scaling};
+    use crate::tests::{test_app, TestResult};
+    use crate::vrm::humanoid_bone::{HumanoidBoneRegistry, HumanoidBonesAttached};
+    use crate::vrm::VrmHipsBoneTo;
+    use crate::vrma::retarget::bone::{
+        calc_delta, calc_scaling, retarget_bones_to_vrm, RetargetedHumanBones,
+    };
+    use crate::vrma::RetargetTo;
+    use bevy::ecs::system::RunSystemOnce;
     use bevy::math::Vec3;
+    use bevy::prelude::{Commands, Entity};
 
     #[test]
     fn test_scaling() {
@@ -147,5 +158,25 @@ mod tests {
     fn test_delta() {
         let delta = calc_delta(Vec3::splat(1.), Vec3::splat(2.));
         assert_eq!(delta, Vec3::splat(-1.));
+    }
+
+    #[test]
+    fn has_been_attached_humanoid_bones() -> TestResult {
+        let mut app = test_app();
+        app.world_mut().run_system_once(|mut commands: Commands| {
+            let vrm = commands.spawn(VrmHipsBoneTo(Entity::PLACEHOLDER)).id();
+            commands.spawn((
+                HumanoidBoneRegistry::default(),
+                RetargetTo(vrm),
+                HumanoidBonesAttached,
+            ));
+        })?;
+        app.world_mut().run_system_once(retarget_bones_to_vrm)?;
+        assert!(app
+            .world_mut()
+            .query::<&RetargetedHumanBones>()
+            .get_single(app.world())
+            .is_ok());
+        Ok(())
     }
 }
