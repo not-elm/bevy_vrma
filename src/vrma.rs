@@ -10,8 +10,9 @@ use crate::vrma::retarget::VrmaRetargetPlugin;
 use crate::vrma::spawn::VrmaSpawnPlugin;
 use bevy::app::App;
 use bevy::asset::Handle;
-use bevy::prelude::{Component, Entity, Plugin, Reflect};
+use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::time::Duration;
 
 pub struct VrmaPlugin;
@@ -24,6 +25,7 @@ impl Plugin for VrmaPlugin {
         app.register_type::<Vrma>()
             .register_type::<VrmaEntity>()
             .register_type::<VrmaHandle>()
+            .register_type::<VrmaPath>()
             .register_type::<VrmaDuration>()
             .register_type::<RetargetTo>()
             .register_type::<RetargetSource>()
@@ -41,12 +43,21 @@ impl Plugin for VrmaPlugin {
 pub struct VrmaHandle(pub Handle<VrmaAsset>);
 
 /// A marker component attached to the entity of VRMA.
-#[derive(Debug, Component, Reflect, Copy, Clone)]
+#[derive(Debug, Component, Reflect, Copy, Clone, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 pub struct Vrma;
 
 /// A new type pattern object to explicitly indicate the entity is VRMA.
 #[derive(Debug, Reflect, Copy, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[reflect(Serialize, Deserialize)]
 pub struct VrmaEntity(pub Entity);
+
+/// Represents the path to the VRMA file.
+///
+/// This component is automatically attached to the entity with the same entity as [`VrmaHandle`] after loading VRMA.
+#[derive(Component, Debug, Reflect, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[reflect(Component, Serialize, Deserialize)]
+pub struct VrmaPath(pub PathBuf);
 
 /// The component that holds the duration of VRMA's animation.
 /// This component is automatically attached to the entity with the same entity as [`VrmaHandle`] after loading VRMA.
@@ -57,10 +68,12 @@ pub struct VrmaDuration(pub Duration);
 
 /// The component that holds the entity to retarget.
 /// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.
-#[derive(Debug, Component, Reflect)]
+#[derive(Debug, Component, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 struct RetargetTo(pub Entity);
 
 /// This is a component that indicates that it is the source of retargeting.
 /// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.
-#[derive(Component, Reflect)]
+#[derive(Component, Reflect, Serialize, Deserialize)]
+#[reflect(Component, Serialize, Deserialize)]
 struct RetargetSource;

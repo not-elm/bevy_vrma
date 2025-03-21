@@ -3,7 +3,7 @@ use bevy::asset::io::Reader;
 use bevy::asset::{Asset, AssetLoader, LoadContext};
 use bevy::gltf::{Gltf, GltfError, GltfLoader, GltfLoaderSettings};
 use bevy::image::CompressedImageFormats;
-use bevy::prelude::{AssetApp, TypePath};
+use bevy::prelude::*;
 use bevy::render::renderer::RenderDevice;
 use bevy::utils::default;
 
