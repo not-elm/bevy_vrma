@@ -1,24 +1,28 @@
-use crate::vrm::expressions::VrmExpressionRegistry;
+use crate::prelude::ChildSearcher;
+use crate::vrm::expressions::{RequestInitializeExpressions, VrmExpressionRegistry};
 use crate::vrm::gltf::extensions::VrmExtensions;
-use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
+use crate::vrm::humanoid_bone::{HumanoidBoneRegistry, RequestInitializeHumanoidBones};
 use crate::vrm::loader::{VrmAsset, VrmHandle};
 use crate::vrm::mtoon::VrmcMaterialRegistry;
+use crate::vrm::spring_bone::initialize::RequestInitializeSpringBone;
 use crate::vrm::spring_bone::registry::*;
-use crate::vrm::{Vrm, VrmPath};
+use crate::vrm::{Initialized, Vrm, VrmPath};
+use crate::vrma::animation::animation_graph::RequestUpdateAnimationGraph;
+use crate::vrma::Vrma;
 use bevy::app::{App, Update};
 use bevy::asset::Assets;
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;
 use bevy::scene::SceneRoot;
 
-pub(crate) struct VrmSpawnPlugin;
+pub(crate) struct VrmInitializePlugin;
 
-impl Plugin for VrmSpawnPlugin {
+impl Plugin for VrmInitializePlugin {
     fn build(
         &self,
         app: &mut App,
     ) {
-        app.add_systems(Update, spawn_vrm);
+        app.add_systems(Update, (spawn_vrm, request_initialize));
     }
 }
 
@@ -39,8 +43,8 @@ fn spawn_vrm(
         };
         let extensions = match VrmExtensions::from_gltf(&vrm.gltf) {
             Ok(extensions) => extensions,
-            Err(_e) => {
-                error!("Failed to load VRM extensions: {_e}");
+            Err(e) => {
+                error!("Failed to load VRM extensions: {e}");
                 continue;
             }
         };
@@ -88,6 +92,34 @@ fn spawn_vrm(
     }
 }
 
+fn request_initialize(
+    mut commands: Commands,
+    models: Query<(Entity, &HumanoidBoneRegistry, Has<Vrma>), Without<Initialized>>,
+    parents: Query<&ChildOf>,
+    searcher: ChildSearcher,
+) {
+    for (root, registry, has_vrma) in models.iter() {
+        if !searcher.has_been_spawned_all_bones(root, registry) {
+            continue;
+        }
+        commands
+            .entity(root)
+            .trigger(RequestInitializeHumanoidBones)
+            .trigger(RequestInitializeSpringBone);
+        if has_vrma {
+            if let Ok(ChildOf(vrm)) = parents.get(root) {
+                commands.entity(root).trigger(RequestUpdateAnimationGraph {
+                    vrma: root,
+                    vrm: *vrm,
+                });
+            };
+        } else {
+            commands.entity(root).trigger(RequestInitializeExpressions);
+        }
+        commands.entity(root).insert(Initialized);
+    }
+}
+
 #[cfg(feature = "develop")]
 fn output_vrm_materials(
     vrm_name: &std::ffi::OsStr,
@@ -108,7 +140,7 @@ fn output_vrm_extensions(
 ) {
     let name = vrm_name.to_str().unwrap();
     std::fs::write(
-        format!("{name}.json"),
+        format!("./develop/{name}.json"),
         serde_json::to_string_pretty(extensions).unwrap(),
     )
     .unwrap();

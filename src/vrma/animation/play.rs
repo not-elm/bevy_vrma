@@ -1,9 +1,12 @@
-use crate::system_param::vrm_animation_players::VrmaPlayer;
-use crate::vrm::Vrm;
-use crate::vrma::retarget::CurrentRetargeting;
-use crate::vrma::{RetargetSource, Vrma, VrmaEntity};
+use crate::prelude::ChildSearcher;
+use crate::vrma::VrmAnimationNodeIndex;
+use bevy::animation::{AnimationPlayer, RepeatAnimation};
 use bevy::app::{App, Plugin};
-use bevy::prelude::{ChildOf, Children, Commands, Entity, Event, Query, Trigger, With, Without};
+use bevy::prelude::{
+    AnimationNodeIndex, AnimationTransitions, ChildOf, Children, Entity, Event, Query, Transform,
+    Trigger,
+};
+use std::time::Duration;
 
 /// The trigger event to play the Vrma's animation.
 ///
@@ -12,8 +15,22 @@ use bevy::prelude::{ChildOf, Children, Commands, Entity, Event, Query, Trigger, 
 /// If there are multiple VRMA entities, the animation of all other VRMAs will be stopped except for the one specified in the trigger.
 #[derive(Event, Debug)]
 pub struct PlayVrma {
-    /// Whether to loop the animation.
-    pub repeat: bool,
+    /// Repetition behavior of an animation.
+    /// Default is [`RepeatAnimation::Never`].
+    pub repeat: RepeatAnimation,
+
+    /// A time until the existing animation fades out.
+    /// Default is 300 milliseconds.
+    pub transition_duration: Duration,
+}
+
+impl Default for PlayVrma {
+    fn default() -> Self {
+        Self {
+            repeat: RepeatAnimation::Never,
+            transition_duration: Duration::from_millis(300),
+        }
+    }
 }
 
 /// The trigger event to stop the Vrma's animation.
@@ -28,262 +45,191 @@ impl Plugin for VrmaAnimationPlayPlugin {
         &self,
         app: &mut App,
     ) {
-        app.add_observer(observe_play_animation)
-            .add_observer(observe_stop_animation);
+        app.add_observer(apply_play_vrma)
+            .add_observer(apply_stop_vrma);
     }
 }
 
-fn observe_play_animation(
+fn apply_play_vrma(
     trigger: Trigger<PlayVrma>,
-    mut commands: Commands,
-    mut vrma_player: VrmaPlayer,
-    parents: Query<&ChildOf, With<Vrma>>,
-    children: Query<&Children, With<Vrm>>,
-    vrma: Query<Entity, With<Vrma>>,
-    entities: Query<(Option<&Children>, Option<&RetargetSource>), Without<Vrm>>,
+    mut players: Query<(
+        &mut Transform,
+        &mut AnimationPlayer,
+        Option<&mut AnimationTransitions>,
+    )>,
+    searcher: ChildSearcher,
+    parents: Query<&ChildOf>,
+    childrens: Query<&Children>,
+    vrmas: Query<&VrmAnimationNodeIndex>,
 ) {
-    let Ok(vrm_entity) = parents.get(trigger.target()).map(|c| c.parent()) else {
+    let vrma_entity = trigger.target();
+    let Ok(ChildOf(vrm_entity)) = parents.get(vrma_entity) else {
         return;
     };
-    let Ok(children) = children.get(vrm_entity) else {
+    let Ok(node_index) = vrmas.get(vrma_entity) else {
         return;
     };
-    for child in children.iter() {
-        let Ok(vrma_entity) = vrma.get(*child) else {
-            continue;
+    play_humanoid_bone_animation(
+        *vrm_entity,
+        node_index.0,
+        trigger.repeat,
+        trigger.transition_duration,
+        &searcher,
+        &mut players,
+    );
+    play_expression_animations(
+        *vrm_entity,
+        node_index.0,
+        trigger.repeat,
+        &mut players,
+        &childrens,
+        &searcher,
+    );
+}
+
+fn play_humanoid_bone_animation(
+    vrm: Entity,
+    node_index: AnimationNodeIndex,
+    repeat: RepeatAnimation,
+    transition_duration: Duration,
+    searcher: &ChildSearcher,
+    players: &mut Query<(
+        &mut Transform,
+        &mut AnimationPlayer,
+        Option<&mut AnimationTransitions>,
+    )>,
+) {
+    let Some(root_bone) = searcher.find_root_bone(vrm) else {
+        return;
+    };
+    let Ok((_, mut player, Some(mut transitions))) = players.get_mut(root_bone) else {
+        return;
+    };
+    transitions
+        .play(&mut player, node_index, transition_duration)
+        .set_repeat(repeat);
+}
+
+fn play_expression_animations(
+    vrm: Entity,
+    node_index: AnimationNodeIndex,
+    repeat: RepeatAnimation,
+    entities: &mut Query<(
+        &mut Transform,
+        &mut AnimationPlayer,
+        Option<&mut AnimationTransitions>,
+    )>,
+    childrens: &Query<&Children>,
+    searcher: &ChildSearcher,
+) {
+    let Some(expressions_root) = searcher.find_expressions_root(vrm) else {
+        return;
+    };
+    let Ok(children) = childrens.get(expressions_root) else {
+        return;
+    };
+    for child in children.iter().copied() {
+        if let Ok((mut tf, mut player, _)) = entities.get_mut(child) {
+            // Reset the expression weight to zero.
+            tf.translation.x = 0.0;
+            player.stop_all();
+            player.play(node_index).set_repeat(repeat);
         };
-        if trigger.target() == vrma_entity {
-            vrma_player.play(VrmaEntity(vrma_entity), trigger.repeat);
-            foreach_children(
-                &mut commands,
-                vrma_entity,
-                &entities,
-                &|commands, entity, target_source| {
-                    if target_source.is_some() {
-                        commands.entity(entity).insert(CurrentRetargeting);
-                    }
-                },
-            );
-        } else {
-            vrma_player.stop(VrmaEntity(vrma_entity));
-            foreach_children(
-                &mut commands,
-                vrma_entity,
-                &entities,
-                &|commands, entity, target_source| {
-                    if target_source.is_some() {
-                        commands.entity(entity).remove::<CurrentRetargeting>();
-                    }
-                },
-            );
-        }
     }
 }
 
-fn observe_stop_animation(
+fn apply_stop_vrma(
     trigger: Trigger<StopVrma>,
-    mut commands: Commands,
-    mut vrma_player: VrmaPlayer,
-    parents: Query<&ChildOf, With<Vrma>>,
-    children: Query<&Children, With<Vrm>>,
-    vrma: Query<Entity, With<Vrma>>,
-    entities: Query<(Option<&Children>, Option<&RetargetSource>), Without<Vrm>>,
+    mut rig_entities: Query<&mut AnimationPlayer>,
+    vrmas: Query<&VrmAnimationNodeIndex>,
+    rig_children: Query<&Children>,
 ) {
-    let Ok(vrm_entity) = parents.get(trigger.target()).map(|c| c.parent()) else {
+    let vrma_entity = trigger.target();
+    let Ok(node_index) = vrmas.get(vrma_entity) else {
         return;
     };
-    let Ok(children) = children.get(vrm_entity) else {
-        return;
-    };
-    for child in children {
-        let Ok(vrma_entity) = vrma.get(*child) else {
-            continue;
-        };
-        vrma_player.stop(VrmaEntity(vrma_entity));
-        foreach_children(
-            &mut commands,
-            vrm_entity,
-            &entities,
-            &|commands, entity, retargeting_marker| {
-                if retargeting_marker.is_some() {
-                    commands.entity(entity).remove::<CurrentRetargeting>();
-                }
-            },
-        );
-    }
+    stop_animations(vrma_entity, node_index.0, &mut rig_entities, &rig_children);
 }
 
-fn foreach_children(
-    commands: &mut Commands,
+fn stop_animations(
     entity: Entity,
-    entities: &Query<(Option<&Children>, Option<&RetargetSource>), Without<Vrm>>,
-    f: &impl Fn(&mut Commands, Entity, Option<&RetargetSource>),
+    node_index: AnimationNodeIndex,
+    rig_entities: &mut Query<&mut AnimationPlayer>,
+    rig_children: &Query<&Children>,
 ) {
-    let Ok((children, bone_to)) = entities.get(entity) else {
-        return;
+    if let Ok(mut player) = rig_entities.get_mut(entity) {
+        player.stop(node_index);
     };
-    f(commands, entity, bone_to);
-    if let Some(children) = children {
-        for child in children.iter() {
-            foreach_children(commands, *child, entities, f);
+    if let Ok(children) = rig_children.get(entity) {
+        for child in children.iter().copied() {
+            stop_animations(child, node_index, rig_entities, rig_children);
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::tests::{test_app, TestResult};
-    use crate::vrm::Vrm;
-    use crate::vrma::animation::play::{PlayVrma, StopVrma, VrmaAnimationPlayPlugin};
-    use crate::vrma::animation::setup::setup_vrma_player;
-    use crate::vrma::animation::{VrmAnimationGraph, VrmaAnimationPlayers};
-    use crate::vrma::Vrma;
-    use bevy::ecs::system::RunSystemOnce;
+    use crate::prelude::*;
+    use crate::tests::test_app;
+    use crate::vrma::animation::play::VrmaAnimationPlayPlugin;
+    use crate::vrma::VrmAnimationNodeIndex;
     use bevy::prelude::*;
-    use bevy::utils::default;
-
-    #[derive(Component)]
-    struct Vrma1;
-
-    #[derive(Component)]
-    struct Vrma2;
-
-    #[derive(Component)]
-    struct AnimationPlayer1;
-
-    #[derive(Component)]
-    struct AnimationPlayer2;
+    use bevy_test_helper::system::SystemExt;
 
     #[test]
-    fn play_vrma() -> TestResult {
+    fn test_play_vrma() {
         let mut app = test_app();
         app.add_plugins(VrmaAnimationPlayPlugin);
-        app.world_mut().run_system_once(|mut commands: Commands| {
-            commands.spawn(Vrm).with_children(|cmd| {
-                cmd.spawn((
-                    Vrma,
-                    VrmaAnimationPlayers::default(),
-                    VrmAnimationGraph {
-                        nodes: vec![0.into()],
-                        ..default()
-                    },
-                ))
-                .with_child(AnimationPlayer::default());
-            });
-        })?;
-        app.world_mut().run_system_once(setup_vrma_player)?;
-        app.world_mut().run_system_once(
-            |mut commands: Commands, vrma: Query<Entity, With<Vrma>>| {
-                commands
-                    .entity(vrma.single().unwrap())
-                    .trigger(PlayVrma { repeat: false });
-            },
-        )?;
+
+        let vrm = app.world_mut().spawn_empty().id();
+        let vrma = app.world_mut().spawn(VrmAnimationNodeIndex::default()).id();
+        app.world_mut().commands().entity(vrm).add_child(vrma);
+
+        app.world_mut().commands().entity(vrm).with_child((
+            Name::new(Vrm::ROOT_BONE),
+            AnimationPlayer::default(),
+            AnimationTransitions::default(),
+        ));
+
+        app.world_mut()
+            .commands()
+            .entity(vrma)
+            .trigger(PlayVrma::default());
         app.update();
 
-        assert!(!app
-            .world_mut()
-            .query::<&AnimationPlayer>()
-            .single(app.world())?
-            .all_finished());
-        Ok(())
+        app.run_system_once(|player: Query<&AnimationPlayer>| {
+            let player = player.single().expect("Failed to find AnimationPlayer");
+            assert!(!player.all_finished());
+        });
     }
 
     #[test]
-    fn stop_others() -> TestResult {
+    fn test_stop_vrma() {
         let mut app = test_app();
         app.add_plugins(VrmaAnimationPlayPlugin);
-        app.world_mut().run_system_once(|mut commands: Commands| {
-            commands.spawn(Vrm).with_children(|cmd| {
-                cmd.spawn((
-                    Vrma1,
-                    Vrma,
-                    VrmaAnimationPlayers::default(),
-                    VrmAnimationGraph {
-                        nodes: vec![0.into()],
-                        ..default()
-                    },
-                ))
-                .with_child((AnimationPlayer1, AnimationPlayer::default()));
 
-                cmd.spawn((
-                    Vrma,
-                    Vrma2,
-                    VrmaAnimationPlayers::default(),
-                    VrmAnimationGraph {
-                        nodes: vec![0.into()],
-                        ..default()
-                    },
-                ))
-                .with_child((AnimationPlayer2, AnimationPlayer::default()));
-            });
-        })?;
-        app.world_mut().run_system_once(setup_vrma_player)?;
-        app.world_mut().run_system_once(
-            |mut commands: Commands, vrma: Query<Entity, With<Vrma1>>| {
-                commands
-                    .entity(vrma.single().unwrap())
-                    .trigger(PlayVrma { repeat: false });
-            },
-        )?;
-        app.world_mut().run_system_once(
-            |mut commands: Commands, vrma: Query<Entity, With<Vrma2>>| {
-                commands
-                    .entity(vrma.single().unwrap())
-                    .trigger(PlayVrma { repeat: false });
-            },
-        )?;
+        let vrm = app.world_mut().spawn_empty().id();
+        let vrma = app.world_mut().spawn(VrmAnimationNodeIndex::default()).id();
+        app.world_mut().commands().entity(vrm).add_child(vrma);
+
+        app.world_mut().commands().entity(vrm).with_child((
+            Name::new(Vrm::ROOT_BONE),
+            AnimationPlayer::default(),
+            AnimationTransitions::default(),
+        ));
+
+        app.world_mut()
+            .commands()
+            .entity(vrma)
+            .trigger(PlayVrma::default());
         app.update();
 
-        assert!(app
-            .world_mut()
-            .query_filtered::<&AnimationPlayer, With<AnimationPlayer1>>()
-            .single(app.world())?
-            .all_finished());
-        assert!(!app
-            .world_mut()
-            .query_filtered::<&AnimationPlayer, With<AnimationPlayer2>>()
-            .single(app.world())?
-            .all_finished());
-        Ok(())
-    }
-
-    #[test]
-    fn stop_vrma() -> TestResult {
-        let mut app = test_app();
-        app.add_plugins(VrmaAnimationPlayPlugin);
-        app.world_mut().run_system_once(|mut commands: Commands| {
-            commands.spawn(Vrm).with_children(|cmd| {
-                cmd.spawn((
-                    Vrma,
-                    VrmAnimationGraph {
-                        nodes: vec![0.into()],
-                        ..default()
-                    },
-                ))
-                .with_child((AnimationPlayer1, AnimationPlayer::default()));
-            });
-        })?;
-        app.world_mut().run_system_once(setup_vrma_player)?;
-        app.world_mut().run_system_once(
-            |mut commands: Commands, vrma: Query<Entity, With<Vrma>>| {
-                commands
-                    .entity(vrma.single().unwrap())
-                    .trigger(PlayVrma { repeat: false });
-            },
-        )?;
-        app.world_mut().run_system_once(
-            |mut commands: Commands, vrma: Query<Entity, With<Vrma>>| {
-                commands.entity(vrma.single().unwrap()).trigger(StopVrma);
-            },
-        )?;
+        app.world_mut().commands().entity(vrma).trigger(StopVrma);
         app.update();
 
-        assert!(app
-            .world_mut()
-            .query_filtered::<&AnimationPlayer, With<AnimationPlayer1>>()
-            .single(app.world())?
-            .all_finished());
-        Ok(())
+        app.run_system_once(|player: Query<&AnimationPlayer>| {
+            let player = player.single().expect("Failed to find AnimationPlayer");
+            assert!(player.all_finished());
+        });
     }
 }

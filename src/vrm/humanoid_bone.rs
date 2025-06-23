@@ -10,20 +10,22 @@
 mod bones;
 
 use crate::prelude::*;
-use crate::system_param::child_searcher::ChildSearcher;
 use crate::vrm::gltf::extensions::VrmNode;
 use crate::vrm::humanoid_bone::bones::BonesPlugin;
 use crate::vrm::{BoneRestGlobalTransform, BoneRestTransform, VrmBone};
-use bevy::app::{App, Plugin, Update};
+use bevy::animation::{AnimationTarget, AnimationTargetId};
+use bevy::app::{App, Plugin};
 use bevy::asset::{Assets, Handle};
 use bevy::gltf::GltfNode;
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use serde::{Deserialize, Serialize};
 
 pub mod prelude {
     pub use crate::vrm::humanoid_bone::bones::*;
 }
+
+#[derive(Event)]
+pub(crate) struct RequestInitializeHumanoidBones;
 
 #[derive(Component, Deref, Reflect, Default)]
 pub(crate) struct HumanoidBoneRegistry(HashMap<VrmBone, Name>);
@@ -54,15 +56,11 @@ impl Plugin for VrmHumanoidBonePlugin {
         &self,
         app: &mut App,
     ) {
-        app.register_type::<HumanoidBonesAttached>()
-            .register_type::<HumanoidBoneRegistry>()
+        app.register_type::<HumanoidBoneRegistry>()
             .add_plugins(BonesPlugin)
-            .add_systems(Update, setup_bones);
+            .add_observer(apply_initialize_humanoid_bones);
     }
 }
-
-#[derive(Component, Reflect, Serialize, Deserialize)]
-pub struct HumanoidBonesAttached;
 
 macro_rules! insert_bone {
     (
@@ -89,91 +87,119 @@ macro_rules! insert_bone {
     };
 }
 
-fn setup_bones(
+fn apply_initialize_humanoid_bones(
+    trigger: Trigger<RequestInitializeHumanoidBones>,
     mut commands: Commands,
     searcher: ChildSearcher,
-    vrm: Query<(Entity, &HumanoidBoneRegistry), Without<HumanoidBonesAttached>>,
+    models: Query<&HumanoidBoneRegistry>,
+    parents: Query<&ChildOf>,
     transforms: Query<(&Transform, &GlobalTransform)>,
+    has_vrm: Query<Has<Vrm>>,
 ) {
-    for (vrm_entity, humanoid_bones) in vrm.iter() {
-        if !searcher.has_been_spawned_all_bones(vrm_entity, humanoid_bones) {
-            continue;
-        }
+    let model_entity = trigger.target();
+    let Ok(registry) = models.get(model_entity) else {
+        return;
+    };
+    let Some(hips) =
+        searcher.find_from_name(model_entity, registry.get(&VrmBone::from("hips")).unwrap())
+    else {
+        return;
+    };
+    let Ok(ChildOf(root_bone)) = parents.get(hips) else {
+        return;
+    };
+    let has_vrm = has_vrm.get(model_entity).is_ok_and(|h| h);
+    commands
+        .entity(*root_bone)
+        .insert((AnimationPlayer::default(), AnimationTransitions::default()));
+    if has_vrm {
+        commands.entity(*root_bone).insert((
+            Name::new(Vrm::ROOT_BONE),
+            AnimationTarget {
+                id: AnimationTargetId::from_name(&Name::new(Vrm::ROOT_BONE)),
+                player: *root_bone,
+            },
+        ));
+    }
 
-        for (bone, name) in humanoid_bones.iter() {
-            let Some(bone_entity) = searcher.find_from_name(vrm_entity, name.as_str()) else {
-                continue;
-            };
-            let Ok((tf, gtf)) = transforms.get(bone_entity) else {
-                continue;
-            };
-            commands.entity(bone_entity).insert((
-                bone.clone(),
-                BoneRestTransform(*tf),
-                BoneRestGlobalTransform(*gtf),
-            ));
-            insert_bone!(
-                commands,
-                vrm_entity,
-                bone_entity,
-                bone,
-                Hips,
-                RightRingProximal,
-                RightThumbDistal,
-                RightRingIntermediate,
-                RightUpperArm,
-                LeftIndexProximal,
-                LeftUpperLeg,
-                LeftFoot,
-                LeftIndexDistal,
-                LeftThumbMetacarpal,
-                RightLowerArm,
-                LeftMiddleDistal,
-                RightUpperLeg,
-                LeftToes,
-                LeftThumbDistal,
-                RightShoulder,
-                RightThumbMetacarpal,
-                Spine,
-                LeftLowerLeg,
-                LeftShoulder,
-                LeftUpperArm,
-                UpperChest,
-                RightToes,
-                RightIndexDistal,
-                LeftMiddleProximal,
-                LeftRingProximal,
-                LeftRingDistal,
-                LeftThumbProximal,
-                LeftIndexIntermediate,
-                LeftLittleProximal,
-                LeftLittleDistal,
-                RightHand,
-                RightLittleProximal,
-                LeftRingIntermediate,
-                RightIndexIntermediate,
-                Chest,
-                LeftHand,
-                RightLittleIntermediate,
-                RightFoot,
-                RightLowerLeg,
-                LeftLittleIntermediate,
-                LeftLowerArm,
-                RightLittleDistal,
-                RightMiddleIntermediate,
-                RightMiddleProximal,
-                RightThumbProximal,
-                Neck,
-                Jaw,
-                Head,
-                LeftEye,
-                RightEye,
-                LeftMiddleIntermediate,
-                RightRingDistal,
-                RightIndexProximal,
-                RightMiddleDistal,
-            );
-            commands.entity(vrm_entity).insert(HumanoidBonesAttached);
+    for (bone, name) in registry.iter() {
+        let Some(bone_entity) = searcher.find_from_name(model_entity, name.as_str()) else {
+            continue;
+        };
+        let Ok((tf, gtf)) = transforms.get(bone_entity) else {
+            continue;
+        };
+        commands.entity(bone_entity).insert((
+            bone.clone(),
+            BoneRestTransform(*tf),
+            BoneRestGlobalTransform(*gtf),
+        ));
+        if has_vrm {
+            commands.entity(bone_entity).insert(AnimationTarget {
+                id: AnimationTargetId::from_name(name),
+                player: *root_bone,
+            });
         }
+        insert_bone!(
+            commands,
+            model_entity,
+            bone_entity,
+            bone,
+            Hips,
+            RightRingProximal,
+            RightThumbDistal,
+            RightRingIntermediate,
+            RightUpperArm,
+            LeftIndexProximal,
+            LeftUpperLeg,
+            LeftFoot,
+            LeftIndexDistal,
+            LeftThumbMetacarpal,
+            RightLowerArm,
+            LeftMiddleDistal,
+            RightUpperLeg,
+            LeftToes,
+            LeftThumbDistal,
+            RightShoulder,
+            RightThumbMetacarpal,
+            Spine,
+            LeftLowerLeg,
+            LeftShoulder,
+            LeftUpperArm,
+            UpperChest,
+            RightToes,
+            RightIndexDistal,
+            LeftMiddleProximal,
+            LeftRingProximal,
+            LeftRingDistal,
+            LeftThumbProximal,
+            LeftIndexIntermediate,
+            LeftLittleProximal,
+            LeftLittleDistal,
+            RightHand,
+            RightLittleProximal,
+            LeftRingIntermediate,
+            RightIndexIntermediate,
+            Chest,
+            LeftHand,
+            RightLittleIntermediate,
+            RightFoot,
+            RightLowerLeg,
+            LeftLittleIntermediate,
+            LeftLowerArm,
+            RightLittleDistal,
+            RightMiddleIntermediate,
+            RightMiddleProximal,
+            RightThumbProximal,
+            Neck,
+            Jaw,
+            Head,
+            LeftEye,
+            RightEye,
+            LeftMiddleIntermediate,
+            RightRingDistal,
+            RightIndexProximal,
+            RightMiddleDistal,
+        );
     }
 }

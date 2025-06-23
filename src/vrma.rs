@@ -1,14 +1,12 @@
 pub(crate) mod animation;
 mod gltf;
+mod initialize;
 mod loader;
-mod retarget;
-mod spawn;
 
 use crate::macros::{entity_component, marker_component};
 use crate::vrma::animation::VrmaAnimationPlayersPlugin;
+use crate::vrma::initialize::VrmaInitializePlugin;
 use crate::vrma::loader::{VrmaAsset, VrmaLoaderPlugin};
-use crate::vrma::retarget::VrmaRetargetPlugin;
-use crate::vrma::spawn::VrmaSpawnPlugin;
 use bevy::app::App;
 use bevy::asset::Handle;
 use bevy::prelude::*;
@@ -33,8 +31,7 @@ impl Plugin for VrmaPlugin {
     ) {
         app.add_plugins((
             VrmaLoaderPlugin,
-            VrmaSpawnPlugin,
-            VrmaRetargetPlugin,
+            VrmaInitializePlugin,
             VrmaAnimationPlayersPlugin,
         ));
 
@@ -44,7 +41,11 @@ impl Plugin for VrmaPlugin {
             .register_type::<VrmaPath>()
             .register_type::<VrmaDuration>()
             .register_type::<RetargetTo>()
-            .register_type::<RetargetSource>();
+            .register_type::<RetargetBoneTo>()
+            .register_type::<RetargetSource>()
+            .register_type::<VrmAnimationClipHandle>()
+            .register_type::<VrmAnimationNodeIndex>()
+            .register_type::<CurrentSourceVrmaBoneEntity>();
     }
 }
 
@@ -104,13 +105,29 @@ pub struct LoadedVrma {
     pub vrm: Entity,
 }
 
+/// The component that holds the animation clip of VRMA.
+#[derive(Debug, Component, Reflect)]
+#[reflect(Component)]
+pub(crate) struct VrmAnimationClipHandle(pub Handle<AnimationClip>);
+
+/// The component that holds the animation node index for VRMA.
+#[derive(Debug, Component, Reflect, Copy, Clone, Default)]
+#[reflect(Component, Default)]
+pub(crate) struct VrmAnimationNodeIndex(pub AnimationNodeIndex);
+
+#[derive(Debug, Component, Reflect)]
+#[reflect(Component)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
+pub(crate) struct RetargetBoneTo(pub Entity);
+
 /// The component that holds the entity to retarget.
 /// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.
 #[derive(Debug, Component, Reflect)]
 #[reflect(Component)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-struct RetargetTo(pub Entity);
+pub(crate) struct RetargetTo(pub Entity);
 
 /// This is a component that indicates that it is the source of retargeting.
 /// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.
@@ -118,4 +135,20 @@ struct RetargetTo(pub Entity);
 #[reflect(Component)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-struct RetargetSource;
+pub(crate) struct CurrentSourceVrmaBoneEntity(pub Entity);
+
+/// This is a component that indicates that it is the source of retargeting.
+/// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.
+#[derive(Debug, Component, Reflect)]
+#[reflect(Component)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
+pub(crate) struct PreviousSourceVrmaBoneEntity(pub Entity);
+
+/// This is a component that indicates that it is the source of retargeting.
+/// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.
+#[derive(Debug, Component, Reflect)]
+#[reflect(Component)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
+pub(crate) struct RetargetSource;

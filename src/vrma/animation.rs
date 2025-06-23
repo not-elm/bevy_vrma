@@ -1,11 +1,16 @@
+pub(crate) mod animation_graph;
+mod bone_rotation;
+mod bone_translation;
+pub(crate) mod expressions;
 mod play;
-mod setup;
 
+use crate::vrma::animation::animation_graph::VrmaAnimationGraphPlugin;
+use crate::vrma::animation::expressions::VrmaRetargetExpressionsPlugin;
 use crate::vrma::animation::play::VrmaAnimationPlayPlugin;
-use crate::vrma::animation::setup::VrmaAnimationSetupPlugin;
+use crate::vrma::RetargetSource;
 use bevy::app::App;
-use bevy::asset::Handle;
 use bevy::prelude::*;
+use bevy::window::RequestRedraw;
 
 pub mod prelude {
     pub use crate::vrma::animation::{
@@ -22,8 +27,12 @@ impl Plugin for VrmaAnimationPlayersPlugin {
         app: &mut App,
     ) {
         app.register_type::<VrmaAnimationPlayers>()
-            .register_type::<VrmAnimationGraph>()
-            .add_plugins((VrmaAnimationSetupPlugin, VrmaAnimationPlayPlugin));
+            .add_plugins((
+                VrmaAnimationGraphPlugin,
+                VrmaAnimationPlayPlugin,
+                VrmaRetargetExpressionsPlugin,
+            ))
+            .add_systems(Update, request_redraw.run_if(playing_animation));
     }
 }
 
@@ -35,21 +44,12 @@ impl Plugin for VrmaAnimationPlayersPlugin {
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
 pub struct VrmaAnimationPlayers(pub Vec<Entity>);
 
-#[derive(Component, Default, Reflect)]
-#[reflect(Component)]
-pub(crate) struct VrmAnimationGraph {
-    pub handle: Handle<AnimationGraph>,
-    pub nodes: Vec<AnimationNodeIndex>,
+fn playing_animation(
+    changed_bones: Query<Entity, (Changed<Transform>, With<RetargetSource>)>
+) -> bool {
+    !changed_bones.is_empty()
 }
 
-impl VrmAnimationGraph {
-    pub fn new(
-        clip: impl IntoIterator<Item = Handle<AnimationClip>>,
-        animation_graphs: &mut Assets<AnimationGraph>,
-    ) -> Self {
-        let (graph, nodes) = AnimationGraph::from_clips(clip);
-        let handle = animation_graphs.add(graph);
-
-        Self { handle, nodes }
-    }
+fn request_redraw(mut request: EventWriter<RequestRedraw>) {
+    request.write(RequestRedraw);
 }

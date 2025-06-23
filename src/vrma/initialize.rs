@@ -1,43 +1,40 @@
 //! This module inserts [`SceneRoot`] and VRMA-related components from the loaded [`VrmaHandle`].
 
-use crate::vrm::humanoid_bone::{HumanoidBoneRegistry, HumanoidBonesAttached};
-use crate::vrma::animation::{VrmAnimationGraph, VrmaAnimationPlayers};
+use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
+use crate::vrm::Initialized;
+use crate::vrma::animation::expressions::VrmaExpressionNames;
 use crate::vrma::gltf::extensions::VrmaExtensions;
 use crate::vrma::loader::VrmaAsset;
-use crate::vrma::retarget::VrmaExpressionNames;
-use crate::vrma::{RetargetTo, Vrma, VrmaDuration, VrmaHandle, VrmaPath};
+use crate::vrma::{LoadedVrma, VrmAnimationClipHandle, Vrma, VrmaDuration, VrmaHandle, VrmaPath};
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;
 use bevy::scene::SceneRoot;
 use std::time::Duration;
 
-pub(super) struct VrmaSpawnPlugin;
+pub(super) struct VrmaInitializePlugin;
 
-impl Plugin for VrmaSpawnPlugin {
+impl Plugin for VrmaInitializePlugin {
     fn build(
         &self,
         app: &mut App,
     ) {
-        app.add_systems(Update, spawn_vrma);
+        app.add_systems(Update, (spawn_vrma, trigger_loaded));
     }
 }
 
 fn spawn_vrma(
     mut commands: Commands,
-    mut animation_graphs: ResMut<Assets<AnimationGraph>>,
     vrma_assets: Res<Assets<VrmaAsset>>,
     node_assets: Res<Assets<GltfNode>>,
     clip_assets: Res<Assets<AnimationClip>>,
     vrma_handles: Query<(Entity, &VrmaHandle, &ChildOf)>,
-    complements: Query<Entity, With<HumanoidBonesAttached>>,
-    global_transform: Query<&GlobalTransform>,
+    vrms: Query<Has<Initialized>>,
 ) {
     for (handle_entity, handle, child_of) in vrma_handles.iter() {
-        let vrm_entity = child_of.parent();
-        if complements.get(vrm_entity).is_err() {
-            continue;
-        }
-        if !global_transform.contains(vrm_entity) {
+        if !vrms
+            .get(child_of.parent())
+            .is_ok_and(|initialized| initialized)
+        {
             continue;
         }
         let Some(vrma_path) = handle.0.path().map(|path| path.path().to_path_buf()) else {
@@ -62,16 +59,17 @@ fn spawn_vrma(
                 continue;
             }
         };
-
+        let Some(animation_clip_handle) = vrma.gltf.animations.first() else {
+            error!("[VRMA] Not found vrma animations in {name}");
+            continue;
+        };
         commands.entity(handle_entity).insert((
             Vrma,
             Name::new(name),
-            VrmaAnimationPlayers::default(),
-            RetargetTo(child_of.parent()),
+            VrmAnimationClipHandle(animation_clip_handle.clone()),
             SceneRoot(scene_root),
             VrmaDuration(obtain_vrma_duration(&clip_assets, &vrma.gltf.animations)),
             VrmaPath(vrma_path),
-            VrmAnimationGraph::new(vrma.gltf.animations.to_vec(), &mut animation_graphs),
             VrmaExpressionNames::new(&extensions),
             HumanoidBoneRegistry::new(
                 &extensions.vrmc_vrm_animation.humanoid.human_bones,
@@ -92,4 +90,15 @@ fn obtain_vrma_duration(
         .map(|clip| clip.duration() as f64)
         .fold(0., |v1, v2| v2.max(v1));
     Duration::from_secs_f64(duration)
+}
+
+fn trigger_loaded(
+    mut commands: Commands,
+    vrmas: Query<(Entity, &ChildOf), (Added<Initialized>, With<Vrma>)>,
+) {
+    for (vrma_entity, child_of) in vrmas.iter() {
+        commands.entity(vrma_entity).trigger(LoadedVrma {
+            vrm: child_of.parent(),
+        });
+    }
 }

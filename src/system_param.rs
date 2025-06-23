@@ -1,9 +1,6 @@
-pub mod cameras;
-pub mod child_searcher;
-pub(crate) mod vrm_animation_players;
+mod cameras;
+mod child_searcher;
 
 pub mod prelude {
-    pub use crate::system_param::{
-        cameras::Cameras, child_searcher::ChildSearcher, vrm_animation_players::VrmaPlayer,
-    };
+    pub use crate::system_param::{cameras::Cameras, child_searcher::ChildSearcher};
 }

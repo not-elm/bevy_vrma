@@ -3,7 +3,9 @@
 
 use crate::prelude::*;
 use crate::system_set::VrmSystemSets;
-use bevy::app::{App, Plugin};
+use bevy::app::{Animation, App, Plugin};
+use bevy::input::mouse::MouseMotion;
+use bevy::prelude::TransformSystem::TransformPropagate;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::window::{PrimaryWindow, WindowRef};
@@ -55,16 +57,24 @@ impl Plugin for LookAtPlugin {
         app.register_type::<LookAt>()
             .register_type::<LookAtProperties>()
             .register_type::<LookAtType>()
-            .add_systems(Update, track_looking_target.in_set(VrmSystemSets::LookAt));
+            .add_systems(
+                PostUpdate,
+                track_looking_target
+                    .run_if(on_event::<MouseMotion>)
+                    .in_set(VrmSystemSets::LookAt)
+                    .after(Animation)
+                    .after(TransformPropagate),
+            );
     }
 }
 
 fn track_looking_target(
-    par_commands: ParallelCommands,
+    mut commands: Commands,
     vrms: Query<(
         &LookAt,
         &LookAtProperties,
         &HeadBoneEntity,
+        &SpineBoneEntity,
         &LeftEyeBoneEntity,
         &RightEyeBoneEntity,
     )>,
@@ -73,8 +83,8 @@ fn track_looking_target(
     global_transforms: Query<&GlobalTransform>,
     windows: Query<(&Window, Has<PrimaryWindow>)>,
 ) {
-    vrms.par_iter()
-        .for_each(|(look_at, properties, head, left_eye, right_eye)| {
+    vrms.iter()
+        .for_each(|(look_at, properties, head, spine, left_eye, right_eye)| {
             let Ok(head_gtf) = global_transforms.get(head.0) else {
                 return;
             };
@@ -100,7 +110,7 @@ fn track_looking_target(
             match properties.r#type {
                 LookAtType::Bone => {
                     apply_bone(
-                        &par_commands,
+                        &mut commands,
                         &transforms,
                         left_eye,
                         right_eye,
@@ -148,7 +158,7 @@ fn calc_target_position(
 }
 
 fn apply_bone(
-    par_commands: &ParallelCommands,
+    commands: &mut Commands,
     transforms: &Query<&Transform>,
     left_eye: &LeftEyeBoneEntity,
     right_eye: &RightEyeBoneEntity,
@@ -164,10 +174,8 @@ fn apply_bone(
     };
     let applied_left_eye_tf = apply_left_eye_bone(left_eye_tf, properties, yaw, pitch);
     let applied_right_eye_tf = apply_right_eye_bone(right_eye_tf, properties, yaw, pitch);
-    par_commands.command_scope(move |mut commands: Commands| {
-        commands.entity(left_eye.0).insert(applied_left_eye_tf);
-        commands.entity(right_eye.0).insert(applied_right_eye_tf);
-    });
+    commands.entity(left_eye.0).insert(applied_left_eye_tf);
+    commands.entity(right_eye.0).insert(applied_right_eye_tf);
 }
 
 fn calc_look_at_cursor_position(
@@ -224,31 +232,31 @@ fn calc_yaw_pitch(
 fn apply_left_eye_bone(
     left_eye: &Transform,
     properties: &LookAtProperties,
-    yaw_degress: f32,
-    pitch_degress: f32,
+    yaw_degrees: f32,
+    pitch_degrees: f32,
 ) -> Transform {
     let range_map_horizontal_outer = properties.range_map_horizontal_outer;
     let range_map_horizontal_inner = properties.range_map_horizontal_inner;
     let range_map_vertical_down = properties.range_map_vertical_down;
     let range_map_vertical_up = properties.range_map_vertical_up;
-    let yaw = if yaw_degress > 0.0 {
-        yaw_degress.min(range_map_horizontal_outer.input_max_value)
+    let yaw = if yaw_degrees > 0.0 {
+        yaw_degrees.min(range_map_horizontal_outer.input_max_value)
             / range_map_horizontal_outer.input_max_value
             * range_map_horizontal_outer.output_scale
     } else {
-        -(yaw_degress
+        -(yaw_degrees
             .abs()
             .min(range_map_horizontal_inner.input_max_value)
             / range_map_horizontal_inner.input_max_value
             * range_map_horizontal_inner.output_scale)
     };
 
-    let pitch = if pitch_degress > 0.0 {
-        pitch_degress.min(range_map_vertical_down.input_max_value)
+    let pitch = if pitch_degrees > 0.0 {
+        pitch_degrees.min(range_map_vertical_down.input_max_value)
             / range_map_vertical_down.input_max_value
             * range_map_vertical_down.output_scale
     } else {
-        -(pitch_degress
+        -(pitch_degrees
             .abs()
             .min(range_map_vertical_up.input_max_value)
             / range_map_vertical_up.input_max_value

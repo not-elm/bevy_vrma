@@ -1,5 +1,5 @@
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
-use crate::vrm::VrmBone;
+use crate::vrm::{Vrm, VrmBone};
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
@@ -17,6 +17,22 @@ pub struct ChildSearcher<'w, 's> {
 }
 
 impl ChildSearcher<'_, '_> {
+    #[inline]
+    pub fn find_root_bone(
+        &self,
+        vrm: Entity,
+    ) -> Option<Entity> {
+        self.find_from_name(vrm, Vrm::ROOT_BONE)
+    }
+
+    #[inline]
+    pub fn find_expressions_root(
+        &self,
+        vrm: Entity,
+    ) -> Option<Entity> {
+        self.find_from_name(vrm, Vrm::EXPRESSIONS_ROOT)
+    }
+
     pub fn find_from_name(
         &self,
         root: Entity,
@@ -65,4 +81,27 @@ fn find_entity(
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::*;
+    use crate::tests::test_app;
+    use bevy::prelude::*;
+    use bevy_test_helper::system::SystemExt;
+
+    #[test]
+    fn test_find_root_bone() {
+        let mut app = test_app();
+
+        let vrm = app.world_mut().spawn_empty().id();
+        app.world_mut()
+            .commands()
+            .entity(vrm)
+            .with_child(Name::new(Vrm::ROOT_BONE));
+        app.update();
+
+        app.run_system_once(move |s: ChildSearcher| s.find_root_bone(vrm))
+            .expect("Failed to find root bone");
+    }
 }

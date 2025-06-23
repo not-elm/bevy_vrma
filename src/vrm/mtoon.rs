@@ -16,7 +16,7 @@ pub mod prelude {
 }
 
 const MTOON_FRAGMENT_SHADER_HANDLE: Handle<Shader> =
-    weak_handle!("9a96eff2-1676-1dc0-9abc-2fd5e7134441");
+    weak_handle!("9a96eff2-1676-1dc0-9abc-2fd5e7134443");
 const MTOON_VERTEX_SHADER_HANDLE: Handle<Shader> =
     weak_handle!("f4041db8-c464-b84c-e3c9-e618527945a1");
 const MTOON_TYPES_SHADER_HANDLE: Handle<Shader> =
@@ -37,7 +37,6 @@ impl Plugin for MtoonMaterialPlugin {
             .register_type::<Shade>()
             .add_plugins(MaterialPlugin::<MToonMaterial>::default())
             .add_plugins((MToonMaterialSetupPlugin, MToonOutlinePlugin));
-
         load_internal_asset!(
             app,
             MTOON_FRAGMENT_SHADER_HANDLE,
@@ -46,14 +45,14 @@ impl Plugin for MtoonMaterialPlugin {
         );
         load_internal_asset!(
             app,
-            MTOON_VERTEX_SHADER_HANDLE,
-            "mtoon_vertex.wgsl",
+            MTOON_TYPES_SHADER_HANDLE,
+            "mtoon_types.wgsl",
             Shader::from_wgsl
         );
         load_internal_asset!(
             app,
-            MTOON_TYPES_SHADER_HANDLE,
-            "mtoon_types.wgsl",
+            MTOON_VERTEX_SHADER_HANDLE,
+            "mtoon_vertex.wgsl",
             Shader::from_wgsl
         );
     }

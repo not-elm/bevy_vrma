@@ -1,7 +1,9 @@
 //! This example shows how to animate a VRM model using VRMA.
 
+use bevy::animation::RepeatAnimation;
 use bevy::prelude::*;
 use bevy_vrm1::prelude::*;
+use std::time::Duration;
 
 fn main() {
     App::new()
@@ -44,7 +46,8 @@ fn apply_play_vrma(
     mut commands: Commands,
 ) {
     let vrma_entity = trigger.target();
-    commands
-        .entity(vrma_entity)
-        .trigger(PlayVrma { repeat: true });
+    commands.entity(vrma_entity).trigger(PlayVrma {
+        repeat: RepeatAnimation::Forever,
+        transition_duration: Duration::ZERO,
+    });
 }

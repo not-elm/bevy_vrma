@@ -1,10 +1,10 @@
+pub(crate) mod initialize;
 pub mod registry;
-mod setup;
 mod update;
 
 use crate::prelude::ColliderShape;
+use crate::vrm::spring_bone::initialize::SpringBoneInitializePlugin;
 use crate::vrm::spring_bone::registry::SpringBoneRegistryPlugin;
-use crate::vrm::spring_bone::setup::SpringBoneSetupPlugin;
 use crate::vrm::spring_bone::update::SpringBoneUpdatePlugin;
 use bevy::app::App;
 use bevy::math::{Mat4, Quat, Vec3};
@@ -85,7 +85,7 @@ impl Plugin for VrmSpringBonePlugin {
             .register_type::<SpringColliders>()
             .register_type::<SpringCenterNode>()
             .add_plugins((
-                SpringBoneSetupPlugin,
+                SpringBoneInitializePlugin,
                 SpringBoneRegistryPlugin,
                 SpringBoneUpdatePlugin,
             ));
