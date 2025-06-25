@@ -40,12 +40,9 @@ impl Plugin for VrmaPlugin {
             .register_type::<VrmaHandle>()
             .register_type::<VrmaPath>()
             .register_type::<VrmaDuration>()
-            .register_type::<RetargetTo>()
-            .register_type::<RetargetBoneTo>()
             .register_type::<RetargetSource>()
             .register_type::<VrmAnimationClipHandle>()
-            .register_type::<VrmAnimationNodeIndex>()
-            .register_type::<CurrentSourceVrmaBoneEntity>();
+            .register_type::<VrmAnimationNodeIndex>();
     }
 }
 
@@ -114,36 +111,6 @@ pub(crate) struct VrmAnimationClipHandle(pub Handle<AnimationClip>);
 #[derive(Debug, Component, Reflect, Copy, Clone, Default)]
 #[reflect(Component, Default)]
 pub(crate) struct VrmAnimationNodeIndex(pub AnimationNodeIndex);
-
-#[derive(Debug, Component, Reflect)]
-#[reflect(Component)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct RetargetBoneTo(pub Entity);
-
-/// The component that holds the entity to retarget.
-/// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.
-#[derive(Debug, Component, Reflect)]
-#[reflect(Component)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct RetargetTo(pub Entity);
-
-/// This is a component that indicates that it is the source of retargeting.
-/// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.
-#[derive(Debug, Component, Reflect)]
-#[reflect(Component)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct CurrentSourceVrmaBoneEntity(pub Entity);
-
-/// This is a component that indicates that it is the source of retargeting.
-/// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.
-#[derive(Debug, Component, Reflect)]
-#[reflect(Component)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct PreviousSourceVrmaBoneEntity(pub Entity);
 
 /// This is a component that indicates that it is the source of retargeting.
 /// This is used internally to retarget bones and expressions, and attached after vrma's entity children are spawned.

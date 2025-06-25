@@ -2,6 +2,7 @@ use crate::prelude::ChildSearcher;
 use crate::vrm::gltf::extensions::vrmc_vrm::MorphTargetBind;
 use crate::vrm::gltf::extensions::VrmExtensions;
 use crate::vrm::{Vrm, VrmExpression};
+use crate::vrma::RetargetSource;
 use bevy::animation::{AnimationTarget, AnimationTargetId};
 use bevy::app::Plugin;
 use bevy::asset::{Assets, Handle};
@@ -105,6 +106,7 @@ fn apply_initialize_expressions(
         let expression_entity = commands
             .spawn((
                 Name::new(expression.to_string()),
+                RetargetSource,
                 Transform::default(),
                 AnimationPlayer::default(),
                 RetargetExpressionNodes(obtain_expression_nodes(vrm_entity, &searcher, nodes)),

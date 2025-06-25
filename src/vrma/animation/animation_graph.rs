@@ -2,7 +2,7 @@ use crate::prelude::{BoneRestGlobalTransform, BoneRestTransform, ChildSearcher};
 use crate::vrm::expressions::VrmExpressionRegistry;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrma::animation::bone_rotation::{
-    BoneRotationAnimationCurve, RetargetBoneTransformations,
+    BoneRotateTransformations, BoneRotationAnimationCurve,
 };
 use crate::vrma::animation::bone_translation::HipsTranslationAnimationCurve;
 use crate::vrma::{VrmAnimationClipHandle, VrmAnimationNodeIndex};
@@ -131,7 +131,7 @@ fn insert_animation_graph_into_expressions(
 fn apply_replace_humanoid_bone_animation_clips(
     trigger: Trigger<RequestUpdateAnimationClips>,
     mut clips: ResMut<Assets<AnimationClip>>,
-    clip_handles: Query<(&VrmAnimationClipHandle, &VrmAnimationNodeIndex)>,
+    clip_handles: Query<&VrmAnimationClipHandle>,
     parents: Query<&ChildOf>,
     vrms: Query<&HumanoidBoneRegistry>,
     bones: Query<(
@@ -148,7 +148,7 @@ fn apply_replace_humanoid_bone_animation_clips(
     let Ok(registry) = vrms.get(vrma_entity) else {
         return;
     };
-    let Ok((vrm_animation_clip_handle, node_index)) = clip_handles.get(vrma_entity) else {
+    let Ok(vrm_animation_clip_handle) = clip_handles.get(vrma_entity) else {
         return;
     };
     let Some(root_bone) = searcher.find_root_bone(*vrm_entity) else {
@@ -157,14 +157,8 @@ fn apply_replace_humanoid_bone_animation_clips(
     let Some(clip) = clips.get_mut(vrm_animation_clip_handle.0.id()) else {
         return;
     };
-    let transformations = RetargetBoneTransformations::new(
-        vrma_entity,
-        root_bone,
-        node_index.0,
-        registry,
-        &searcher,
-        &bones,
-    );
+    let transformations =
+        BoneRotateTransformations::new(vrma_entity, root_bone, registry, &searcher, &bones);
     replace_bone_animation_clips(
         clip,
         vrma_entity,
@@ -187,7 +181,7 @@ fn replace_bone_animation_clips(
         &BoneRestGlobalTransform,
         &AnimationTarget,
     )>,
-    transformations: &RetargetBoneTransformations,
+    transformations: &BoneRotateTransformations,
 ) {
     let animation_curves = clip.curves_mut();
     for (bone, name) in registry.iter() {
@@ -224,7 +218,7 @@ fn animation_curve(
     original: VariableCurve,
     bone_entity: Entity,
     hips: bool,
-    transformations: &RetargetBoneTransformations,
+    transformations: &BoneRotateTransformations,
     vrma_rest_gtf: &BoneRestGlobalTransform,
     rest_gtf: &BoneRestGlobalTransform,
 ) -> VariableCurve {

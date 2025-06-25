@@ -13,6 +13,7 @@ use crate::prelude::*;
 use crate::vrm::gltf::extensions::VrmNode;
 use crate::vrm::humanoid_bone::bones::BonesPlugin;
 use crate::vrm::{BoneRestGlobalTransform, BoneRestTransform, VrmBone};
+use crate::vrma::RetargetSource;
 use bevy::animation::{AnimationTarget, AnimationTargetId};
 use bevy::app::{App, Plugin};
 use bevy::asset::{Assets, Handle};
@@ -133,6 +134,7 @@ fn apply_initialize_humanoid_bones(
             bone.clone(),
             BoneRestTransform(*tf),
             BoneRestGlobalTransform(*gtf),
+            RetargetSource,
         ));
         if has_vrm {
             commands.entity(bone_entity).insert(AnimationTarget {
