@@ -6,6 +6,7 @@
     - Changed fields of `PlayVrma`
 - added `log` feature flag to enable logging.
     - Error logs are now not output by default.
+- The update timing for SpringBone and LookAt has been changed to `PostUpdate`.
 
 ### Bug Fixes
 

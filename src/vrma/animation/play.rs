@@ -187,6 +187,7 @@ mod tests {
 
         app.world_mut().commands().entity(vrm).with_child((
             Name::new(Vrm::ROOT_BONE),
+            Transform::default(),
             AnimationPlayer::default(),
             AnimationTransitions::default(),
         ));

@@ -28,8 +28,8 @@ pub mod prelude {
         loader::{VrmAsset, VrmHandle},
         look_at::LookAt,
         mtoon::prelude::*,
-        BoneRestGlobalTransform, BoneRestTransform, Initialized, RetargetIgnore, Vrm, VrmBone,
-        VrmExpression, VrmPath, VrmPlugin,
+        BoneRestGlobalTransform, BoneRestTransform, Initialized, Vrm, VrmBone, VrmExpression,
+        VrmPath, VrmPlugin,
     };
 }
 
@@ -73,12 +73,6 @@ impl VrmPath {
     }
 }
 
-marker_component!(
-    /// A marker component for the VRM bone.
-    /// This component is used to identify the entity as a VRM bone.
-    RetargetIgnore
-);
-
 /// The bone's initial transform.
 #[derive(Debug, Copy, Clone, Component, Deref, Reflect, Default)]
 #[reflect(Component)]
@@ -92,18 +86,6 @@ pub struct BoneRestTransform(pub Transform);
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
 pub struct BoneRestGlobalTransform(pub GlobalTransform);
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct BonePreviousTransform(pub Transform);
-
-marker_component!(
-    /// A marker component that indicates the head of the VRM is animating.
-    /// This component is used internally to prevent conflicts between head rotation control by LookAt and retargeting.
-    HeadAnimating
-);
 
 marker_component!(
     /// A marker component attached to the entity of VRM.
@@ -132,12 +114,10 @@ impl Plugin for VrmPlugin {
 
         app.register_type::<Vrm>()
             .register_type::<VrmPath>()
-            .register_type::<BonePreviousTransform>()
             .register_type::<BoneRestTransform>()
             .register_type::<BoneRestGlobalTransform>()
             .register_type::<VrmBone>()
             .register_type::<VrmExpression>()
-            .register_type::<Initialized>()
-            .register_type::<RetargetIgnore>();
+            .register_type::<Initialized>();
     }
 }
