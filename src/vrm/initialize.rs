@@ -1,3 +1,4 @@
+use crate::error::vrm_error;
 use crate::prelude::ChildSearcher;
 use crate::vrm::expressions::{RequestInitializeExpressions, VrmExpressionRegistry};
 use crate::vrm::gltf::extensions::VrmExtensions;
@@ -44,7 +45,7 @@ fn spawn_vrm(
         let extensions = match VrmExtensions::from_gltf(&vrm.gltf) {
             Ok(extensions) => extensions,
             Err(e) => {
-                error!("Failed to load VRM extensions: {e}");
+                vrm_error!("Failed to load VRM extensions", e);
                 continue;
             }
         };

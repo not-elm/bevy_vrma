@@ -3,6 +3,7 @@ mod pipeline;
 mod render_command;
 mod view_node;
 
+use crate::error::vrm_error;
 use crate::vrm::mtoon::outline_pass::phase_item::OutlinePhaseItem;
 use crate::vrm::mtoon::outline_pass::pipeline::MToonOutlinePipeline;
 use crate::vrm::mtoon::outline_pass::render_command::DrawOutline;
@@ -205,7 +206,7 @@ fn queue_outlines(
             let pipeline_id = match pipeline_id {
                 Ok(id) => id,
                 Err(err) => {
-                    error!("{}", err);
+                    vrm_error!(err);
                     continue;
                 }
             };

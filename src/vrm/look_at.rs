@@ -74,7 +74,6 @@ fn track_looking_target(
         &LookAt,
         &LookAtProperties,
         &HeadBoneEntity,
-        &SpineBoneEntity,
         &LeftEyeBoneEntity,
         &RightEyeBoneEntity,
     )>,
@@ -84,7 +83,7 @@ fn track_looking_target(
     windows: Query<(&Window, Has<PrimaryWindow>)>,
 ) {
     vrms.iter()
-        .for_each(|(look_at, properties, head, spine, left_eye, right_eye)| {
+        .for_each(|(look_at, properties, head, left_eye, right_eye)| {
             let Ok(head_gtf) = global_transforms.get(head.0) else {
                 return;
             };

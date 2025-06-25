@@ -1,3 +1,14 @@
+//! You can transition to the corresponding animation by pressing the number keys 1 to 4.
+//!
+//! We use [`AnimationTransitions`] internally for bone animations to achieve smooth transitions,
+//! but there is an issue where interpolation fails if the initial poses of the source and target VRMAs differ.
+//! If anyone has a good solution, please feel free to open an issue or submit a PR.
+//!
+//! 1. `VRMA_01.vrma`
+//! 2. `VRMA_02.vrma`
+//! 3. `VRMA_03.vrma`
+//! 4. `different_pose.vrma`
+
 use bevy::animation::RepeatAnimation;
 use bevy::input::common_conditions::input_just_pressed;
 use bevy::prelude::*;

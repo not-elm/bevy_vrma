@@ -7,6 +7,7 @@ mod system_set;
 pub mod vrm;
 pub mod vrma;
 
+#[doc(hidden)]
 pub mod prelude {
     pub use crate::{
         error::AppResult, system_param::prelude::*, system_set::VrmSystemSets, vrm::prelude::*,
@@ -14,6 +15,7 @@ pub mod prelude {
     };
 }
 
+#[doc(hidden)]
 #[cfg(test)]
 pub(crate) mod tests {
     use bevy::asset::AssetPlugin;

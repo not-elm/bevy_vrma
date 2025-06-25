@@ -1,5 +1,6 @@
 //! This module inserts [`SceneRoot`] and VRMA-related components from the loaded [`VrmaHandle`].
 
+use crate::error::vrm_error;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrm::Initialized;
 use crate::vrma::animation::expressions::VrmaExpressionNames;
@@ -49,18 +50,18 @@ fn spawn_vrma(
         commands.entity(handle_entity).remove::<VrmaHandle>();
 
         let Some(scene_root) = vrma.gltf.scenes.first().cloned() else {
-            error!("[VRMA] Not found vrma scene in {name}");
+            vrm_error!("[VRMA] Not found vrma scene in {name}");
             continue;
         };
         let extensions = match VrmaExtensions::from_gltf(&vrma.gltf) {
             Ok(extensions) => extensions,
             Err(_e) => {
-                error!("[VRMA] Not found vrma extensions in {name}:\n{_e}");
+                vrm_error!("[VRMA] Not found vrma extensions in {name}:\n{_e}");
                 continue;
             }
         };
         let Some(animation_clip_handle) = vrma.gltf.animations.first() else {
-            error!("[VRMA] Not found vrma animations in {name}");
+            vrm_error!("[VRMA] Not found vrma animations in {name}");
             continue;
         };
         commands.entity(handle_entity).insert((

@@ -42,6 +42,7 @@ semicolon_if_nothing_returned = "warn"
 [features]
 default = []
 serde = ["bevy/serialize"]
+log = ["bevy/bevy_log"]
 develop = []
 
 #[lints.rust]

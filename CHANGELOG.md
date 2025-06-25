@@ -1,4 +1,18 @@
+## v0.3.0(Unreleased)
+
+### Breaking Changes
+
+- `AnimationTransitions` are now used internally;This enables smooth animation transitions.
+    - Changed fields of `PlayVrma`
+- added `log` feature flag to enable logging.
+    - Error logs are now not output by default.
+
+### Bug Fixes
+
+- Fixed collision detection for the SpringBone sphere collider.
+
 ## v0.2.2
+
 [Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.2.2)
 
 ### Bug Fixes
@@ -6,7 +20,7 @@
 - Fixed SpringBone colliders.
 - Changed the spring bone calculation to use the center space if a center node is set.
 - Fixed an issue that caused a crash during MToon shader processing.
-  - This occurred in Bevy v0.16.1 and later versions.
+    - This occurred in Bevy v0.16.1 and later versions.
 
 ## v0.2.1
 
@@ -29,7 +43,8 @@ I was going to add this in v0.2.0 but forgot.
     - Currently only supports `OutlineWidthMode::WorldCoordinates` and `OutlineWidthMode::None`, and if
       `screenCoordinates` is passed, the outline will not be rendered.
 - Fixed the rendering order of the outline to match the spec.
-    - refer to [here](https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_materials_mtoon-1.0/README.md#rendering)
+    - refer
+      to [here](https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_materials_mtoon-1.0/README.md#rendering)
       for more details.
 - Removed `reflect` feature flag, and `serde` has been added instead.
     - `Reflect` is now applied to most structs by default.

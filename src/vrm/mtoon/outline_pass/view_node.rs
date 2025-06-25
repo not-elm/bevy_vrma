@@ -1,6 +1,6 @@
+use crate::error::vrm_error;
 use crate::vrm::mtoon::outline_pass::phase_item::OutlinePhaseItem;
 use bevy::ecs::query::QueryItem;
-use bevy::log::error;
 use bevy::prelude::World;
 use bevy::render::camera::ExtractedCamera;
 use bevy::render::render_graph::{NodeRunError, RenderGraphContext, RenderLabel, ViewNode};
@@ -48,7 +48,10 @@ impl ViewNode for OutlineDrawNode {
                 render_pass.set_camera_viewport(viewport);
             }
             if let Err(err) = outline_pass.render(&mut render_pass, world, view_entity) {
-                error!("Error encountered while rendering the mtoon outline phase {err:?}");
+                vrm_error!(
+                    "Error encountered while rendering the mtoon outline phase",
+                    err
+                );
             }
         };
         Ok(())

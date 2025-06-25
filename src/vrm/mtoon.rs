@@ -2,14 +2,14 @@ mod material;
 mod outline_pass;
 mod setup;
 
+use crate::error::vrm_error;
+use crate::prelude::*;
 use crate::vrm::gltf::materials::VrmcMaterialsExtensitions;
 use crate::vrm::mtoon::outline_pass::MToonOutlinePlugin;
 use crate::vrm::mtoon::setup::MToonMaterialSetupPlugin;
 use bevy::asset::{load_internal_asset, weak_handle, AssetId};
 use bevy::prelude::*;
 use std::collections::HashMap;
-
-use crate::prelude::*;
 
 pub mod prelude {
     pub use crate::vrm::mtoon::{material::prelude::*, MtoonMaterialPlugin, VrmcMaterialRegistry};
@@ -87,7 +87,7 @@ impl VrmcMaterialRegistry {
                 match serde_json::from_value(extensions.get("VRMC_materials_mtoon")?.clone()) {
                     Ok(properties) => Some((asset_id, properties)),
                     Err(e) => {
-                        error!("Failed to parse VRMC_materials_mtoon: {e}");
+                        vrm_error!("Failed to parse VRMC_materials_mtoon", e);
                         None
                     }
                 }
