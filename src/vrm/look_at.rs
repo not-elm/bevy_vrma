@@ -80,6 +80,7 @@ fn track_looking_target(
     cameras: Query<(Entity, &Camera)>,
     transforms: Query<&Transform>,
     global_transforms: Query<&GlobalTransform>,
+    rests: Query<(&BoneRestTransform, &BoneRestGlobalTransform)>,
     windows: Query<(&Window, Has<PrimaryWindow>)>,
 ) {
     vrms.iter()
@@ -111,6 +112,7 @@ fn track_looking_target(
                     apply_bone(
                         &mut commands,
                         &transforms,
+                        &rests,
                         left_eye,
                         right_eye,
                         properties,
@@ -159,6 +161,7 @@ fn calc_target_position(
 fn apply_bone(
     commands: &mut Commands,
     transforms: &Query<&Transform>,
+    rests: &Query<(&BoneRestTransform, &BoneRestGlobalTransform)>,
     left_eye: &LeftEyeBoneEntity,
     right_eye: &RightEyeBoneEntity,
     properties: &LookAtProperties,
@@ -171,8 +174,28 @@ fn apply_bone(
     let Ok(right_eye_tf) = transforms.get(right_eye.0) else {
         return;
     };
-    let applied_left_eye_tf = apply_left_eye_bone(left_eye_tf, properties, yaw, pitch);
-    let applied_right_eye_tf = apply_right_eye_bone(right_eye_tf, properties, yaw, pitch);
+    let Ok((left_eye_rest_tf, left_eye_gtf)) = rests.get(left_eye.0) else {
+        return;
+    };
+    let Ok((right_eye_rest_tf, right_eye_gtf)) = rests.get(right_eye.0) else {
+        return;
+    };
+    let applied_left_eye_tf = apply_left_eye_bone(
+        left_eye_tf,
+        left_eye_rest_tf,
+        left_eye_gtf,
+        properties,
+        yaw,
+        pitch,
+    );
+    let applied_right_eye_tf = apply_right_eye_bone(
+        right_eye_tf,
+        right_eye_rest_tf,
+        right_eye_gtf,
+        properties,
+        yaw,
+        pitch,
+    );
     commands.entity(left_eye.0).insert(applied_left_eye_tf);
     commands.entity(right_eye.0).insert(applied_right_eye_tf);
 }
@@ -230,6 +253,8 @@ fn calc_yaw_pitch(
 
 fn apply_left_eye_bone(
     left_eye: &Transform,
+    rest_tf: &BoneRestTransform,
+    rest_gtf: &BoneRestGlobalTransform,
     properties: &LookAtProperties,
     yaw_degrees: f32,
     pitch_degrees: f32,
@@ -261,53 +286,57 @@ fn apply_left_eye_bone(
             / range_map_vertical_up.input_max_value
             * range_map_vertical_up.output_scale)
     };
-    left_eye.with_rotation(Quat::from_euler(
-        EulerRot::YXZ,
-        yaw.to_radians(),
-        pitch.to_radians(),
-        0.0,
-    ))
+    left_eye.with_rotation(to_eye_rotation(yaw, pitch, rest_tf, rest_gtf))
 }
 
 fn apply_right_eye_bone(
     right_eye: &Transform,
+    rest_tf: &BoneRestTransform,
+    rest_gtf: &BoneRestGlobalTransform,
     properties: &LookAtProperties,
-    yaw_degress: f32,
-    pitch_degress: f32,
+    yaw_degrees: f32,
+    pitch_degrees: f32,
 ) -> Transform {
     let range_map_horizontal_outer = properties.range_map_horizontal_outer;
     let range_map_horizontal_inner = properties.range_map_horizontal_inner;
     let range_map_vertical_down = properties.range_map_vertical_down;
     let range_map_vertical_up = properties.range_map_vertical_up;
 
-    let yaw = if yaw_degress > 0.0 {
-        yaw_degress.min(range_map_horizontal_inner.input_max_value)
+    let yaw = if yaw_degrees > 0.0 {
+        yaw_degrees.min(range_map_horizontal_inner.input_max_value)
             / range_map_horizontal_inner.input_max_value
             * range_map_horizontal_inner.output_scale
     } else {
-        -(yaw_degress
+        -(yaw_degrees
             .abs()
             .min(range_map_horizontal_outer.input_max_value)
             / range_map_horizontal_outer.input_max_value
             * range_map_horizontal_outer.output_scale)
     };
 
-    let pitch = if pitch_degress > 0.0 {
-        pitch_degress.min(range_map_vertical_down.input_max_value)
+    let pitch = if pitch_degrees > 0.0 {
+        pitch_degrees.min(range_map_vertical_down.input_max_value)
             / range_map_vertical_down.input_max_value
             * range_map_vertical_down.output_scale
     } else {
-        -(pitch_degress
+        -(pitch_degrees
             .abs()
             .min(range_map_vertical_up.input_max_value)
             / range_map_vertical_up.input_max_value
             * range_map_vertical_up.output_scale)
     };
 
-    right_eye.with_rotation(Quat::from_euler(
-        EulerRot::YXZ,
-        yaw.to_radians(),
-        pitch.to_radians(),
-        0.0,
-    ))
+    right_eye.with_rotation(to_eye_rotation(yaw, pitch, rest_tf, rest_gtf))
+}
+
+#[inline]
+fn to_eye_rotation(
+    yaw: f32,
+    pitch: f32,
+    rest_tf: &BoneRestTransform,
+    rest_gtf: &BoneRestGlobalTransform,
+) -> Quat {
+    (rest_tf.rotation * rest_gtf.rotation().inverse())
+        * Quat::from_euler(EulerRot::YXZ, yaw.to_radians(), pitch.to_radians(), 0.0)
+        * rest_gtf.rotation()
 }
