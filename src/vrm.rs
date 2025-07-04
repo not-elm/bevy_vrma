@@ -5,7 +5,7 @@ mod initialize;
 mod loader;
 mod look_at;
 mod mtoon;
-mod spring_bone;
+pub(crate) mod spring_bone;
 
 use crate::macros::marker_component;
 use crate::new_type;

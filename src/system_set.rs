@@ -10,4 +10,7 @@ pub enum VrmSystemSets {
 
     /// This is used for spring bones.
     SpringBone,
+
+    /// This is used to determine whether to send a [`RequestRedraw`](bevy::window::RequestRedraw).
+    DetermineRedraw,
 }

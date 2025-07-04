@@ -116,6 +116,7 @@ fn apply_initialize_humanoid_bones(
     if has_vrm {
         commands.entity(*root_bone).insert((
             Name::new(Vrm::ROOT_BONE),
+            RetargetSource,
             AnimationTarget {
                 id: AnimationTargetId::from_name(&Name::new(Vrm::ROOT_BONE)),
                 player: *root_bone,

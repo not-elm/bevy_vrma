@@ -71,7 +71,6 @@ pub(crate) struct SpringJointProps {
     pub hit_radius: f32,
     pub stiffness: f32,
 }
-
 pub struct VrmSpringBonePlugin;
 
 impl Plugin for VrmSpringBonePlugin {
@@ -84,6 +83,7 @@ impl Plugin for VrmSpringBonePlugin {
             .register_type::<SpringJoints>()
             .register_type::<SpringColliders>()
             .register_type::<SpringCenterNode>()
+            .register_type::<SpringJointProps>()
             .add_plugins((
                 SpringBoneInitializePlugin,
                 SpringBoneRegistryPlugin,

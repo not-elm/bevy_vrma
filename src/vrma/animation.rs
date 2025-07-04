@@ -4,6 +4,7 @@ mod bone_translation;
 pub(crate) mod expressions;
 mod play;
 
+use crate::prelude::VrmSystemSets;
 use crate::vrma::animation::animation_graph::VrmaAnimationGraphPlugin;
 use crate::vrma::animation::expressions::VrmaRetargetExpressionsPlugin;
 use crate::vrma::animation::play::VrmaAnimationPlayPlugin;
@@ -32,7 +33,12 @@ impl Plugin for VrmaAnimationPlayersPlugin {
                 VrmaAnimationPlayPlugin,
                 VrmaRetargetExpressionsPlugin,
             ))
-            .add_systems(Update, request_redraw.run_if(playing_animation));
+            .add_systems(
+                PostUpdate,
+                request_redraw
+                    .in_set(VrmSystemSets::DetermineRedraw)
+                    .run_if(any_playing_animations.or(any_update_spring_joints)),
+            );
     }
 }
 
@@ -44,10 +50,14 @@ impl Plugin for VrmaAnimationPlayersPlugin {
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
 pub struct VrmaAnimationPlayers(pub Vec<Entity>);
 
-fn playing_animation(
-    changed_bones: Query<Entity, (Changed<Transform>, With<RetargetSource>)>
-) -> bool {
-    !changed_bones.is_empty()
+fn any_playing_animations(players: Query<&AnimationPlayer, With<RetargetSource>>) -> bool {
+    players.iter().any(|p| !p.all_finished())
+}
+
+fn any_update_spring_joints(spring_joints: Query<&Transform, Changed<Transform>>) -> bool {
+    spring_joints
+        .iter()
+        .any(|tf| 0.1 < tf.rotation.angle_between(Quat::IDENTITY))
 }
 
 fn request_redraw(mut request: EventWriter<RequestRedraw>) {
