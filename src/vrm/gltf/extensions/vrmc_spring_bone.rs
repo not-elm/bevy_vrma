@@ -41,7 +41,7 @@ impl VRMCSpringBone {
 #[derive(Serialize, Deserialize)]
 pub struct ColliderGroup {
     /// Group name
-    pub name: String,
+    pub name: Option<String>,
 
     /// The list of colliders belonging to this group.
     /// Each value is an index of `VRMCSpringBone::colliders`.
