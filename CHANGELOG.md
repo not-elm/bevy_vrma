@@ -12,6 +12,8 @@
 
 - Fixed collision detection for the SpringBone sphere collider.
 - Fixed logic to determine redraw
+- Fixed look at bone rotation
+- Fixed `ColliderGroup::name` types from `String` to `Option<String>` to match the spec.
 
 ## v0.2.2
 
