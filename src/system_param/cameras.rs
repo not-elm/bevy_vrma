@@ -97,7 +97,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
 #[cfg(test)]
 mod tests {
     use crate::system_param::cameras::Cameras;
-    use crate::tests::{test_app, TestResult};
+    use crate::tests::{TestResult, test_app};
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::{Camera, Camera3d, Commands, GlobalTransform};
     use bevy::render::view::RenderLayers;
