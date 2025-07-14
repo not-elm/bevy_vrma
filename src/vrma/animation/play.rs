@@ -3,8 +3,8 @@ use crate::vrma::VrmAnimationNodeIndex;
 use bevy::animation::{AnimationPlayer, RepeatAnimation};
 use bevy::app::{App, Plugin};
 use bevy::prelude::{
-    AnimationNodeIndex, AnimationTransitions, ChildOf, Children, Entity, Event, Query, Transform,
-    Trigger,
+    AnimationNodeIndex, AnimationTransitions, ChildOf, Children, Entity, Event, Query, Reflect,
+    Transform, Trigger,
 };
 use std::time::Duration;
 
@@ -13,7 +13,7 @@ use std::time::Duration;
 /// You need to emit this via [`Trigger`] with the target entity of the VRMA you want to play the animation on.
 ///
 /// If there are multiple VRMA entities, the animation of all other VRMAs will be stopped except for the one specified in the trigger.
-#[derive(Event, Debug)]
+#[derive(Event, Debug, Reflect)]
 pub struct PlayVrma {
     /// Repetition behavior of an animation.
     /// Default is [`RepeatAnimation::Never`].
@@ -45,7 +45,8 @@ impl Plugin for VrmaAnimationPlayPlugin {
         &self,
         app: &mut App,
     ) {
-        app.add_observer(apply_play_vrma)
+        app.register_type::<PlayVrma>()
+            .add_observer(apply_play_vrma)
             .add_observer(apply_stop_vrma);
     }
 }
@@ -171,8 +172,8 @@ fn stop_animations(
 mod tests {
     use crate::prelude::*;
     use crate::tests::test_app;
-    use crate::vrma::animation::play::VrmaAnimationPlayPlugin;
     use crate::vrma::VrmAnimationNodeIndex;
+    use crate::vrma::animation::play::VrmaAnimationPlayPlugin;
     use bevy::prelude::*;
     use bevy_test_helper::system::SystemExt;
 

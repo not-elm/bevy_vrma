@@ -1,4 +1,4 @@
-use bevy::animation::{animated_field, AnimationEntityMut, AnimationEvaluationError};
+use bevy::animation::{AnimationEntityMut, AnimationEvaluationError, animated_field};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use std::any::TypeId;

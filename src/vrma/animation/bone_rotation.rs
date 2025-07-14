@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use bevy::animation::{
-    animated_field, AnimationEntityMut, AnimationEvaluationError, AnimationTarget,
+    AnimationEntityMut, AnimationEvaluationError, AnimationTarget, animated_field,
 };
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
@@ -28,7 +28,7 @@ impl BoneRotateTransformations {
             let Some(vrma_bone_entity) = searcher.find_from_name(vrma, name) else {
                 continue;
             };
-            let Some(rig_bone_entity) = searcher.find_from_bone_name(root_bone, bone) else {
+            let Some(rig_bone_entity) = searcher.find_by_bone_name(root_bone, bone) else {
                 continue;
             };
             let Some((rest, rest_g, _)) = bones.get(rig_bone_entity).ok() else {

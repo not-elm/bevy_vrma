@@ -8,8 +8,8 @@ use crate::vrm::mtoon::VrmcMaterialRegistry;
 use crate::vrm::spring_bone::initialize::RequestInitializeSpringBone;
 use crate::vrm::spring_bone::registry::*;
 use crate::vrm::{Initialized, Vrm, VrmPath};
-use crate::vrma::animation::animation_graph::RequestUpdateAnimationGraph;
 use crate::vrma::Vrma;
+use crate::vrma::animation::animation_graph::RequestUpdateAnimationGraph;
 use bevy::app::{App, Update};
 use bevy::asset::Assets;
 use bevy::gltf::GltfNode;
@@ -84,6 +84,7 @@ fn spawn_vrm(
             #[cfg(feature = "develop")]
             {
                 if let Some(vrm_name) = vrm_path.path().file_stem() {
+                    output_vrm(vrm_name, &vrm.gltf);
                     output_vrm_materials(vrm_name, &vrm.gltf);
                     output_vrm_extensions(vrm_name, &extensions);
                 }
@@ -122,6 +123,19 @@ fn request_initialize(
 }
 
 #[cfg(feature = "develop")]
+fn output_vrm(
+    vrm_name: &std::ffi::OsStr,
+    gltf: &Gltf,
+) {
+    let name = vrm_name.to_str().unwrap();
+    std::fs::write(
+        format!("./develop/{name}.json"),
+        serde_json::to_string_pretty(&gltf.source.as_ref().unwrap().as_json()).unwrap(),
+    )
+    .unwrap();
+}
+
+#[cfg(feature = "develop")]
 fn output_vrm_materials(
     vrm_name: &std::ffi::OsStr,
     gltf: &Gltf,
@@ -141,7 +155,7 @@ fn output_vrm_extensions(
 ) {
     let name = vrm_name.to_str().unwrap();
     std::fs::write(
-        format!("./develop/{name}.json"),
+        format!("./develop/{name}_extensions.json"),
         serde_json::to_string_pretty(extensions).unwrap(),
     )
     .unwrap();

@@ -23,7 +23,7 @@ impl VrmExtensions {
             vrmc_vrm: serde_json::from_value(obtain_vrmc_vrm(json)?)?,
             vrmc_spring_bone: obtain_vrmc_springs(json)
                 .ok()
-                .and_then(|v| serde_json::from_value(v).ok()),
+                .map(|v| serde_json::from_value(v).unwrap()),
         })
     }
 

@@ -6,7 +6,7 @@ use crate::vrma::animation::bone_rotation::{
 };
 use crate::vrma::animation::bone_translation::HipsTranslationAnimationCurve;
 use crate::vrma::{VrmAnimationClipHandle, VrmAnimationNodeIndex};
-use bevy::animation::{animated_field, AnimationTarget};
+use bevy::animation::{AnimationTarget, animated_field};
 use bevy::app::App;
 use bevy::prelude::*;
 
@@ -188,7 +188,7 @@ fn replace_bone_animation_clips(
         let Some(vrma_bone_entity) = searcher.find_from_name(vrma_entity, name) else {
             continue;
         };
-        let Some(bone_entity) = searcher.find_from_bone_name(root_bone, bone) else {
+        let Some(bone_entity) = searcher.find_by_bone_name(root_bone, bone) else {
             continue;
         };
         let Ok((_, vrma_rest_gtf, vrma_bone_target)) = bones.get(vrma_bone_entity) else {

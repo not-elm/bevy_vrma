@@ -1,8 +1,8 @@
 //! This module inserts [`SceneRoot`] and VRMA-related components from the loaded [`VrmaHandle`].
 
 use crate::error::vrm_error;
-use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrm::Initialized;
+use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrma::animation::expressions::VrmaExpressionNames;
 use crate::vrma::gltf::extensions::VrmaExtensions;
 use crate::vrma::loader::VrmaAsset;

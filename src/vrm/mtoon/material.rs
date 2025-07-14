@@ -22,11 +22,11 @@ pub use uv_animation::UVAnimation;
 
 pub mod prelude {
     pub use crate::vrm::mtoon::material::{
+        MToonMaterial, MToonMaterialKey,
         outline::{MToonOutline, OutlineWidthMode},
         rim_lighting::RimLighting,
         shade::Shade,
         uv_animation::UVAnimation,
-        MToonMaterial, MToonMaterialKey,
     };
 }
 
@@ -129,6 +129,7 @@ impl Material for MToonMaterial {
         } else {
             self.depth_bias
         };
+
         let offset = match (self.alpha_mode, self.transparent_with_z_write) {
             (AlphaMode::Opaque, _) => -10000.,
             (AlphaMode::Mask(_), _) => -1000.,

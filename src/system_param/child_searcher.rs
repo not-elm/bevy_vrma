@@ -41,7 +41,7 @@ impl ChildSearcher<'_, '_> {
         find_entity(target_name, false, root, &self.entities)
     }
 
-    pub fn find_from_bone_name(
+    pub fn find_by_bone_name(
         &self,
         root: Entity,
         target_name: &VrmBone,

@@ -1,8 +1,8 @@
 //!  This module handles the retargeting of expressions from a VRM model to a mascot model.
 
 use crate::system_set::VrmSystemSets;
-use crate::vrm::expressions::{BindExpressionNode, RetargetExpressionNodes};
 use crate::vrm::VrmExpression;
+use crate::vrm::expressions::{BindExpressionNode, RetargetExpressionNodes};
 use crate::vrma::gltf::extensions::VrmaExtensions;
 use bevy::app::{Animation, App};
 use bevy::prelude::TransformSystem::TransformPropagate;

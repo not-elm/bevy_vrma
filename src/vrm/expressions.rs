@@ -1,6 +1,6 @@
 use crate::prelude::ChildSearcher;
-use crate::vrm::gltf::extensions::vrmc_vrm::MorphTargetBind;
 use crate::vrm::gltf::extensions::VrmExtensions;
+use crate::vrm::gltf::extensions::vrmc_vrm::MorphTargetBind;
 use crate::vrm::{Vrm, VrmExpression};
 use crate::vrma::RetargetSource;
 use bevy::animation::{AnimationTarget, AnimationTargetId};
@@ -141,7 +141,7 @@ fn obtain_expression_nodes(
 #[cfg(test)]
 mod tests {
     use crate::prelude::*;
-    use crate::tests::{test_app, TestResult};
+    use crate::tests::{TestResult, test_app};
     use crate::vrm::expressions::{
         ExpressionNode, RequestInitializeExpressions, VrmExpressionPlugin, VrmExpressionRegistry,
     };

@@ -23,13 +23,13 @@ use std::path::PathBuf;
 
 pub mod prelude {
     pub use crate::vrm::{
+        BoneRestGlobalTransform, BoneRestTransform, Initialized, Vrm, VrmBone, VrmExpression,
+        VrmPath, VrmPlugin,
         gltf::prelude::*,
         humanoid_bone::prelude::*,
         loader::{VrmAsset, VrmHandle},
         look_at::LookAt,
         mtoon::prelude::*,
-        BoneRestGlobalTransform, BoneRestTransform, Initialized, Vrm, VrmBone, VrmExpression,
-        VrmPath, VrmPlugin,
     };
 }
 

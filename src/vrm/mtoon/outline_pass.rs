@@ -4,14 +4,14 @@ mod render_command;
 mod view_node;
 
 use crate::error::vrm_error;
+use crate::vrm::mtoon::MToonMaterial;
 use crate::vrm::mtoon::outline_pass::phase_item::OutlinePhaseItem;
 use crate::vrm::mtoon::outline_pass::pipeline::MToonOutlinePipeline;
 use crate::vrm::mtoon::outline_pass::render_command::DrawOutline;
 use crate::vrm::mtoon::outline_pass::view_node::{OutlineDrawNode, OutlineDrawPassLabel};
-use crate::vrm::mtoon::MToonMaterial;
 use bevy::pbr::{
-    alpha_mode_pipeline_key, queue_material_meshes, MaterialBindGroupAllocator,
-    MaterialPipelineKey, PreparedMaterial, RenderMeshInstanceFlags, ViewKeyCache,
+    MaterialBindGroupAllocator, MaterialPipelineKey, PreparedMaterial, RenderMeshInstanceFlags,
+    ViewKeyCache, alpha_mode_pipeline_key, queue_material_meshes,
 };
 use bevy::render::sync_world::MainEntityHashMap;
 use bevy::render::view::RenderVisibilityRanges;
@@ -22,16 +22,16 @@ use bevy::{
     platform::collections::HashSet,
     prelude::*,
     render::{
+        Extract, Render, RenderApp, RenderDebugFlags, RenderSet,
         mesh::RenderMesh,
         render_asset::RenderAssets,
         render_graph::{RenderGraphApp, ViewNodeRunner},
         render_phase::{
-            sort_phase_system, AddRenderCommand, DrawFunctions, PhaseItemExtraIndex,
-            SortedRenderPhasePlugin, ViewSortedRenderPhases,
+            AddRenderCommand, DrawFunctions, PhaseItemExtraIndex, SortedRenderPhasePlugin,
+            ViewSortedRenderPhases, sort_phase_system,
         },
         render_resource::{PipelineCache, SpecializedMeshPipelines},
         view::{ExtractedView, RenderVisibleEntities, RetainedViewEntity},
-        Extract, Render, RenderApp, RenderDebugFlags, RenderSet,
     },
 };
 

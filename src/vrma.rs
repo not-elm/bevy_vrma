@@ -15,8 +15,8 @@ use std::time::Duration;
 
 pub mod prelude {
     pub use crate::vrma::{
-        animation::prelude::*, loader::VrmaAsset, LoadedVrma, Vrma, VrmaDuration, VrmaEntity,
-        VrmaHandle, VrmaPath, VrmaPlugin,
+        LoadedVrma, Vrma, VrmaDuration, VrmaEntity, VrmaHandle, VrmaPath, VrmaPlugin,
+        animation::prelude::*, loader::VrmaAsset,
     };
 }
 

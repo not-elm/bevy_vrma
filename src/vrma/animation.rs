@@ -5,22 +5,22 @@ pub(crate) mod expressions;
 mod play;
 
 use crate::prelude::VrmSystemSets;
+use crate::vrma::RetargetSource;
 use crate::vrma::animation::animation_graph::VrmaAnimationGraphPlugin;
 use crate::vrma::animation::expressions::VrmaRetargetExpressionsPlugin;
 use crate::vrma::animation::play::VrmaAnimationPlayPlugin;
-use crate::vrma::RetargetSource;
 use bevy::app::App;
 use bevy::prelude::*;
 use bevy::window::RequestRedraw;
 
 pub mod prelude {
     pub use crate::vrma::animation::{
-        play::{PlayVrma, StopVrma},
         VrmaAnimationPlayers,
+        play::{PlayVrma, StopVrma},
     };
 }
 
-pub struct VrmaAnimationPlayersPlugin;
+pub(super) struct VrmaAnimationPlayersPlugin;
 
 impl Plugin for VrmaAnimationPlayersPlugin {
     fn build(

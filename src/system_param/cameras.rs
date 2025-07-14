@@ -1,6 +1,8 @@
 use bevy::ecs::system::SystemParam;
 use bevy::math::{Vec2, Vec3};
-use bevy::prelude::{Camera, Entity, GlobalTransform, InfinitePlane3d, Query, Reflect};
+use bevy::prelude::{
+    Camera, Camera3d, Component, Entity, GlobalTransform, InfinitePlane3d, Query, Reflect, With,
+};
 use bevy::render::camera::RenderTarget;
 use bevy::render::view::RenderLayers;
 use bevy::window::WindowRef;
@@ -8,11 +10,11 @@ use bevy::window::WindowRef;
 pub type CameraQuery<'w> = (Entity, &'w Camera, &'w GlobalTransform, &'w RenderLayers);
 
 #[derive(SystemParam, Reflect)]
-pub struct Cameras<'w, 's> {
-    pub cameras: Query<'w, 's, CameraQuery<'static>>,
+pub struct Cameras<'w, 's, Camera: Component = Camera3d> {
+    pub cameras: Query<'w, 's, CameraQuery<'static>, With<Camera>>,
 }
 
-impl Cameras<'_, '_> {
+impl<Camera: Component> Cameras<'_, '_, Camera> {
     pub fn all_layers(&self) -> RenderLayers {
         self.cameras
             .iter()
@@ -33,7 +35,7 @@ impl Cameras<'_, '_> {
     }
 
     #[inline]
-    pub fn find_camera_from_world_pos(
+    pub fn find_by_world(
         &self,
         world_pos: Vec3,
     ) -> Option<CameraQuery> {
@@ -68,7 +70,7 @@ impl Cameras<'_, '_> {
     }
 
     #[inline]
-    pub fn to_world_pos_from_viewport(
+    pub fn to_world_by_viewport(
         &self,
         window_entity: Entity,
         viewport_pos: Vec2,
@@ -80,12 +82,22 @@ impl Cameras<'_, '_> {
         let distance = ray.intersect_plane(mascot_pos, plane)?;
         Some(ray.get_point(distance))
     }
+
+    #[inline]
+    pub fn to_world_2d_pos_from_viewport(
+        &self,
+        window_entity: Entity,
+        viewport_pos: Vec2,
+    ) -> Option<Vec2> {
+        let (_, camera, camera_gtf, _) = self.find_camera_from_window(window_entity)?;
+        camera.viewport_to_world_2d(camera_gtf, viewport_pos).ok()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::system_param::cameras::Cameras;
-    use crate::tests::{test_app, TestResult};
+    use crate::tests::{TestResult, test_app};
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::{Camera, Commands, GlobalTransform};
     use bevy::render::view::RenderLayers;

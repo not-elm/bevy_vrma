@@ -17,11 +17,11 @@ pub mod prelude {
 #[doc(hidden)]
 #[cfg(test)]
 pub(crate) mod tests {
+    use bevy::MinimalPlugins;
     use bevy::asset::AssetPlugin;
     use bevy::prelude::ImagePlugin;
     use bevy::render::camera::CameraPlugin;
     use bevy::window::WindowPlugin;
-    use bevy::MinimalPlugins;
 
     pub type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 

@@ -1,7 +1,7 @@
 //! This module defines the data structures for VRMA extensions in the GLTF format.
 
 use crate::error::AppResult;
-use crate::vrm::gltf::extensions::{obtain_extensions, obtain_vrmc_vrm, VrmNode};
+use crate::vrm::gltf::extensions::{VrmNode, obtain_extensions, obtain_vrmc_vrm};
 use bevy::gltf::Gltf;
 use bevy::platform::collections::HashMap;
 use serde::{Deserialize, Serialize};
