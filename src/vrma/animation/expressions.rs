@@ -4,7 +4,7 @@ use crate::system_set::VrmSystemSets;
 use crate::vrm::VrmExpression;
 use crate::vrm::expressions::{BindExpressionNode, RetargetExpressionNodes};
 use crate::vrma::gltf::extensions::VrmaExtensions;
-use bevy::app::{Animation, App};
+use bevy::app::App;
 use bevy::prelude::TransformSystem::TransformPropagate;
 use bevy::prelude::*;
 
@@ -21,8 +21,7 @@ impl Plugin for VrmaRetargetExpressionsPlugin {
                 PostUpdate,
                 bind_expressions
                     .in_set(VrmSystemSets::Retarget)
-                    .after(Animation)
-                    .after(TransformPropagate),
+                    .before(TransformPropagate),
             );
     }
 }

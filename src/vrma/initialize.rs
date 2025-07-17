@@ -27,7 +27,7 @@ fn spawn_vrma(
     mut commands: Commands,
     vrma_assets: Res<Assets<VrmaAsset>>,
     node_assets: Res<Assets<GltfNode>>,
-    clip_assets: Res<Assets<AnimationClip>>,
+    mut clip_assets: ResMut<Assets<AnimationClip>>,
     vrma_handles: Query<(Entity, &VrmaHandle, &ChildOf)>,
     vrms: Query<Has<Initialized>>,
 ) {
@@ -64,6 +64,11 @@ fn spawn_vrma(
             vrm_error!("[VRMA] Not found vrma animations in {name}");
             continue;
         };
+        let Some(animation_clip) = clip_assets.get(animation_clip_handle).cloned() else {
+            vrm_error!("[VRMA] Not found animation clip for {name}");
+            continue;
+        };
+        let animation_clip_handle = clip_assets.add(animation_clip);
         commands.entity(handle_entity).insert((
             Vrma,
             Name::new(name),
