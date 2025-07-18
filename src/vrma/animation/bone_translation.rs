@@ -1,7 +1,5 @@
-use crate::prelude::{BoneRestGlobalTransform, BoneRestTransform, ChildSearcher};
-use bevy::animation::{
-    animated_field, AnimationEntityMut, AnimationEvaluationError, AnimationTarget,
-};
+use crate::prelude::BoneRestGlobalTransform;
+use bevy::animation::{AnimationEntityMut, AnimationEvaluationError, animated_field};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use std::any::TypeId;

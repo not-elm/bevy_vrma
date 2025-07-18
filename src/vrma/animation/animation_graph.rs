@@ -2,13 +2,13 @@ use crate::prelude::{BoneRestGlobalTransform, BoneRestTransform, ChildSearcher};
 use crate::vrm::expressions::VrmExpressionRegistry;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrma::animation::bone_rotation::{
-    register_rotate_transformation, BoneRotationAnimationCurve,
+    BoneRotationAnimationCurve, register_rotate_transformation,
 };
 use crate::vrma::animation::bone_translation::{
-    register_hips_translation_transformation, HipsTranslationAnimationCurve,
+    HipsTranslationAnimationCurve, register_hips_translation_transformation,
 };
 use crate::vrma::{VrmAnimationClipHandle, VrmAnimationNodeIndex};
-use bevy::animation::{animated_field, AnimationTarget};
+use bevy::animation::{AnimationTarget, animated_field};
 use bevy::app::App;
 use bevy::prelude::*;
 

@@ -1,15 +1,14 @@
 use crate::prelude::*;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use bevy::animation::{
-    animated_field, AnimationEntityMut, AnimationEvaluationError, AnimationTarget,
+    AnimationEntityMut, AnimationEvaluationError, AnimationTarget, animated_field,
 };
 use bevy::platform::collections::HashMap;
-use bevy::platform::hash::Hashed;
 use bevy::prelude::*;
 use std::any::TypeId;
 use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Mutex;
 
 pub(crate) fn register_rotate_transformation(
     vrma: Entity,
