@@ -1,31 +1,34 @@
-use bevy::animation::{AnimationEntityMut, AnimationEvaluationError, animated_field};
+use crate::prelude::{BoneRestGlobalTransform, BoneRestTransform, ChildSearcher};
+use bevy::animation::{
+    animated_field, AnimationEntityMut, AnimationEvaluationError, AnimationTarget,
+};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use std::any::TypeId;
 use std::fmt::{Debug, Formatter};
+use std::sync::Mutex;
 
-pub(crate) struct HipsTranslationAnimationCurve {
-    base: Box<dyn AnimationCurve>,
+pub fn register_hips_translation_transformation(
+    node_index: AnimationNodeIndex,
     hips: Entity,
-    transformation: Transformation,
+    src_rest_g: &BoneRestGlobalTransform,
+    dist_reg_g: &BoneRestGlobalTransform,
+) {
+    let transformations = Transformation {
+        src_rest_g: src_rest_g.translation(),
+        dist_rest_g: dist_reg_g.translation(),
+    };
+    HIPS_TRANSFORMATIONS
+        .lock()
+        .expect("Failed to lock HIPS_TRANSFORMATIONS")
+        .insert((hips, node_index), transformations);
 }
 
-impl HipsTranslationAnimationCurve {
-    pub fn new(
-        base: VariableCurve,
-        hips: Entity,
-        src_rest_g: Vec3,
-        dist_rest_g: Vec3,
-    ) -> Self {
-        Self {
-            base: base.0,
-            hips,
-            transformation: Transformation {
-                src_rest_g,
-                dist_rest_g,
-            },
-        }
-    }
+static HIPS_TRANSFORMATIONS: Mutex<HashMap<(Entity, AnimationNodeIndex), Transformation>> =
+    Mutex::new(HashMap::new());
+
+pub(crate) struct HipsTranslationAnimationCurve {
+    pub base: Box<dyn AnimationCurve>,
 }
 
 impl Debug for HipsTranslationAnimationCurve {
@@ -34,7 +37,6 @@ impl Debug for HipsTranslationAnimationCurve {
         f: &mut Formatter<'_>,
     ) -> std::fmt::Result {
         f.debug_struct("RetargetBoneTranslationAnimationCurve")
-            .field("transformation", &self.transformation)
             .finish()
     }
 }
@@ -43,8 +45,6 @@ impl AnimationCurve for HipsTranslationAnimationCurve {
     fn clone_value(&self) -> Box<dyn AnimationCurve> {
         Box::new(Self {
             base: self.base.clone_value(),
-            hips: self.hips,
-            transformation: self.transformation,
         })
     }
 
@@ -77,10 +77,6 @@ impl AnimationCurve for HipsTranslationAnimationCurve {
             let ty = TypeId::of::<RetargetEvaluator>();
             return Err(AnimationEvaluationError::InconsistentEvaluatorImplementation(ty));
         };
-        curve_evaluator
-            .transformations
-            .entry(self.hips)
-            .or_insert(self.transformation);
         self.base
             .apply(&mut *curve_evaluator.base, t, weight, graph_node)?;
         Ok(())

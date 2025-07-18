@@ -2,14 +2,15 @@ use crate::prelude::{BoneRestGlobalTransform, BoneRestTransform, ChildSearcher};
 use crate::vrm::expressions::VrmExpressionRegistry;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrma::animation::bone_rotation::{
-    BONE_ROTATION_TRANSFORMATIONS, BoneRotateTransformations, BoneRotationAnimationCurve,
+    register_rotate_transformation, BoneRotationAnimationCurve,
+};
+use crate::vrma::animation::bone_translation::{
+    register_hips_translation_transformation, HipsTranslationAnimationCurve,
 };
 use crate::vrma::{VrmAnimationClipHandle, VrmAnimationNodeIndex};
-use bevy::animation::{AnimationTarget, AnimationTargetId, animated_field};
+use bevy::animation::{animated_field, AnimationTarget};
 use bevy::app::App;
 use bevy::prelude::*;
-use std::collections::VecDeque;
-use std::sync::{Arc, RwLock};
 
 #[derive(Event)]
 pub(crate) struct RequestUpdateAnimationGraph {
@@ -131,9 +132,7 @@ fn insert_animation_graph_into_expressions(
 
 fn apply_replace_humanoid_bone_animation_clips(
     trigger: Trigger<RequestUpdateAnimationClips>,
-    mut commands: Commands,
     mut clips: ResMut<Assets<AnimationClip>>,
-    asset_server: Res<AssetServer>,
     clip_handles: Query<&VrmAnimationClipHandle>,
     parents: Query<&ChildOf>,
     vrms: Query<&HumanoidBoneRegistry>,
@@ -164,23 +163,17 @@ fn apply_replace_humanoid_bone_animation_clips(
     let Some(clip) = clips.get_mut(vrm_animation_clip_handle.0.id()) else {
         return;
     };
-    {
-        let transformations = BoneRotateTransformations::new(
-            vrma_entity,
-            vrma_node_index.0,
-            root_bone,
-            registry,
-            &searcher,
-            &bones,
-        );
-        let Ok(mut t) = BONE_ROTATION_TRANSFORMATIONS.lock() else {
-            return;
-        };
-        t.extend(transformations.0);
-    }
+    register_rotate_transformation(
+        vrma_entity,
+        vrma_node_index.0,
+        root_bone,
+        registry,
+        &searcher,
+        &bones,
+    );
     replace_bone_animation_clips(
         clip,
-        *vrm_entity,
+        vrma_node_index.0,
         vrma_entity,
         root_bone,
         registry,
@@ -191,7 +184,7 @@ fn apply_replace_humanoid_bone_animation_clips(
 
 fn replace_bone_animation_clips(
     clip: &mut AnimationClip,
-    vrm_entity: Entity,
+    node_index: AnimationNodeIndex,
     vrma_entity: Entity,
     root_bone: Entity,
     registry: &HumanoidBoneRegistry,
@@ -210,24 +203,24 @@ fn replace_bone_animation_clips(
         let Some(bone_entity) = searcher.find_by_bone_name(root_bone, bone) else {
             continue;
         };
-        let Ok((_, vrma_rest_gtf, vrma_bone_target)) = bones.get(vrma_bone_entity) else {
+        let Ok((_, src_rest_gtf, vrma_bone_target)) = bones.get(vrma_bone_entity) else {
             continue;
         };
-        let Ok((_, rest_gtf, bone_target)) = bones.get(bone_entity) else {
+        let Ok((_, dist_rest_gtf, bone_target)) = bones.get(bone_entity) else {
             continue;
         };
+        if bone.as_str() == "hips" {
+            register_hips_translation_transformation(
+                node_index,
+                bone_entity,
+                src_rest_gtf,
+                dist_rest_gtf,
+            );
+        }
         if let Some(curves) = animation_curves.remove(&vrma_bone_target.id) {
             let mut cs = Vec::new();
             for c in curves.iter() {
-                cs.push(animation_curve(
-                    vrm_entity,
-                    vrma_entity,
-                    c.clone(),
-                    bone_entity,
-                    bone.as_str() == "hips",
-                    vrma_rest_gtf,
-                    rest_gtf,
-                ));
+                cs.push(animation_curve(c.clone(), bone.as_str() == "hips"));
             }
             animation_curves.insert(bone_target.id, cs.clone());
         }
@@ -235,13 +228,8 @@ fn replace_bone_animation_clips(
 }
 
 fn animation_curve(
-    vrm: Entity,
-    vrma: Entity,
     original: VariableCurve,
-    bone_entity: Entity,
     hips: bool,
-    vrma_rest_gtf: &BoneRestGlobalTransform,
-    rest_gtf: &BoneRestGlobalTransform,
 ) -> VariableCurve {
     let EvaluatorId::ComponentField(target_component) = original.0.evaluator_id() else {
         return original;
@@ -259,18 +247,9 @@ fn animation_curve(
     };
 
     if target_component == rotation_component {
-        VariableCurve(Box::new(BoneRotationAnimationCurve {
-            base: original.0,
-        }))
+        VariableCurve(Box::new(BoneRotationAnimationCurve { base: original.0 }))
     } else if hips && target_component == translation_component {
-        //TODO:
-        // VariableCurve(Box::new(HipsTranslationAnimationCurve::new(
-        //     original,
-        //     bone_entity,
-        //     vrma_rest_gtf.0.translation(),
-        //     rest_gtf.0.translation(),
-        // )))
-        original
+        VariableCurve(Box::new(HipsTranslationAnimationCurve { base: original.0 }))
     } else {
         original
     }

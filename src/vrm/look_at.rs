@@ -2,10 +2,7 @@
 //! - [`look at specification(ja)`](https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_vrm-1.0/lookAt.ja.md)
 
 use crate::prelude::*;
-use crate::system_set::VrmSystemSets;
-use bevy::app::{Animation, App, Plugin};
-use bevy::input::mouse::MouseMotion;
-use bevy::prelude::TransformSystem::TransformPropagate;
+use bevy::app::{App, Plugin};
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
 use bevy::window::{PrimaryWindow, WindowRef};
@@ -59,11 +56,7 @@ impl Plugin for LookAtPlugin {
             .register_type::<LookAtType>()
             .add_systems(
                 PostUpdate,
-                track_looking_target
-                    .run_if(on_event::<MouseMotion>)
-                    .in_set(VrmSystemSets::LookAt)
-                    .after(Animation)
-                    .after(TransformPropagate),
+                track_looking_target.before(TransformSystem::TransformPropagate),
             );
     }
 }
@@ -77,7 +70,7 @@ fn track_looking_target(
         &LeftEyeBoneEntity,
         &RightEyeBoneEntity,
     )>,
-    cameras: Query<(Entity, &Camera)>,
+    cameras: Query<(Entity, &Camera), With<Camera3d>>,
     transforms: Query<&Transform>,
     global_transforms: Query<&GlobalTransform>,
     rests: Query<(&BoneRestTransform, &BoneRestGlobalTransform)>,
@@ -106,9 +99,23 @@ fn track_looking_target(
             ) else {
                 return;
             };
+            let mut a = look_at_space.reparented_to(head_gtf);
+            a.rotation = head_tf.rotation.inverse();
+            let a = head_gtf.mul_transform(a);
             let (yaw, pitch) = calc_yaw_pitch(&look_at_space, target);
+            let (yaw_head, pitch_head) = calc_yaw_pitch(&a, target);
             match properties.r#type {
                 LookAtType::Bone => {
+                    if let Ok(head_tf) = transforms.get(head.0) {
+                        apply_head_bone(
+                            &mut commands,
+                            &rests,
+                            head.0,
+                            head_tf,
+                            yaw_head,
+                            pitch_head,
+                        );
+                    }
                     apply_bone(
                         &mut commands,
                         &transforms,
@@ -127,12 +134,38 @@ fn track_looking_target(
         });
 }
 
+fn apply_head_bone(
+    commands: &mut Commands,
+    rests: &Query<(&BoneRestTransform, &BoneRestGlobalTransform)>,
+    head_entity: Entity,
+    head_tf: &Transform,
+    yaw_degrees: f32,
+    pitch_degrees: f32,
+) {
+    let Ok((rest_tf, rest_gtf)) = rests.get(head_entity) else {
+        return;
+    };
+    const MAX_YAW_DEGREES: f32 = 30.0;
+    let yaw = if yaw_degrees > 0. {
+        yaw_degrees.min(MAX_YAW_DEGREES)
+    } else {
+        yaw_degrees.max(-MAX_YAW_DEGREES)
+    };
+    let pitch = if pitch_degrees > 0. {
+        pitch_degrees.min(MAX_YAW_DEGREES)
+    } else {
+        pitch_degrees.max(-MAX_YAW_DEGREES)
+    };
+    let new_tf = head_tf.with_rotation(to_eye_rotation(yaw, pitch, rest_tf, rest_gtf));
+    commands.entity(head_entity).insert(new_tf);
+}
+
 fn calc_target_position(
     look_at: &LookAt,
     vrm_entity: Entity,
     transforms: &Query<&Transform>,
     global_transforms: &Query<&GlobalTransform>,
-    cameras: &Query<(Entity, &Camera)>,
+    cameras: &Query<(Entity, &Camera), With<Camera3d>>,
     windows: &Query<(&Window, Has<PrimaryWindow>)>,
 ) -> Option<Vec3> {
     match look_at {
@@ -204,7 +237,7 @@ fn calc_look_at_cursor_position(
     camera_entity: Entity,
     vrm_entity: Entity,
     global_transforms: &Query<&GlobalTransform>,
-    cameras: &Query<(Entity, &Camera)>,
+    cameras: &Query<(Entity, &Camera), With<Camera3d>>,
     windows: &Query<(&Window, Has<PrimaryWindow>)>,
 ) -> Option<Vec3> {
     let (_, camera) = cameras.get(camera_entity).ok()?;
@@ -219,15 +252,12 @@ fn calc_look_at_cursor_position(
             .find_map(|(w, primary)| primary.then_some(w))?,
         WindowRef::Entity(window_entity) => windows.get(window_entity).map(|(w, _)| w).ok()?,
     };
-
     let cursor = window.cursor_position()?;
-
     let ray = camera.viewport_to_world(camera_gtf, cursor).ok()?;
     let delta = camera_gtf.translation() - head_gtf.translation();
-    let plane_origin = head_gtf.translation() + delta * 0.5;
+    let plane_origin = head_gtf.translation() + delta * 0.9;
     let plane_up = InfinitePlane3d::new(camera_gtf.back());
     let distance = ray.intersect_plane(plane_origin, plane_up)?;
-
     Some(ray.get_point(distance))
 }
 

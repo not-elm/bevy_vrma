@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use bevy::animation::{
-    AnimationEntityMut, AnimationEvaluationError, AnimationTarget, animated_field,
+    animated_field, AnimationEntityMut, AnimationEvaluationError, AnimationTarget,
 };
 use bevy::platform::collections::HashMap;
 use bevy::platform::hash::Hashed;
@@ -11,11 +11,31 @@ use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter};
 use std::sync::{Arc, Mutex, RwLock};
 
-pub(crate) static BONE_ROTATION_TRANSFORMATIONS: Mutex<BoneRotateTransformations> =
-    Mutex::new(BoneRotateTransformations(HashMap::new()));
+pub(crate) fn register_rotate_transformation(
+    vrma: Entity,
+    node_index: AnimationNodeIndex,
+    root_bone: Entity,
+    registry: &HumanoidBoneRegistry,
+    searcher: &ChildSearcher,
+    bones: &Query<(
+        &BoneRestTransform,
+        &BoneRestGlobalTransform,
+        &AnimationTarget,
+    )>,
+) {
+    let transformations =
+        BoneRotateTransformations::new(vrma, node_index, root_bone, registry, searcher, bones);
+    BONE_ROTATION_TRANSFORMATIONS
+        .lock()
+        .expect("Failed to lock BONE_ROTATION_TRANSFORMATIONS")
+        .extend(transformations.0);
+}
+
+static BONE_ROTATION_TRANSFORMATIONS: Mutex<HashMap<(Entity, AnimationNodeIndex), Transformation>> =
+    Mutex::new(HashMap::new());
 
 #[derive(Clone, Debug, Deref, DerefMut)]
-pub(crate) struct BoneRotateTransformations(pub HashMap<(Entity, AnimationNodeIndex), Transformation>);
+struct BoneRotateTransformations(pub HashMap<(Entity, AnimationNodeIndex), Transformation>);
 
 impl BoneRotateTransformations {
     pub fn new(
@@ -76,7 +96,7 @@ impl Transformation {
     }
 }
 
-pub(crate) struct BoneRotationAnimationCurve {
+pub struct BoneRotationAnimationCurve {
     pub base: Box<dyn AnimationCurve>,
 }
 
@@ -85,8 +105,7 @@ impl Debug for BoneRotationAnimationCurve {
         &self,
         f: &mut Formatter<'_>,
     ) -> std::fmt::Result {
-        f.debug_struct("RetargetBoneAnimationCurve")
-            .finish()
+        f.debug_struct("RetargetBoneAnimationCurve").finish()
     }
 }
 
@@ -109,7 +128,8 @@ impl AnimationCurve for BoneRotationAnimationCurve {
         Box::new(Evaluator {
             base: self.base.create_evaluator(),
             property: Box::new(animated_field!(Transform::rotation)),
-            entities: VecDeque::default(),
+            nodes: VecDeque::default(),
+            transformations: HashMap::default(),
         })
     }
 
@@ -124,7 +144,7 @@ impl AnimationCurve for BoneRotationAnimationCurve {
             let ty = TypeId::of::<Evaluator>();
             return Err(AnimationEvaluationError::InconsistentEvaluatorImplementation(ty));
         };
-        curve_evaluator.entities.push_back(graph_node);
+        curve_evaluator.nodes.push_back(graph_node);
         self.base
             .apply(&mut *curve_evaluator.base, t, weight, graph_node)?;
         //FIXME: Currently, blending multiple VRMAs with different initial poses results in incorrect interpolation.
@@ -149,7 +169,9 @@ impl AnimationCurve for BoneRotationAnimationCurve {
 struct Evaluator {
     base: Box<dyn AnimationCurveEvaluator>,
     property: Box<dyn AnimatableProperty<Property = Quat>>,
-    entities: VecDeque<AnimationNodeIndex>,
+    nodes: VecDeque<AnimationNodeIndex>,
+
+    transformations: HashMap<(Entity, AnimationNodeIndex), Transformation>,
 }
 
 impl AnimationCurveEvaluator for Evaluator {
@@ -179,16 +201,16 @@ impl AnimationCurveEvaluator for Evaluator {
         &mut self,
         mut entity: AnimationEntityMut,
     ) -> std::result::Result<(), AnimationEvaluationError> {
-        let id = entity.id();
+        let bone_entity = entity.id();
         self.base.commit(entity.reborrow())?;
-        let Ok(transformation) = BONE_ROTATION_TRANSFORMATIONS.lock() else{
-            return Ok(());
-        };
-        let vrma = self.entities.pop_back().unwrap();
-        let Some(transformation) = transformation.0.get(&(id, vrma)) else {
-            let ty = TypeId::of::<Transformation>();
-            return Err(AnimationEvaluationError::PropertyNotPresent(ty));
-        };
+        let node_index = self.nodes.pop_back().unwrap();
+        let transformation = self
+            .transformations
+            .entry((bone_entity, node_index))
+            .or_insert_with(|| {
+                let t = BONE_ROTATION_TRANSFORMATIONS.lock().unwrap();
+                t.get(&(bone_entity, node_index)).cloned().unwrap()
+            });
         let rotate = self.property.get_mut(&mut entity)?;
         *rotate = transformation.transform(*rotate);
         Ok(())
