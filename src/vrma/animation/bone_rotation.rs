@@ -6,7 +6,6 @@ use bevy::animation::{
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use std::any::TypeId;
-use std::collections::VecDeque;
 use std::fmt::{Debug, Formatter};
 use std::sync::Mutex;
 
@@ -127,7 +126,7 @@ impl AnimationCurve for BoneRotationAnimationCurve {
         Box::new(Evaluator {
             base: self.base.create_evaluator(),
             property: Box::new(animated_field!(Transform::rotation)),
-            nodes: VecDeque::default(),
+            nodes: Vec::default(),
             transformations: HashMap::default(),
         })
     }
@@ -143,7 +142,7 @@ impl AnimationCurve for BoneRotationAnimationCurve {
             let ty = TypeId::of::<Evaluator>();
             return Err(AnimationEvaluationError::InconsistentEvaluatorImplementation(ty));
         };
-        curve_evaluator.nodes.push_back(graph_node);
+        curve_evaluator.nodes.push(graph_node);
         self.base
             .apply(&mut *curve_evaluator.base, t, weight, graph_node)?;
         //FIXME: Currently, blending multiple VRMAs with different initial poses results in incorrect interpolation.
@@ -168,8 +167,7 @@ impl AnimationCurve for BoneRotationAnimationCurve {
 struct Evaluator {
     base: Box<dyn AnimationCurveEvaluator>,
     property: Box<dyn AnimatableProperty<Property = Quat>>,
-    nodes: VecDeque<AnimationNodeIndex>,
-
+    nodes: Vec<AnimationNodeIndex>,
     transformations: HashMap<(Entity, AnimationNodeIndex), Transformation>,
 }
 
@@ -202,7 +200,7 @@ impl AnimationCurveEvaluator for Evaluator {
     ) -> std::result::Result<(), AnimationEvaluationError> {
         let bone_entity = entity.id();
         self.base.commit(entity.reborrow())?;
-        let node_index = self.nodes.pop_back().unwrap();
+        let node_index = self.nodes.pop().unwrap();
         let transformation = self
             .transformations
             .entry((bone_entity, node_index))

@@ -60,6 +60,7 @@ impl AnimationCurve for HipsTranslationAnimationCurve {
         Box::new(RetargetEvaluator {
             base: self.base.create_evaluator(),
             property: Box::new(animated_field!(Transform::translation)),
+            nodes: Vec::new(),
             transformations: HashMap::new(),
         })
     }
@@ -75,6 +76,7 @@ impl AnimationCurve for HipsTranslationAnimationCurve {
             let ty = TypeId::of::<RetargetEvaluator>();
             return Err(AnimationEvaluationError::InconsistentEvaluatorImplementation(ty));
         };
+        curve_evaluator.nodes.push(graph_node);
         self.base
             .apply(&mut *curve_evaluator.base, t, weight, graph_node)?;
         Ok(())
@@ -99,7 +101,8 @@ impl Transformation {
 struct RetargetEvaluator {
     base: Box<dyn AnimationCurveEvaluator>,
     property: Box<dyn AnimatableProperty<Property = Vec3>>,
-    transformations: HashMap<Entity, Transformation>,
+    nodes: Vec<AnimationNodeIndex>,
+    transformations: HashMap<(Entity, AnimationNodeIndex), Transformation>,
 }
 
 impl AnimationCurveEvaluator for RetargetEvaluator {
@@ -128,15 +131,25 @@ impl AnimationCurveEvaluator for RetargetEvaluator {
         self.base.push_blend_register(weight, graph_node)
     }
 
+    #[inline]
     fn commit(
         &mut self,
         mut entity: AnimationEntityMut,
     ) -> std::result::Result<(), AnimationEvaluationError> {
-        let id = entity.id();
-        let Some(transformation) = self.transformations.get(&id) else {
-            let ty = TypeId::of::<Transformation>();
-            return Err(AnimationEvaluationError::PropertyNotPresent(ty));
-        };
+        let hips_bone = entity.id();
+        let node = self.nodes.pop().unwrap();
+        let transformation = self
+            .transformations
+            .entry((hips_bone, node))
+            .or_insert_with(|| {
+                let hips_transformations = HIPS_TRANSFORMATIONS
+                    .lock()
+                    .expect("Failed to lock HIPS_TRANSFORMATIONS");
+                hips_transformations
+                    .get(&(hips_bone, node))
+                    .cloned()
+                    .unwrap()
+            });
         self.base.commit(entity.reborrow())?;
         let hips_pos = self.property.get_mut(&mut entity)?;
         *hips_pos = transformation.transform(*hips_pos);
