@@ -131,7 +131,7 @@ fn obtain_expression_nodes(
         .iter()
         .flat_map(|node| {
             Some(BindExpressionNode {
-                expression_entity: searcher.find_from_name(vrm_entity, &node.name)?,
+                expression_entity: searcher.find_by_name(vrm_entity, &node.name)?,
                 index: node.morph_target_index,
             })
         })
@@ -182,7 +182,7 @@ mod tests {
             .expect("Expression root not found");
 
         app.world_mut()
-            .run_system_once(move |s: ChildSearcher| s.find_from_name(vrm_entity, "happy"))?
+            .run_system_once(move |s: ChildSearcher| s.find_by_name(vrm_entity, "happy"))?
             .expect("Expression node not found");
         Ok(())
     }

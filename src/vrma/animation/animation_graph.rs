@@ -197,7 +197,7 @@ fn replace_bone_animation_clips(
 ) {
     let animation_curves = clip.curves_mut();
     for (bone, name) in registry.iter() {
-        let Some(vrma_bone_entity) = searcher.find_from_name(vrma_entity, name) else {
+        let Some(vrma_bone_entity) = searcher.find_by_name(vrma_entity, name) else {
             continue;
         };
         let Some(bone_entity) = searcher.find_by_bone_name(root_bone, bone) else {
@@ -281,10 +281,10 @@ fn apply_regenerate_expression_clips(
         return;
     };
     for (expression, _) in registry.iter() {
-        let Some(vrma_expression) = searcher.find_from_name(vrma_entity, expression) else {
+        let Some(vrma_expression) = searcher.find_by_name(vrma_entity, expression) else {
             continue;
         };
-        let Some(expression_entity) = searcher.find_from_name(expressions_root, expression) else {
+        let Some(expression_entity) = searcher.find_by_name(expressions_root, expression) else {
             continue;
         };
         let Ok(vrma_target) = animation_targets.get(vrma_expression) else {

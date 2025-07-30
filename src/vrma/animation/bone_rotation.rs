@@ -50,7 +50,7 @@ impl BoneRotateTransformations {
     ) -> Self {
         let mut transformations = HashMap::new();
         for (bone, name) in registry.iter() {
-            let Some(vrma_bone_entity) = searcher.find_from_name(vrma, name) else {
+            let Some(vrma_bone_entity) = searcher.find_by_name(vrma, name) else {
                 continue;
             };
             let Some(rig_bone_entity) = searcher.find_by_bone_name(root_bone, bone) else {

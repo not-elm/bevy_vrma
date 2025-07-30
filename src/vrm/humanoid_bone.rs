@@ -102,7 +102,7 @@ fn apply_initialize_humanoid_bones(
         return;
     };
     let Some(hips) =
-        searcher.find_from_name(model_entity, registry.get(&VrmBone::from("hips")).unwrap())
+        searcher.find_by_name(model_entity, registry.get(&VrmBone::from("hips")).unwrap())
     else {
         return;
     };
@@ -125,7 +125,7 @@ fn apply_initialize_humanoid_bones(
     }
 
     for (bone, name) in registry.iter() {
-        let Some(bone_entity) = searcher.find_from_name(model_entity, name.as_str()) else {
+        let Some(bone_entity) = searcher.find_by_name(model_entity, name.as_str()) else {
             continue;
         };
         let Ok((tf, gtf)) = transforms.get(bone_entity) else {

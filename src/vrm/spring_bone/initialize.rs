@@ -37,7 +37,7 @@ fn apply_initialize_joint_props(
         return;
     };
     for (name, props) in nodes.iter() {
-        let Some(joint_entity) = child_searcher.find_from_name(root, name.as_str()) else {
+        let Some(joint_entity) = child_searcher.find_by_name(root, name.as_str()) else {
             continue;
         };
         commands.entity(joint_entity).insert(*props);
@@ -55,7 +55,7 @@ fn apply_initialize_collider_shapes(
         return;
     };
     for (name, shape) in registry.iter() {
-        let Some(collider_entity) = child_searcher.find_from_name(entity, name) else {
+        let Some(collider_entity) = child_searcher.find_by_name(entity, name) else {
             continue;
         };
         commands.entity(collider_entity).insert(*shape);
@@ -77,13 +77,13 @@ fn apply_initialize_spring_roots(
             spring
                 .center
                 .as_ref()
-                .and_then(|center| child_searcher.find_from_name(entity, center.as_str())),
+                .and_then(|center| child_searcher.find_by_name(entity, center.as_str())),
         ),
         joints: SpringJoints(
             spring
                 .joints
                 .iter()
-                .filter_map(|joint| child_searcher.find_from_name(entity, joint.as_str()))
+                .filter_map(|joint| child_searcher.find_by_name(entity, joint.as_str()))
                 .collect(),
         ),
         colliders: SpringColliders(
@@ -91,7 +91,7 @@ fn apply_initialize_spring_roots(
                 .colliders
                 .iter()
                 .filter_map(|(collider, shape)| {
-                    let name = child_searcher.find_from_name(entity, collider.as_str())?;
+                    let name = child_searcher.find_by_name(entity, collider.as_str())?;
                     Some((name, *shape))
                 })
                 .collect(),

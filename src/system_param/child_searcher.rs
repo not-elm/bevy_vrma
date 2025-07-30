@@ -22,7 +22,7 @@ impl ChildSearcher<'_, '_> {
         &self,
         vrm: Entity,
     ) -> Option<Entity> {
-        self.find_from_name(vrm, Vrm::ROOT_BONE)
+        self.find_by_name(vrm, Vrm::ROOT_BONE)
     }
 
     #[inline]
@@ -30,10 +30,10 @@ impl ChildSearcher<'_, '_> {
         &self,
         vrm: Entity,
     ) -> Option<Entity> {
-        self.find_from_name(vrm, Vrm::EXPRESSIONS_ROOT)
+        self.find_by_name(vrm, Vrm::EXPRESSIONS_ROOT)
     }
 
-    pub fn find_from_name(
+    pub fn find_by_name(
         &self,
         root: Entity,
         target_name: &str,
@@ -56,7 +56,7 @@ impl ChildSearcher<'_, '_> {
     ) -> bool {
         bone_registry
             .values()
-            .all(|bone_name| self.find_from_name(root, bone_name.as_str()).is_some())
+            .all(|bone_name| self.find_by_name(root, bone_name.as_str()).is_some())
     }
 }
 
