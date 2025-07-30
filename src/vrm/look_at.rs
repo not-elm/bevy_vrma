@@ -44,6 +44,12 @@ pub enum LookAt {
     Target(Entity),
 }
 
+impl Default for LookAt {
+    fn default() -> Self {
+        LookAt::Cursor { camera: None }
+    }
+}
+
 pub(super) struct LookAtPlugin;
 
 impl Plugin for LookAtPlugin {
