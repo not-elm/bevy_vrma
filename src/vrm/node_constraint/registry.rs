@@ -1,5 +1,5 @@
 use crate::vrm::gltf::extensions::vrmc_node_constraint::VrmcNodeConstraint;
-use bevy::asset::{Assets, Handle};
+use bevy::asset::Assets;
 use bevy::gltf;
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;

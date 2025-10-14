@@ -1,11 +1,10 @@
-use crate::vrm::node_constraint::bind::NodeConstraintBindPlugin;
-use crate::vrm::node_constraint::initialize::NodeConstraintInitializePlugin;
+use crate::vrm::node_constraint::rotation::bind::NodeConstraintBindPlugin;
+use crate::vrm::node_constraint::rotation::initialize::NodeConstraintInitializePlugin;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-mod bind;
-pub(crate) mod initialize;
-pub(crate) mod registry;
+pub mod registry;
+pub mod rotation;
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize, Component)]
 #[reflect(Component, Serialize, Deserialize, Clone)]

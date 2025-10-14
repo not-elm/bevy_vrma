@@ -1,6 +1,6 @@
+pub mod vrmc_node_constraint;
 pub mod vrmc_spring_bone;
 pub mod vrmc_vrm;
-pub mod vrmc_node_constraint;
 
 use crate::error::AppResult;
 use crate::vrm::gltf::extensions::vrmc_spring_bone::VRMCSpringBone;

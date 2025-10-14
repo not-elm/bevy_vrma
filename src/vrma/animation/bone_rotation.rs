@@ -15,11 +15,7 @@ pub(crate) fn register_rotate_transformation(
     root_bone: Entity,
     registry: &HumanoidBoneRegistry,
     searcher: &ChildSearcher,
-    bones: &Query<(
-        &RestTransform,
-        &RestGlobalTransform,
-        &AnimationTarget,
-    )>,
+    bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTarget)>,
 ) {
     let transformations =
         BoneRotateTransformations::new(vrma, node_index, root_bone, registry, searcher, bones);
@@ -42,11 +38,7 @@ impl BoneRotateTransformations {
         root_bone: Entity,
         registry: &HumanoidBoneRegistry,
         searcher: &ChildSearcher,
-        bones: &Query<(
-            &RestTransform,
-            &RestGlobalTransform,
-            &AnimationTarget,
-        )>,
+        bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTarget)>,
     ) -> Self {
         let mut transformations = HashMap::new();
         for (bone, name) in registry.iter() {

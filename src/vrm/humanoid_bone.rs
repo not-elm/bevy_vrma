@@ -96,12 +96,7 @@ fn apply_insert_rest_transforms(
     transforms: Query<(&Transform, &GlobalTransform)>,
 ) {
     let vrm = trigger.target();
-    insert_rest_transforms_recursive(
-        &mut commands,
-        vrm,
-        &childrens,
-        &transforms,
-    )
+    insert_rest_transforms_recursive(&mut commands, vrm, &childrens, &transforms);
 }
 
 fn insert_rest_transforms_recursive(
@@ -109,7 +104,7 @@ fn insert_rest_transforms_recursive(
     entity: Entity,
     childrens: &Query<&Children>,
     transforms: &Query<(&Transform, &GlobalTransform)>,
-){
+) {
     let Ok(children) = childrens.get(entity) else {
         return;
     };
@@ -117,10 +112,9 @@ fn insert_rest_transforms_recursive(
         let Ok((tf, gtf)) = transforms.get(entity) else {
             continue;
         };
-        commands.entity(entity).insert((
-            RestTransform(*tf),
-            RestGlobalTransform(*gtf),
-        ));
+        commands
+            .entity(entity)
+            .insert((RestTransform(*tf), RestGlobalTransform(*gtf)));
         insert_rest_transforms_recursive(commands, *child, childrens, transforms);
     }
 }

@@ -5,6 +5,8 @@ use crate::vrm::gltf::extensions::VrmExtensions;
 use crate::vrm::humanoid_bone::{HumanoidBoneRegistry, RequestInitializeHumanoidBones};
 use crate::vrm::loader::{VrmAsset, VrmHandle};
 use crate::vrm::mtoon::VrmcMaterialRegistry;
+use crate::vrm::node_constraint::registry::NodeConstraintRegistry;
+use crate::vrm::node_constraint::rotation::initialize::RequestInitializeNodeConstraints;
 use crate::vrm::spring_bone::initialize::RequestInitializeSpringBone;
 use crate::vrm::spring_bone::registry::*;
 use crate::vrm::{Initialized, Vrm, VrmPath};
@@ -15,8 +17,6 @@ use bevy::asset::Assets;
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;
 use bevy::scene::SceneRoot;
-use crate::vrm::node_constraint::initialize::RequestInitializeNodeConstraints;
-use crate::vrm::node_constraint::registry::NodeConstraintRegistry;
 
 pub(crate) struct VrmInitializePlugin;
 
@@ -63,10 +63,7 @@ fn spawn_vrm(
                 &node_assets,
                 &vrm.gltf.nodes,
             ),
-            NodeConstraintRegistry::new(
-                &vrm.gltf,
-                &node_assets,
-            ),
+            NodeConstraintRegistry::new(&vrm.gltf, &node_assets),
         ));
 
         if let Some(spring_bone) = extensions.vrmc_spring_bone.as_ref() {
@@ -137,7 +134,6 @@ fn output_vrm(
     let name = vrm_name.to_str().unwrap();
     let _ = std::fs::create_dir_all("./develop");
     std::fs::write(
-
         format!("./develop/{name}.json"),
         serde_json::to_string_pretty(&gltf.source.as_ref().unwrap().as_json()).unwrap(),
     )

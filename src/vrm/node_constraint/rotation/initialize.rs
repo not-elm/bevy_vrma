@@ -1,8 +1,6 @@
 use crate::prelude::ChildSearcher;
-use crate::vrm::humanoid_bone::RequestInitializeHumanoidBones;
 use crate::vrm::node_constraint::registry::{Constraint, NodeConstraintRegistry};
 use crate::vrm::node_constraint::{RotationConstraintDest, RotationConstraintDestinations};
-use crate::vrm::spring_bone::registry::SpringJointPropsRegistry;
 use bevy::prelude::*;
 
 #[derive(Event)]

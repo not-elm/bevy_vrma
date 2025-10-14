@@ -154,13 +154,12 @@ impl Material for MToonMaterial {
             } else {
                 None
             };
-        if let Some(stencil) = descriptor.depth_stencil.as_mut() {
-            if key
+        if let Some(stencil) = descriptor.depth_stencil.as_mut()
+            && key
                 .bind_group_data
                 .intersects(MToonMaterialKey::TRANSPARENT_WITH_Z_WRITE)
-            {
-                stencil.depth_write_enabled = true;
-            }
+        {
+            stencil.depth_write_enabled = true;
         }
         Ok(())
     }

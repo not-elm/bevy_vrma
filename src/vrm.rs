@@ -25,8 +25,8 @@ use std::path::PathBuf;
 
 pub mod prelude {
     pub use crate::vrm::{
-        RestGlobalTransform, RestTransform, Initialized, Vrm, VrmBone, VrmExpression,
-        VrmPath, VrmPlugin,
+        Initialized, RestGlobalTransform, RestTransform, Vrm, VrmBone, VrmExpression, VrmPath,
+        VrmPlugin,
         gltf::prelude::*,
         humanoid_bone::prelude::*,
         loader::{VrmAsset, VrmHandle},
