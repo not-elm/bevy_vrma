@@ -1,4 +1,6 @@
-## v0.3.0(Unreleased)
+## v0.3.0
+
+[Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.3.0)
 
 ### Features
 
