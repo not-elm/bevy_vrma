@@ -121,7 +121,7 @@ fn register_roll_constraint(
 ) {
     if let Some(source) = child_searcher.find_from_name(vrm, source_name) {
         let roll_constraint = RollConstraintDest {
-            roll_axis: roll_axis,
+            roll_axis,
             dest,
             weight,
         };

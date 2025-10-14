@@ -110,7 +110,7 @@ impl AnimationCurve for BoneRotationAnimationCurve {
         self.base.domain()
     }
 
-    fn evaluator_id(&self) -> EvaluatorId {
+    fn evaluator_id(&self) -> EvaluatorId<'_> {
         EvaluatorId::Type(TypeId::of::<Self>())
     }
 

@@ -52,7 +52,7 @@ impl AnimationCurve for HipsTranslationAnimationCurve {
     }
 
     #[inline]
-    fn evaluator_id(&self) -> EvaluatorId {
+    fn evaluator_id(&self) -> EvaluatorId<'_> {
         EvaluatorId::Type(TypeId::of::<RetargetEvaluator>())
     }
 

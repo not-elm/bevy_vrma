@@ -33,55 +33,20 @@ impl NodeConstraintRegistry {
 }
 
 fn parse_constraints(
-    gltf: &gltf::Gltf,
+    gltf: &Gltf,
     node_assets: &Assets<GltfNode>,
     node: &VrmcNodeConstraint,
 ) -> Vec<Constraint> {
     let mut constraints = vec![];
     let nodes = &gltf.nodes;
-    if let Some(roll) = &node.constraint.rotation
-        && let Some(source_handle) = nodes.get(roll.source)
-        && let Some(source) = node_assets.get(source_handle)
-    {
-        constraints.push(Constraint::Rotation {
-            source: source.name.clone(),
-            weight: roll.weight,
-        });
+    if let Some(rotation_constraint) = parse_rotation_constraint(node, nodes, node_assets) {
+        constraints.push(rotation_constraint);
     }
-    if let Some(roll) = &node.constraint.roll
-        && let Some(source_handle) = nodes.get(roll.source)
-        && let Some(source) = node_assets.get(source_handle)
-    {
-        let roll_axis = match roll.roll_axis.as_str() {
-            "X" => Dir3::X,
-            "Y" => Dir3::Y,
-            "Z" => Dir3::Z,
-            _ => Dir3::Y,
-        };
-        constraints.push(Constraint::Roll {
-            source: source.name.clone(),
-            roll_axis,
-            weight: roll.weight,
-        });
+    if let Some(roll_constraint) = parse_roll_constraint(node, nodes, node_assets) {
+        constraints.push(roll_constraint);
     }
-    if let Some(aim) = &node.constraint.aim
-        && let Some(source_handle) = nodes.get(aim.source)
-        && let Some(source) = node_assets.get(source_handle)
-    {
-        let aim_axis = match aim.aim_axis.as_str() {
-            "PositiveX" => Dir3::X,
-            "NegativeX" => Dir3::NEG_X,
-            "PositiveY" => Dir3::Y,
-            "NegativeY" => Dir3::NEG_Y,
-            "PositiveZ" => Dir3::Z,
-            "NegativeZ" => Dir3::NEG_Z,
-            _ => Dir3::Z,
-        };
-        constraints.push(Constraint::Aim {
-            source: source.name.clone(),
-            aim_axis,
-            weight: aim.weight,
-        });
+    if let Some(aim_constraint) = parse_aim_constraint(node, nodes, node_assets) {
+        constraints.push(aim_constraint);
     }
     constraints
 }
@@ -109,4 +74,63 @@ pub enum Constraint {
         aim_axis: Dir3,
         weight: f32,
     },
+}
+
+fn parse_rotation_constraint(
+    node: &VrmcNodeConstraint,
+    nodes: &[Handle<GltfNode>],
+    node_assets: &Assets<GltfNode>,
+) -> Option<Constraint> {
+    let rotation = node.constraint.rotation.as_ref()?;
+    let source_handle = nodes.get(rotation.source)?;
+    let source = node_assets.get(source_handle)?;
+    Some(Constraint::Rotation {
+        source: source.name.clone(),
+        weight: rotation.weight,
+    })
+}
+
+fn parse_roll_constraint(
+    node: &VrmcNodeConstraint,
+    nodes: &[Handle<GltfNode>],
+    node_assets: &Assets<GltfNode>,
+) -> Option<Constraint> {
+    let roll = node.constraint.roll.as_ref()?;
+    let source_handle = nodes.get(roll.source)?;
+    let source = node_assets.get(source_handle)?;
+    let roll_axis = match roll.roll_axis.as_str() {
+        "X" => Dir3::X,
+        "Y" => Dir3::Y,
+        "Z" => Dir3::Z,
+        _ => return None,
+    };
+    Some(Constraint::Roll {
+        source: source.name.clone(),
+        roll_axis,
+        weight: roll.weight,
+    })
+}
+
+fn parse_aim_constraint(
+    node: &VrmcNodeConstraint,
+    nodes: &[Handle<GltfNode>],
+    node_assets: &Assets<GltfNode>,
+) -> Option<Constraint> {
+    let aim = node.constraint.aim.as_ref()?;
+    let source_handle = nodes.get(aim.source)?;
+    let source = node_assets.get(source_handle)?;
+    let aim_axis = match aim.aim_axis.as_str() {
+        "PositiveX" => Dir3::X,
+        "NegativeX" => Dir3::NEG_X,
+        "PositiveY" => Dir3::Y,
+        "NegativeY" => Dir3::NEG_Y,
+        "PositiveZ" => Dir3::Z,
+        "NegativeZ" => Dir3::NEG_Z,
+        _ => return None,
+    };
+    Some(Constraint::Aim {
+        source: source.name.clone(),
+        aim_axis,
+        weight: aim.weight,
+    })
 }

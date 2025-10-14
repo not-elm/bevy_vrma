@@ -25,7 +25,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
     pub fn find_camera_from_window(
         &self,
         window_entity: Entity,
-    ) -> Option<CameraQuery> {
+    ) -> Option<CameraQuery<'_>> {
         self
             .cameras
             .iter()
@@ -38,7 +38,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
     pub fn find_by_world(
         &self,
         world_pos: Vec3,
-    ) -> Option<CameraQuery> {
+    ) -> Option<CameraQuery<'_>> {
         self.cameras.iter().find(|(_, camera, gtf, _)| {
             camera.logical_viewport_rect().is_some_and(|viewport| {
                 let Ok(pos) = camera.world_to_viewport(gtf, world_pos) else {
@@ -53,7 +53,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
     pub fn find_camera_from_layers(
         &self,
         layers: &RenderLayers,
-    ) -> Option<CameraQuery> {
+    ) -> Option<CameraQuery<'_>> {
         self.cameras
             .iter()
             .find(|(_, _, _, layer)| layers.intersects(layer))
