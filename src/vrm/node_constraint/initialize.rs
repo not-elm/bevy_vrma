@@ -1,6 +1,9 @@
 use crate::prelude::ChildSearcher;
 use crate::vrm::node_constraint::registry::{Constraint, NodeConstraintRegistry};
-use crate::vrm::node_constraint::{RotationConstraintDest, RotationConstraintDestinations};
+use crate::vrm::node_constraint::{
+    RollConstraintDest, RollConstraintDestinations, RotationConstraintDest,
+    RotationConstraintDestinations,
+};
 use bevy::prelude::*;
 
 #[derive(Event)]
@@ -21,6 +24,7 @@ fn apply_initialize_node_constraints(
     trigger: Trigger<RequestInitializeNodeConstraints>,
     mut commands: Commands,
     mut rotation_constraints: Query<Option<&mut RotationConstraintDestinations>>,
+    mut roll_constraints: Query<Option<&mut RollConstraintDestinations>>,
     child_searcher: ChildSearcher,
     models: Query<(Entity, &NodeConstraintRegistry)>,
 ) {
@@ -41,6 +45,22 @@ fn apply_initialize_node_constraints(
                         &mut rotation_constraints,
                         dest,
                         source,
+                        *weight,
+                        &child_searcher,
+                    );
+                }
+                Constraint::Roll {
+                    roll_axis,
+                    source,
+                    weight,
+                } => {
+                    register_roll_constraint(
+                        vrm,
+                        &mut commands,
+                        &mut roll_constraints,
+                        dest,
+                        source,
+                        roll_axis.clone(),
                         *weight,
                         &child_searcher,
                     );
@@ -68,6 +88,32 @@ fn register_rotation_constraint(
                 .insert(RotationConstraintDestinations(vec![
                     RotationConstraintDest { dest, weight },
                 ]));
+        }
+    }
+}
+
+fn register_roll_constraint(
+    vrm: Entity,
+    commands: &mut Commands,
+    rotation_constraints: &mut Query<Option<&mut RollConstraintDestinations>>,
+    dest: Entity,
+    source_name: &str,
+    roll_axis: Dir3,
+    weight: f32,
+    child_searcher: &ChildSearcher,
+) {
+    if let Some(source) = child_searcher.find_from_name(vrm, source_name) {
+        let roll_constraint = RollConstraintDest {
+            roll_axis: roll_axis.clone(),
+            dest,
+            weight,
+        };
+        if let Ok(Some(mut existing)) = rotation_constraints.get_mut(source) {
+            existing.0.push(roll_constraint);
+        } else {
+            commands
+                .entity(source)
+                .insert(RollConstraintDestinations(vec![roll_constraint]));
         }
     }
 }

@@ -10,8 +10,18 @@ pub struct Rotation {
 
 #[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[reflect(Serialize, Deserialize)]
+pub struct Roll {
+    #[serde(rename = "rollAxis")]
+    pub roll_axis: String,
+    pub source: i64,
+    pub weight: f64,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
+#[reflect(Serialize, Deserialize)]
 pub struct Constraint {
     pub rotation: Option<Rotation>,
+    pub roll: Option<Roll>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Reflect)]

@@ -3,9 +3,9 @@ use crate::vrm::node_constraint::RotationConstraintDestinations;
 use bevy::app::Plugin;
 use bevy::prelude::*;
 
-pub(crate) struct NodeConstraintBindPlugin;
+pub(crate) struct RotationConstraintBindPlugin;
 
-impl Plugin for NodeConstraintBindPlugin {
+impl Plugin for RotationConstraintBindPlugin {
     fn build(
         &self,
         app: &mut App,

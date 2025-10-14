@@ -1,10 +1,12 @@
-use crate::vrm::node_constraint::rotation::bind::NodeConstraintBindPlugin;
-use crate::vrm::node_constraint::rotation::initialize::NodeConstraintInitializePlugin;
+use crate::vrm::node_constraint::bind::roll::RollConstraintBindPlugin;
+use crate::vrm::node_constraint::bind::rotation::RotationConstraintBindPlugin;
+use crate::vrm::node_constraint::initialize::NodeConstraintInitializePlugin;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
+pub mod bind;
+pub mod initialize;
 pub mod registry;
-pub mod rotation;
 
 #[derive(Debug, Clone, Reflect, Serialize, Deserialize, Component)]
 #[reflect(Component, Serialize, Deserialize, Clone)]
@@ -17,6 +19,18 @@ pub struct RotationConstraintDest {
     pub weight: f32,
 }
 
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize, Component)]
+#[reflect(Component, Serialize, Deserialize, Clone)]
+pub struct RollConstraintDestinations(pub Vec<RollConstraintDest>);
+
+#[derive(Debug, Clone, Reflect, Serialize, Deserialize)]
+#[reflect(Serialize, Deserialize, Clone)]
+pub struct RollConstraintDest {
+    pub dest: Entity,
+    pub weight: f32,
+    pub roll_axis: Dir3,
+}
+
 pub struct VrmNodeConstraintPlugin;
 
 impl Plugin for VrmNodeConstraintPlugin {
@@ -26,6 +40,12 @@ impl Plugin for VrmNodeConstraintPlugin {
     ) {
         app.register_type::<RotationConstraintDestinations>()
             .register_type::<RotationConstraintDest>()
-            .add_plugins((NodeConstraintInitializePlugin, NodeConstraintBindPlugin));
+            .register_type::<RollConstraintDestinations>()
+            .register_type::<RollConstraintDest>()
+            .add_plugins((
+                NodeConstraintInitializePlugin,
+                RotationConstraintBindPlugin,
+                RollConstraintBindPlugin,
+            ));
     }
 }

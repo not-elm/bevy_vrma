@@ -4,10 +4,11 @@ use bevy::animation::RepeatAnimation;
 use bevy::prelude::*;
 use bevy_vrm1::prelude::*;
 use std::time::Duration;
+use bevy_egui::EguiPlugin;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, VrmPlugin, VrmaPlugin))
+        .add_plugins((DefaultPlugins, VrmPlugin, VrmaPlugin, EguiPlugin::default(), bevy_inspector_egui::quick::WorldInspectorPlugin::default()))
         .add_systems(Startup, (spawn_directional_light, spawn_camera, spawn_vrm))
         .run();
 }
@@ -31,7 +32,7 @@ fn spawn_vrm(
     asset_server: Res<AssetServer>,
 ) {
     commands
-        .spawn(VrmHandle(asset_server.load("sample.vrm")))
+        .spawn(VrmHandle(asset_server.load("sample_roll.vrm")))
         .with_children(|cmd| {
             // You need to spawn VRMA as a child of the VRM you want to retarget.
             cmd.spawn(VrmaHandle(asset_server.load("sample.vrma")))

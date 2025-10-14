@@ -6,7 +6,6 @@ use crate::vrm::humanoid_bone::{HumanoidBoneRegistry, RequestInitializeHumanoidB
 use crate::vrm::loader::{VrmAsset, VrmHandle};
 use crate::vrm::mtoon::VrmcMaterialRegistry;
 use crate::vrm::node_constraint::registry::NodeConstraintRegistry;
-use crate::vrm::node_constraint::rotation::initialize::RequestInitializeNodeConstraints;
 use crate::vrm::spring_bone::initialize::RequestInitializeSpringBone;
 use crate::vrm::spring_bone::registry::*;
 use crate::vrm::{Initialized, Vrm, VrmPath};
@@ -17,6 +16,7 @@ use bevy::asset::Assets;
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;
 use bevy::scene::SceneRoot;
+use crate::vrm::node_constraint::initialize::RequestInitializeNodeConstraints;
 
 pub(crate) struct VrmInitializePlugin;
 
