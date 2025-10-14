@@ -5,6 +5,8 @@ use crate::vrm::gltf::extensions::VrmExtensions;
 use crate::vrm::humanoid_bone::{HumanoidBoneRegistry, RequestInitializeHumanoidBones};
 use crate::vrm::loader::{VrmAsset, VrmHandle};
 use crate::vrm::mtoon::VrmcMaterialRegistry;
+use crate::vrm::node_constraint::initialize::RequestInitializeNodeConstraints;
+use crate::vrm::node_constraint::registry::NodeConstraintRegistry;
 use crate::vrm::spring_bone::initialize::RequestInitializeSpringBone;
 use crate::vrm::spring_bone::registry::*;
 use crate::vrm::{Initialized, Vrm, VrmPath};
@@ -49,7 +51,6 @@ fn spawn_vrm(
                 continue;
             }
         };
-
         let mut cmd = commands.entity(vrm_handle_entity);
         cmd.insert((
             Vrm,
@@ -62,6 +63,7 @@ fn spawn_vrm(
                 &node_assets,
                 &vrm.gltf.nodes,
             ),
+            NodeConstraintRegistry::new(&vrm.gltf, &node_assets),
         ));
 
         if let Some(spring_bone) = extensions.vrmc_spring_bone.as_ref() {
@@ -84,6 +86,7 @@ fn spawn_vrm(
             #[cfg(feature = "develop")]
             {
                 if let Some(vrm_name) = vrm_path.path().file_stem() {
+                    let _ = std::fs::create_dir_all("./develop");
                     output_vrm(vrm_name, &vrm.gltf);
                     output_vrm_materials(vrm_name, &vrm.gltf);
                     output_vrm_extensions(vrm_name, &extensions);
@@ -107,7 +110,8 @@ fn request_initialize(
         commands
             .entity(root)
             .trigger(RequestInitializeHumanoidBones)
-            .trigger(RequestInitializeSpringBone);
+            .trigger(RequestInitializeSpringBone)
+            .trigger(RequestInitializeNodeConstraints);
         if has_vrma {
             if let Ok(ChildOf(vrm)) = parents.get(root) {
                 commands.entity(root).trigger(RequestUpdateAnimationGraph {
@@ -128,6 +132,7 @@ fn output_vrm(
     gltf: &Gltf,
 ) {
     let name = vrm_name.to_str().unwrap();
+    let _ = std::fs::create_dir_all("./develop");
     std::fs::write(
         format!("./develop/{name}.json"),
         serde_json::to_string_pretty(&gltf.source.as_ref().unwrap().as_json()).unwrap(),

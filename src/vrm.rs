@@ -5,6 +5,7 @@ mod initialize;
 mod loader;
 mod look_at;
 mod mtoon;
+mod node_constraint;
 pub(crate) mod spring_bone;
 
 use crate::macros::marker_component;
@@ -13,6 +14,7 @@ use crate::vrm::humanoid_bone::VrmHumanoidBonePlugin;
 use crate::vrm::initialize::VrmInitializePlugin;
 use crate::vrm::loader::{VrmAsset, VrmLoaderPlugin};
 use crate::vrm::look_at::LookAtPlugin;
+use crate::vrm::node_constraint::VrmNodeConstraintPlugin;
 use crate::vrm::spring_bone::VrmSpringBonePlugin;
 use bevy::app::{App, Plugin};
 use bevy::asset::AssetApp;
@@ -23,8 +25,8 @@ use std::path::PathBuf;
 
 pub mod prelude {
     pub use crate::vrm::{
-        BoneRestGlobalTransform, BoneRestTransform, Initialized, Vrm, VrmBone, VrmExpression,
-        VrmPath, VrmPlugin,
+        Initialized, RestGlobalTransform, RestTransform, Vrm, VrmBone, VrmExpression, VrmPath,
+        VrmPlugin,
         gltf::prelude::*,
         humanoid_bone::prelude::*,
         loader::{VrmAsset, VrmHandle},
@@ -78,14 +80,14 @@ impl VrmPath {
 #[reflect(Component)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub struct BoneRestTransform(pub Transform);
+pub struct RestTransform(pub Transform);
 
 /// The bone's initial global transform.
 #[derive(Debug, Copy, Clone, Component, Deref, Reflect, Default)]
 #[reflect(Component)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub struct BoneRestGlobalTransform(pub GlobalTransform);
+pub struct RestGlobalTransform(pub GlobalTransform);
 
 marker_component!(
     /// A marker component attached to the entity of VRM.
@@ -108,14 +110,15 @@ impl Plugin for VrmPlugin {
             VrmSpringBonePlugin,
             VrmHumanoidBonePlugin,
             VrmExpressionPlugin,
+            VrmNodeConstraintPlugin,
             MtoonMaterialPlugin,
             LookAtPlugin,
         ));
 
         app.register_type::<Vrm>()
             .register_type::<VrmPath>()
-            .register_type::<BoneRestTransform>()
-            .register_type::<BoneRestGlobalTransform>()
+            .register_type::<RestTransform>()
+            .register_type::<RestGlobalTransform>()
             .register_type::<VrmBone>()
             .register_type::<VrmExpression>()
             .register_type::<Initialized>();

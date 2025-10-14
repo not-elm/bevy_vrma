@@ -1,4 +1,4 @@
-use crate::prelude::BoneRestGlobalTransform;
+use crate::prelude::RestGlobalTransform;
 use bevy::animation::{AnimationEntityMut, AnimationEvaluationError, animated_field};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
@@ -9,8 +9,8 @@ use std::sync::Mutex;
 pub fn register_hips_translation_transformation(
     node_index: AnimationNodeIndex,
     hips: Entity,
-    src_rest_g: &BoneRestGlobalTransform,
-    dist_reg_g: &BoneRestGlobalTransform,
+    src_rest_g: &RestGlobalTransform,
+    dist_reg_g: &RestGlobalTransform,
 ) {
     let transformations = Transformation {
         src_rest_g: src_rest_g.translation(),
@@ -52,7 +52,7 @@ impl AnimationCurve for HipsTranslationAnimationCurve {
     }
 
     #[inline]
-    fn evaluator_id(&self) -> EvaluatorId {
+    fn evaluator_id(&self) -> EvaluatorId<'_> {
         EvaluatorId::Type(TypeId::of::<RetargetEvaluator>())
     }
 

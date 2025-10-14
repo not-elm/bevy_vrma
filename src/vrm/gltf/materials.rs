@@ -126,6 +126,7 @@ pub struct VrmTextureExtensions {
     pub khr_texture_transform: KhrTextureTransform,
 }
 
+#[allow(dead_code)]
 #[derive(Serialize, Deserialize, Reflect, Debug, Clone, PartialEq, Copy, ShaderType)]
 pub struct KhrTextureTransform {
     pub offset: [f32; 2],

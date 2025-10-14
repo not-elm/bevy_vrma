@@ -1,5 +1,13 @@
 ## v0.3.0(Unreleased)
 
+### Features
+
+- Added support for Node Constraints (VRMC_node_constraint-1.0)
+    - Rotation Constraint: Transfers entire local rotation from source to destination nodes
+    - Roll Constraint: Transfers rotation around a specific axis (X, Y, or Z)
+    - Aim Constraint: Rotates a node to face a target node
+    - All constraint types support weight-based interpolation using spherical linear interpolation (slerp)
+
 ### Breaking Changes
 
 - `AnimationTransitions` are now used internally;This enables smooth animation transitions.
