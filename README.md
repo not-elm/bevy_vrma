@@ -18,6 +18,7 @@ This crate allows you to use [VRM1.0](https://vrm.dev/en/vrm/vrm_about/) and [VR
 | Spring Bone     | ✅                   |
 | Look At         | ✅                   |
 | Animation(vrma) | ✅                   |
+| Node Constraint | ✅                   |
 | First Person    | ❌                   |
 
 ### Spring Bone
@@ -60,6 +61,32 @@ You can play animations using VRMA.
 ### examples
 
 - [vrma.rs](./examples/vrma.rs)
+
+### Node Constraint
+
+Node Constraint is a feature for constraining node transformations in real-time, primarily designed for Humanoid bones. This library supports all three constraint types defined in the VRMC_node_constraint-1.0 specification:
+
+- [node constraint specification(en)](https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_node_constraint-1.0/README.md)
+- [node constraint specification(ja)](https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_node_constraint-1.0/README.ja.md)
+
+#### Constraint Types
+
+**Rotation Constraint**
+- Transfers the entire local rotation from a source node to destination nodes
+- Typical use case: Sub-arms and auxiliary bones
+- Supports weight parameter for interpolation (0.0 - 1.0)
+
+**Roll Constraint**
+- Transfers rotation around a specific axis (X, Y, or Z)
+- Typical use case: Twist bones for arms and legs
+- Supports weight parameter and configurable roll axis
+
+**Aim Constraint**
+- Rotates a node to face a target node
+- Typical use case: Clothing sleeves and accessories
+- Supports weight parameter and configurable aim axis (PositiveX, NegativeX, PositiveY, NegativeY, PositiveZ, NegativeZ)
+
+All constraint types use spherical linear interpolation (slerp) based on the weight parameter to blend between the rest rotation and the constrained rotation.
 
 ### Features
 
