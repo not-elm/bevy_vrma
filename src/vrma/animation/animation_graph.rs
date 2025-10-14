@@ -1,4 +1,4 @@
-use crate::prelude::{BoneRestGlobalTransform, BoneRestTransform, ChildSearcher};
+use crate::prelude::{RestGlobalTransform, RestTransform, ChildSearcher};
 use crate::vrm::expressions::VrmExpressionRegistry;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrma::animation::bone_rotation::{
@@ -137,8 +137,8 @@ fn apply_replace_humanoid_bone_animation_clips(
     parents: Query<&ChildOf>,
     vrms: Query<&HumanoidBoneRegistry>,
     bones: Query<(
-        &BoneRestTransform,
-        &BoneRestGlobalTransform,
+        &RestTransform,
+        &RestGlobalTransform,
         &AnimationTarget,
     )>,
     nodes: Query<&VrmAnimationNodeIndex>,
@@ -190,8 +190,8 @@ fn replace_bone_animation_clips(
     registry: &HumanoidBoneRegistry,
     searcher: &ChildSearcher,
     bones: &Query<(
-        &BoneRestTransform,
-        &BoneRestGlobalTransform,
+        &RestTransform,
+        &RestGlobalTransform,
         &AnimationTarget,
     )>,
 ) {

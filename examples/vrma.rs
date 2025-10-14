@@ -31,10 +31,10 @@ fn spawn_vrm(
     asset_server: Res<AssetServer>,
 ) {
     commands
-        .spawn(VrmHandle(asset_server.load("vrm/AliciaSolid.vrm")))
+        .spawn(VrmHandle(asset_server.load("sample.vrm")))
         .with_children(|cmd| {
             // You need to spawn VRMA as a child of the VRM you want to retarget.
-            cmd.spawn(VrmaHandle(asset_server.load("vrma/VRMA_01.vrma")))
+            cmd.spawn(VrmaHandle(asset_server.load("sample.vrma")))
                 .observe(apply_play_vrma);
         });
 }

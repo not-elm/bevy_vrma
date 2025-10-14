@@ -15,6 +15,8 @@ use bevy::asset::Assets;
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;
 use bevy::scene::SceneRoot;
+use crate::vrm::node_constraint::initialize::RequestInitializeNodeConstraints;
+use crate::vrm::node_constraint::registry::NodeConstraintRegistry;
 
 pub(crate) struct VrmInitializePlugin;
 
@@ -49,7 +51,6 @@ fn spawn_vrm(
                 continue;
             }
         };
-
         let mut cmd = commands.entity(vrm_handle_entity);
         cmd.insert((
             Vrm,
@@ -61,6 +62,10 @@ fn spawn_vrm(
                 &extensions.vrmc_vrm.humanoid.human_bones,
                 &node_assets,
                 &vrm.gltf.nodes,
+            ),
+            NodeConstraintRegistry::new(
+                &vrm.gltf,
+                &node_assets,
             ),
         ));
 
@@ -84,6 +89,7 @@ fn spawn_vrm(
             #[cfg(feature = "develop")]
             {
                 if let Some(vrm_name) = vrm_path.path().file_stem() {
+                    let _ = std::fs::create_dir_all("./develop");
                     output_vrm(vrm_name, &vrm.gltf);
                     output_vrm_materials(vrm_name, &vrm.gltf);
                     output_vrm_extensions(vrm_name, &extensions);
@@ -107,7 +113,8 @@ fn request_initialize(
         commands
             .entity(root)
             .trigger(RequestInitializeHumanoidBones)
-            .trigger(RequestInitializeSpringBone);
+            .trigger(RequestInitializeSpringBone)
+            .trigger(RequestInitializeNodeConstraints);
         if has_vrma {
             if let Ok(ChildOf(vrm)) = parents.get(root) {
                 commands.entity(root).trigger(RequestUpdateAnimationGraph {
@@ -128,7 +135,9 @@ fn output_vrm(
     gltf: &Gltf,
 ) {
     let name = vrm_name.to_str().unwrap();
+    let _ = std::fs::create_dir_all("./develop");
     std::fs::write(
+
         format!("./develop/{name}.json"),
         serde_json::to_string_pretty(&gltf.source.as_ref().unwrap().as_json()).unwrap(),
     )

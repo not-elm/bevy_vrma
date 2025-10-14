@@ -80,7 +80,7 @@ fn track_looking_target(
     cameras: Query<(Entity, &Camera)>,
     transforms: Query<&Transform>,
     global_transforms: Query<&GlobalTransform>,
-    rests: Query<(&BoneRestTransform, &BoneRestGlobalTransform)>,
+    rests: Query<(&RestTransform, &RestGlobalTransform)>,
     windows: Query<(&Window, Has<PrimaryWindow>)>,
 ) {
     vrms.iter()
@@ -161,7 +161,7 @@ fn calc_target_position(
 fn apply_bone(
     commands: &mut Commands,
     transforms: &Query<&Transform>,
-    rests: &Query<(&BoneRestTransform, &BoneRestGlobalTransform)>,
+    rests: &Query<(&RestTransform, &RestGlobalTransform)>,
     left_eye: &LeftEyeBoneEntity,
     right_eye: &RightEyeBoneEntity,
     properties: &LookAtProperties,
@@ -253,8 +253,8 @@ fn calc_yaw_pitch(
 
 fn apply_left_eye_bone(
     left_eye: &Transform,
-    rest_tf: &BoneRestTransform,
-    rest_gtf: &BoneRestGlobalTransform,
+    rest_tf: &RestTransform,
+    rest_gtf: &RestGlobalTransform,
     properties: &LookAtProperties,
     yaw_degrees: f32,
     pitch_degrees: f32,
@@ -291,8 +291,8 @@ fn apply_left_eye_bone(
 
 fn apply_right_eye_bone(
     right_eye: &Transform,
-    rest_tf: &BoneRestTransform,
-    rest_gtf: &BoneRestGlobalTransform,
+    rest_tf: &RestTransform,
+    rest_gtf: &RestGlobalTransform,
     properties: &LookAtProperties,
     yaw_degrees: f32,
     pitch_degrees: f32,
@@ -333,8 +333,8 @@ fn apply_right_eye_bone(
 fn to_eye_rotation(
     yaw: f32,
     pitch: f32,
-    rest_tf: &BoneRestTransform,
-    rest_gtf: &BoneRestGlobalTransform,
+    rest_tf: &RestTransform,
+    rest_gtf: &RestGlobalTransform,
 ) -> Quat {
     (rest_tf.rotation * rest_gtf.rotation().inverse())
         * Quat::from_euler(EulerRot::YXZ, yaw.to_radians(), pitch.to_radians(), 0.0)

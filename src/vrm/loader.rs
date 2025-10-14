@@ -39,8 +39,8 @@ impl Plugin for VrmLoaderPlugin {
 ///
 /// - [`Vrm`](crate::prelude::Vrm)
 /// - [`VrmPath`](crate::prelude::VrmPath)
-/// - [`BoneRestTransform`](crate::prelude::BoneRestTransform)
-/// - [`BoneRestGlobalTransform`](crate::prelude::BoneRestGlobalTransform)
+/// - [`BoneRestTransform`](crate::prelude::RestTransform)
+/// - [`BoneRestGlobalTransform`](crate::prelude::RestGlobalTransform)
 /// - [`SceneRoot`](bevy::scene::SceneRoot)
 /// - Components hold the entity of each bone, refer to [here](crate::vrm::humanoid_bone) for more details.
 ///

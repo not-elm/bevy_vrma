@@ -12,7 +12,7 @@ mod bones;
 use crate::prelude::*;
 use crate::vrm::gltf::extensions::VrmNode;
 use crate::vrm::humanoid_bone::bones::BonesPlugin;
-use crate::vrm::{BoneRestGlobalTransform, BoneRestTransform, VrmBone};
+use crate::vrm::{RestGlobalTransform, RestTransform, VrmBone};
 use crate::vrma::RetargetSource;
 use bevy::animation::{AnimationTarget, AnimationTargetId};
 use bevy::app::{App, Plugin};
@@ -59,6 +59,7 @@ impl Plugin for VrmHumanoidBonePlugin {
     ) {
         app.register_type::<HumanoidBoneRegistry>()
             .add_plugins(BonesPlugin)
+            .add_observer(apply_insert_rest_transforms)
             .add_observer(apply_initialize_humanoid_bones);
     }
 }
@@ -86,6 +87,42 @@ macro_rules! insert_bone {
             }
         }
     };
+}
+
+fn apply_insert_rest_transforms(
+    trigger: Trigger<RequestInitializeHumanoidBones>,
+    mut commands: Commands,
+    childrens: Query<&Children>,
+    transforms: Query<(&Transform, &GlobalTransform)>,
+) {
+    let vrm = trigger.target();
+    insert_rest_transforms_recursive(
+        &mut commands,
+        vrm,
+        &childrens,
+        &transforms,
+    )
+}
+
+fn insert_rest_transforms_recursive(
+    commands: &mut Commands,
+    entity: Entity,
+    childrens: &Query<&Children>,
+    transforms: &Query<(&Transform, &GlobalTransform)>,
+){
+    let Ok(children) = childrens.get(entity) else {
+        return;
+    };
+    for child in children {
+        let Ok((tf, gtf)) = transforms.get(entity) else {
+            continue;
+        };
+        commands.entity(entity).insert((
+            RestTransform(*tf),
+            RestGlobalTransform(*gtf),
+        ));
+        insert_rest_transforms_recursive(commands, *child, childrens, transforms);
+    }
 }
 
 fn apply_initialize_humanoid_bones(
@@ -133,8 +170,8 @@ fn apply_initialize_humanoid_bones(
         };
         commands.entity(bone_entity).insert((
             bone.clone(),
-            BoneRestTransform(*tf),
-            BoneRestGlobalTransform(*gtf),
+            RestTransform(*tf),
+            RestGlobalTransform(*gtf),
             RetargetSource,
         ));
         if has_vrm {

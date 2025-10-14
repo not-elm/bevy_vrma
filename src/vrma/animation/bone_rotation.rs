@@ -16,8 +16,8 @@ pub(crate) fn register_rotate_transformation(
     registry: &HumanoidBoneRegistry,
     searcher: &ChildSearcher,
     bones: &Query<(
-        &BoneRestTransform,
-        &BoneRestGlobalTransform,
+        &RestTransform,
+        &RestGlobalTransform,
         &AnimationTarget,
     )>,
 ) {
@@ -43,8 +43,8 @@ impl BoneRotateTransformations {
         registry: &HumanoidBoneRegistry,
         searcher: &ChildSearcher,
         bones: &Query<(
-            &BoneRestTransform,
-            &BoneRestGlobalTransform,
+            &RestTransform,
+            &RestGlobalTransform,
             &AnimationTarget,
         )>,
     ) -> Self {

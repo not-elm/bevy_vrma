@@ -32,7 +32,7 @@ fn spawn_vrm(
     asset_server: Res<AssetServer>,
 ) {
     commands
-        .spawn(VrmHandle(asset_server.load("vrm/AliciaSolid.vrm")))
+        .spawn(VrmHandle(asset_server.load("sample.vrm")))
         .observe(apply_drag_move_vrm);
 }
 
