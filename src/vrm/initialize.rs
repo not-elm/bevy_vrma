@@ -5,6 +5,7 @@ use crate::vrm::gltf::extensions::VrmExtensions;
 use crate::vrm::humanoid_bone::{HumanoidBoneRegistry, RequestInitializeHumanoidBones};
 use crate::vrm::loader::{VrmAsset, VrmHandle};
 use crate::vrm::mtoon::VrmcMaterialRegistry;
+use crate::vrm::node_constraint::initialize::RequestInitializeNodeConstraints;
 use crate::vrm::node_constraint::registry::NodeConstraintRegistry;
 use crate::vrm::spring_bone::initialize::RequestInitializeSpringBone;
 use crate::vrm::spring_bone::registry::*;
@@ -16,7 +17,6 @@ use bevy::asset::Assets;
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;
 use bevy::scene::SceneRoot;
-use crate::vrm::node_constraint::initialize::RequestInitializeNodeConstraints;
 
 pub(crate) struct VrmInitializePlugin;
 

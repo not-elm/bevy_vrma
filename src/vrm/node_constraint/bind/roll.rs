@@ -1,5 +1,5 @@
 use crate::prelude::RestTransform;
-use crate::vrm::node_constraint::{RollConstraintDestinations, RotationConstraintDestinations};
+use crate::vrm::node_constraint::RollConstraintDestinations;
 use bevy::prelude::*;
 
 pub(crate) struct RollConstraintBindPlugin;

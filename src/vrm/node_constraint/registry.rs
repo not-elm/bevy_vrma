@@ -49,7 +49,7 @@ fn parse_constraints(
         });
     }
     if let Some(roll) = &node.constraint.roll
-        && let Some(source_handle) = nodes.get(roll.source as usize)
+        && let Some(source_handle) = nodes.get(roll.source)
         && let Some(source) = node_assets.get(source_handle)
     {
         let roll_axis = match roll.roll_axis.as_str() {
@@ -61,10 +61,28 @@ fn parse_constraints(
         constraints.push(Constraint::Roll {
             source: source.name.clone(),
             roll_axis,
-            weight: roll.weight as f32,
+            weight: roll.weight,
         });
     }
-
+    if let Some(aim) = &node.constraint.aim
+        && let Some(source_handle) = nodes.get(aim.source)
+        && let Some(source) = node_assets.get(source_handle)
+    {
+        let aim_axis = match aim.aim_axis.as_str() {
+            "PositiveX" => Dir3::X,
+            "NegativeX" => Dir3::NEG_X,
+            "PositiveY" => Dir3::Y,
+            "NegativeY" => Dir3::NEG_Y,
+            "PositiveZ" => Dir3::Z,
+            "NegativeZ" => Dir3::NEG_Z,
+            _ => Dir3::Z,
+        };
+        constraints.push(Constraint::Aim {
+            source: source.name.clone(),
+            aim_axis,
+            weight: aim.weight,
+        });
+    }
     constraints
 }
 
@@ -77,10 +95,18 @@ impl From<HashMap<String, Vec<Constraint>>> for NodeConstraintRegistry {
 #[derive(Serialize, Deserialize, Debug, Clone, Reflect)]
 #[reflect(Serialize, Deserialize)]
 pub enum Constraint {
-    Rotation { source: String, weight: f32 },
-    Roll{
+    Rotation {
+        source: String,
+        weight: f32,
+    },
+    Roll {
         source: String,
         roll_axis: Dir3,
         weight: f32,
-    }
+    },
+    Aim {
+        source: String,
+        aim_axis: Dir3,
+        weight: f32,
+    },
 }
