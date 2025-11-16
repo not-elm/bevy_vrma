@@ -1,4 +1,4 @@
-use crate::prelude::RestTransform;
+use crate::prelude::{RestTransform, VrmSystemSets};
 use crate::vrm::node_constraint::RollConstraintDestinations;
 use bevy::prelude::*;
 
@@ -9,7 +9,7 @@ impl Plugin for RollConstraintBindPlugin {
         &self,
         app: &mut App,
     ) {
-        app.add_systems(Update, bind_roll_constraints);
+        app.add_systems(Update, bind_roll_constraints.in_set(VrmSystemSets::Constraints));
     }
 }
 

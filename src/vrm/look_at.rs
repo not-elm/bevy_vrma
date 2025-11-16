@@ -61,9 +61,7 @@ impl Plugin for LookAtPlugin {
                 PostUpdate,
                 track_looking_target
                     .run_if(on_event::<MouseMotion>)
-                    .in_set(VrmSystemSets::LookAt)
-                    .after(Animation)
-                    .after(TransformPropagate),
+                    .in_set(VrmSystemSets::GazeControl),
             );
     }
 }

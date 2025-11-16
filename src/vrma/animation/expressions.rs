@@ -20,7 +20,7 @@ impl Plugin for VrmaRetargetExpressionsPlugin {
             .add_systems(
                 PostUpdate,
                 bind_expressions
-                    .in_set(VrmSystemSets::Retarget)
+                    .in_set(VrmSystemSets::Expressions)
                     .before(TransformPropagate),
             );
     }

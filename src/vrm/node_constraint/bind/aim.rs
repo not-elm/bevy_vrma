@@ -1,4 +1,4 @@
-use crate::prelude::RestTransform;
+use crate::prelude::{RestTransform, VrmSystemSets};
 use crate::vrm::node_constraint::AimConstraintDestinations;
 use bevy::prelude::*;
 
@@ -9,7 +9,7 @@ impl Plugin for AimConstraintBindPlugin {
         &self,
         app: &mut App,
     ) {
-        app.add_systems(Update, bind_aim_constraints);
+        app.add_systems(PostUpdate, bind_aim_constraints.in_set(VrmSystemSets::Constraints));
     }
 }
 
