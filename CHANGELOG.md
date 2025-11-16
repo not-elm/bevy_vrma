@@ -1,3 +1,12 @@
+## v0.3.1(Unreleased)
+
+### Bug Fixes
+
+- Fixed system execution order for VRM constraints and expressions to comply with VRM specification
+    - Added manual transform propagation after constraints and expressions
+    - Ensures `GlobalTransform` updates propagate correctly between systems
+    - Fixes rendering and physics issues caused by stale transform data
+
 ## v0.3.0
 
 [Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.3.0)
