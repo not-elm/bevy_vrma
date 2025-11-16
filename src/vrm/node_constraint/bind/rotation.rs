@@ -1,8 +1,8 @@
+use crate::prelude::VrmSystemSets;
 use crate::vrm::RestTransform;
 use crate::vrm::node_constraint::RotationConstraintDestinations;
 use bevy::app::{Animation, Plugin};
 use bevy::prelude::*;
-use crate::prelude::VrmSystemSets;
 
 pub(crate) struct RotationConstraintBindPlugin;
 

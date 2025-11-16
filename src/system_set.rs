@@ -6,7 +6,7 @@ pub enum VrmSystemSets {
     Constraints,
 
     /// Manual transform propagation after Constraints.
-    /// This propagates Transform changes from Constraints to GlobalTransform.
+    /// This propagates Transform changes from Constraints to `GlobalTransform`.
     PropagateAfterConstraints,
 
     /// Look-at binding processing.
@@ -16,7 +16,7 @@ pub enum VrmSystemSets {
     Expressions,
 
     /// Manual transform propagation after Expressions.
-    /// This propagates Transform changes from GazeControl and Expressions to GlobalTransform.
+    /// This propagates Transform changes from `GazeControl` and Expressions to `GlobalTransform`.
     PropagateAfterExpressions,
 
     /// This is used for spring bones.
