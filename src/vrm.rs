@@ -10,15 +10,17 @@ pub(crate) mod spring_bone;
 
 use crate::macros::marker_component;
 use crate::new_type;
+use crate::system_set::VrmSystemSets;
 use crate::vrm::humanoid_bone::VrmHumanoidBonePlugin;
 use crate::vrm::initialize::VrmInitializePlugin;
 use crate::vrm::loader::{VrmAsset, VrmLoaderPlugin};
 use crate::vrm::look_at::LookAtPlugin;
 use crate::vrm::node_constraint::VrmNodeConstraintPlugin;
 use crate::vrm::spring_bone::VrmSpringBonePlugin;
-use bevy::app::{App, Plugin};
+use bevy::app::{Animation, App, Plugin};
 use bevy::asset::AssetApp;
 use bevy::prelude::*;
+use bevy::transform::systems::{propagate_parent_transforms, sync_simple_transforms};
 use expressions::VrmExpressionPlugin;
 use mtoon::MtoonMaterialPlugin;
 use std::path::PathBuf;
@@ -114,6 +116,25 @@ impl Plugin for VrmPlugin {
             MtoonMaterialPlugin,
             LookAtPlugin,
         ));
+
+        // Add manual transform propagation systems to follow VRM spec update order
+        // See: https://vrm.dev/api/api_update/
+        app.add_systems(
+            PostUpdate,
+            (sync_simple_transforms, propagate_parent_transforms)
+                .chain()
+                .in_set(VrmSystemSets::PropagateAfterConstraints)
+                .after(VrmSystemSets::Constraints)
+                .before(VrmSystemSets::GazeControl),
+        );
+        app.add_systems(
+            PostUpdate,
+            (sync_simple_transforms, propagate_parent_transforms)
+                .chain()
+                .in_set(VrmSystemSets::PropagateAfterExpressions)
+                .after(VrmSystemSets::Expressions)
+                .before(VrmSystemSets::SpringBone),
+        );
 
         app.register_type::<Vrm>()
             .register_type::<VrmPath>()

@@ -1,6 +1,6 @@
 use crate::vrm::RestTransform;
 use crate::vrm::node_constraint::RotationConstraintDestinations;
-use bevy::app::Plugin;
+use bevy::app::{Animation, Plugin};
 use bevy::prelude::*;
 use crate::prelude::VrmSystemSets;
 
@@ -11,7 +11,12 @@ impl Plugin for RotationConstraintBindPlugin {
         &self,
         app: &mut App,
     ) {
-        app.add_systems(Update, bind_rotation_constraints.in_set(VrmSystemSets::Constraints));
+        app.add_systems(
+            PostUpdate,
+            bind_rotation_constraints
+                .in_set(VrmSystemSets::Constraints)
+                .after(Animation),
+        );
     }
 }
 

@@ -15,7 +15,6 @@ fn main() {
         .add_systems(Startup, (spawn_camera_and_vrm, spawn_directional_light))
         .run();
 }
-
 fn spawn_directional_light(mut commands: Commands) {
     commands.spawn((
         DirectionalLight {
