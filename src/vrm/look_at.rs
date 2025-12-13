@@ -4,7 +4,6 @@
 use crate::prelude::*;
 use crate::system_set::VrmSystemSets;
 use bevy::app::{Animation, App, Plugin};
-use bevy::input::mouse::MouseMotion;
 use bevy::prelude::TransformSystem::TransformPropagate;
 use bevy::prelude::*;
 use bevy::render::camera::RenderTarget;
@@ -60,10 +59,8 @@ impl Plugin for LookAtPlugin {
             .add_systems(
                 PostUpdate,
                 track_looking_target
-                    .run_if(on_event::<MouseMotion>)
-                    .in_set(VrmSystemSets::LookAt)
-                    .after(Animation)
-                    .after(TransformPropagate),
+                    .in_set(VrmSystemSets::GazeControl)
+                    .after(VrmSystemSets::PropagateAfterConstraints),
             );
     }
 }

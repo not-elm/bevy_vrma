@@ -1,9 +1,8 @@
 use crate::system_set::VrmSystemSets;
 use crate::vrm::gltf::extensions::vrmc_spring_bone::ColliderShape;
 use crate::vrm::spring_bone::{SpringJointProps, SpringJointState, SpringRoot};
-use bevy::app::{Animation, App};
+use bevy::app::App;
 use bevy::math::Vec3;
-use bevy::prelude::TransformSystem::TransformPropagate;
 use bevy::prelude::*;
 use bevy::time::Time;
 
@@ -18,8 +17,7 @@ impl Plugin for SpringBoneUpdatePlugin {
             PostUpdate,
             update_spring_bones
                 .in_set(VrmSystemSets::SpringBone)
-                .after(Animation)
-                .after(TransformPropagate),
+                .after(VrmSystemSets::PropagateAfterExpressions),
         );
     }
 }

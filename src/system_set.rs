@@ -2,11 +2,22 @@ use bevy::prelude::SystemSet;
 
 #[derive(SystemSet, Debug, Hash, PartialEq, Eq, Ord, PartialOrd, Clone, Copy)]
 pub enum VrmSystemSets {
-    /// This is used for retargeting VRMA animations.
-    Retarget,
+    /// Node constraints processing.
+    Constraints,
 
-    /// This is used for look-at functionality.
-    LookAt,
+    /// Manual transform propagation after Constraints.
+    /// This propagates Transform changes from Constraints to `GlobalTransform`.
+    PropagateAfterConstraints,
+
+    /// Look-at binding processing.
+    GazeControl,
+
+    /// Expression binding processing.
+    Expressions,
+
+    /// Manual transform propagation after Expressions.
+    /// This propagates Transform changes from `GazeControl` and Expressions to `GlobalTransform`.
+    PropagateAfterExpressions,
 
     /// This is used for spring bones.
     SpringBone,

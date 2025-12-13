@@ -1,5 +1,6 @@
-use crate::prelude::RestTransform;
+use crate::prelude::{RestTransform, VrmSystemSets};
 use crate::vrm::node_constraint::RollConstraintDestinations;
+use bevy::app::Animation;
 use bevy::prelude::*;
 
 pub(crate) struct RollConstraintBindPlugin;
@@ -9,7 +10,12 @@ impl Plugin for RollConstraintBindPlugin {
         &self,
         app: &mut App,
     ) {
-        app.add_systems(Update, bind_roll_constraints);
+        app.add_systems(
+            PostUpdate,
+            bind_roll_constraints
+                .in_set(VrmSystemSets::Constraints)
+                .after(Animation),
+        );
     }
 }
 
