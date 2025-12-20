@@ -114,7 +114,7 @@ fn request_initialize(
             .trigger(RequestInitializeNodeConstraints);
         if has_vrma {
             if let Ok(ChildOf(vrm)) = parents.get(root) {
-                commands.entity(root).trigger(RequestUpdateAnimationGraph {
+                commands.trigger(RequestUpdateAnimationGraph {
                     vrma: root,
                     vrm: *vrm,
                 });

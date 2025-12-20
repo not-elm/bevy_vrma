@@ -18,8 +18,8 @@ pub(crate) struct RequestUpdateAnimationGraph {
     pub(crate) vrma: Entity,
 }
 
-#[derive(Event)]
-struct RequestUpdateAnimationClips;
+#[derive(EntityEvent)]
+struct RequestUpdateAnimationClips(Entity);
 
 pub(super) struct VrmaAnimationGraphPlugin;
 
@@ -35,7 +35,7 @@ impl Plugin for VrmaAnimationGraphPlugin {
 }
 
 fn apply_animation_graph(
-    trigger: Trigger<RequestUpdateAnimationGraph>,
+    trigger: On<RequestUpdateAnimationGraph>,
     mut commands: Commands,
     mut graphs: ResMut<Assets<AnimationGraph>>,
     childrens: Query<&Children>,
@@ -131,7 +131,7 @@ fn insert_animation_graph_into_expressions(
 }
 
 fn apply_replace_humanoid_bone_animation_clips(
-    trigger: Trigger<RequestUpdateAnimationClips>,
+    trigger: On<RequestUpdateAnimationClips>,
     mut clips: ResMut<Assets<AnimationClip>>,
     clip_handles: Query<&VrmAnimationClipHandle>,
     parents: Query<&ChildOf>,
@@ -140,7 +140,7 @@ fn apply_replace_humanoid_bone_animation_clips(
     nodes: Query<&VrmAnimationNodeIndex>,
     searcher: ChildSearcher,
 ) {
-    let vrma_entity = trigger.target();
+    let vrma_entity = trigger.event_target();
     let Ok(ChildOf(vrm_entity)) = parents.get(vrma_entity) else {
         return;
     };
@@ -248,7 +248,7 @@ fn animation_curve(
 }
 
 fn apply_regenerate_expression_clips(
-    trigger: Trigger<RequestUpdateAnimationClips>,
+    trigger: On<RequestUpdateAnimationClips>,
     mut clips: ResMut<Assets<AnimationClip>>,
     clip_handles: Query<&VrmAnimationClipHandle>,
     animation_targets: Query<&AnimationTarget>,
@@ -256,7 +256,7 @@ fn apply_regenerate_expression_clips(
     searcher: ChildSearcher,
     parents: Query<&ChildOf>,
 ) {
-    let vrma_entity = trigger.target();
+    let vrma_entity = trigger.event_target();
     let Ok(vrm_entity) = parents.get(vrma_entity).map(|c| c.parent()) else {
         return;
     };

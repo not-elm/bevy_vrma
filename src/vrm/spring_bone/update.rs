@@ -75,7 +75,7 @@ fn update_spring_bones(
             state.prev_tail = state.current_tail;
             state.current_tail = global_to_center_local(next_tail, &center_gtf);
 
-            let to = (parent_gtf.compute_matrix() * state.initial_local_matrix)
+            let to = (parent_gtf.to_matrix() * state.initial_local_matrix)
                 .inverse()
                 .transform_point3(next_tail)
                 .normalize();
@@ -107,7 +107,7 @@ fn global_to_center_local(
     center_gtf: &Option<GlobalTransform>,
 ) -> Vec3 {
     if let Some(gtf) = center_gtf.as_ref() {
-        gtf.compute_matrix().inverse().transform_point3(tail_pos)
+        gtf.to_matrix().inverse().transform_point3(tail_pos)
     } else {
         tail_pos
     }

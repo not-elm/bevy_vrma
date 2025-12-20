@@ -2,10 +2,7 @@ use crate::prelude::ChildSearcher;
 use crate::vrma::VrmAnimationNodeIndex;
 use bevy::animation::{AnimationPlayer, RepeatAnimation};
 use bevy::app::{App, Plugin};
-use bevy::prelude::{
-    AnimationNodeIndex, AnimationTransitions, ChildOf, Children, Entity, Event, Query, Reflect,
-    Transform, Trigger,
-};
+use bevy::prelude::*;
 use std::time::Duration;
 
 /// The trigger event to play the Vrma's animation.
@@ -13,7 +10,7 @@ use std::time::Duration;
 /// You need to emit this via [`Trigger`] with the target entity of the VRMA you want to play the animation on.
 ///
 /// If there are multiple VRMA entities, the animation of all other VRMAs will be stopped except for the one specified in the trigger.
-#[derive(Event, Debug, Reflect)]
+#[derive(EntityEvent, Debug, Reflect)]
 pub struct PlayVrma {
     /// Repetition behavior of an animation.
     /// Default is [`RepeatAnimation::Never`].
@@ -22,6 +19,8 @@ pub struct PlayVrma {
     /// A time until the existing animation fades out.
     /// Default is 300 milliseconds.
     pub transition_duration: Duration,
+
+    pub entity: Entity,
 }
 
 impl Default for PlayVrma {
@@ -35,8 +34,8 @@ impl Default for PlayVrma {
 
 /// The trigger event to stop the Vrma's animation.
 ///You need to emit this via [`Trigger`] with the target entity of the VRMA you want to stop the animation on.
-#[derive(Event, Debug)]
-pub struct StopVrma;
+#[derive(EntityEvent, Debug)]
+pub struct StopVrma(Entity);
 
 pub(super) struct VrmaAnimationPlayPlugin;
 
@@ -52,7 +51,7 @@ impl Plugin for VrmaAnimationPlayPlugin {
 }
 
 fn apply_play_vrma(
-    trigger: Trigger<PlayVrma>,
+    trigger: On<PlayVrma>,
     mut players: Query<(
         &mut Transform,
         &mut AnimationPlayer,
@@ -63,7 +62,7 @@ fn apply_play_vrma(
     childrens: Query<&Children>,
     vrmas: Query<&VrmAnimationNodeIndex>,
 ) {
-    let vrma_entity = trigger.target();
+    let vrma_entity = trigger.event_target();
     let Ok(ChildOf(vrm_entity)) = parents.get(vrma_entity) else {
         return;
     };
@@ -129,7 +128,7 @@ fn play_expression_animations(
     let Ok(children) = childrens.get(expressions_root) else {
         return;
     };
-    for child in children.iter().copied() {
+    for child in children.into_iter().copied() {
         if let Ok((mut tf, mut player, _)) = entities.get_mut(child) {
             // Reset the expression weight to zero.
             tf.translation.x = 0.0;
@@ -140,12 +139,12 @@ fn play_expression_animations(
 }
 
 fn apply_stop_vrma(
-    trigger: Trigger<StopVrma>,
+    trigger: On<StopVrma>,
     mut rig_entities: Query<&mut AnimationPlayer>,
     vrmas: Query<&VrmAnimationNodeIndex>,
     rig_children: Query<&Children>,
 ) {
-    let vrma_entity = trigger.target();
+    let vrma_entity = trigger.event_target();
     let Ok(node_index) = vrmas.get(vrma_entity) else {
         return;
     };
@@ -162,7 +161,7 @@ fn stop_animations(
         player.stop(node_index);
     };
     if let Ok(children) = rig_children.get(entity) {
-        for child in children.iter().copied() {
+        for child in children.into_iter().copied() {
             stop_animations(child, node_index, rig_entities, rig_children);
         }
     }

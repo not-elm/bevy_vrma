@@ -6,8 +6,8 @@ use crate::vrm::node_constraint::{
 };
 use bevy::prelude::*;
 
-#[derive(Event)]
-pub(crate) struct RequestInitializeNodeConstraints;
+#[derive(EntityEvent)]
+pub(crate) struct RequestInitializeNodeConstraints(pub(crate) Entity);
 
 pub struct NodeConstraintInitializePlugin;
 
@@ -21,7 +21,7 @@ impl Plugin for NodeConstraintInitializePlugin {
 }
 
 fn apply_initialize_node_constraints(
-    trigger: Trigger<RequestInitializeNodeConstraints>,
+    trigger: On<RequestInitializeNodeConstraints>,
     mut commands: Commands,
     mut rotation_constraints: Query<Option<&mut RotationConstraintDestinations>>,
     mut roll_constraints: Query<Option<&mut RollConstraintDestinations>>,
@@ -29,7 +29,7 @@ fn apply_initialize_node_constraints(
     child_searcher: ChildSearcher,
     models: Query<(Entity, &NodeConstraintRegistry)>,
 ) {
-    let root = trigger.target();
+    let root = trigger.event_target();
     let Ok((vrm, nodes)) = models.get(root) else {
         return;
     };

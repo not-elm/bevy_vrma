@@ -1,11 +1,12 @@
-use bevy::ecs::system::SystemParam;
-use bevy::math::{Vec2, Vec3};
-use bevy::prelude::{
-    Camera, Camera3d, Component, Entity, GlobalTransform, InfinitePlane3d, Query, Reflect, With,
+use bevy::{
+    camera::{RenderTarget, visibility::RenderLayers},
+    ecs::system::SystemParam,
+    math::{Vec2, Vec3},
+    prelude::{
+        Camera, Camera3d, Component, Entity, GlobalTransform, InfinitePlane3d, Query, Reflect, With,
+    },
+    window::WindowRef,
 };
-use bevy::render::camera::RenderTarget;
-use bevy::render::view::RenderLayers;
-use bevy::window::WindowRef;
 
 pub type CameraQuery<'w> = (Entity, &'w Camera, &'w GlobalTransform, &'w RenderLayers);
 

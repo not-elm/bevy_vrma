@@ -16,8 +16,8 @@ pub(crate) struct ExpressionNode {
     pub morph_target_index: usize,
 }
 
-#[derive(Event)]
-pub(crate) struct RequestInitializeExpressions;
+#[derive(EntityEvent)]
+pub(crate) struct RequestInitializeExpressions(pub(crate) Entity);
 
 #[derive(Reflect)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -90,12 +90,12 @@ fn convert_to_node(
 }
 
 fn apply_initialize_expressions(
-    trigger: Trigger<RequestInitializeExpressions>,
+    trigger: On<RequestInitializeExpressions>,
     mut commands: Commands,
     expressions: Query<&VrmExpressionRegistry>,
     searcher: ChildSearcher,
 ) {
-    let vrm_entity = trigger.target();
+    let vrm_entity = trigger.event_target();
     let expressions_root = commands.spawn(Name::new(Vrm::EXPRESSIONS_ROOT)).id();
     commands.entity(vrm_entity).add_child(expressions_root);
 
