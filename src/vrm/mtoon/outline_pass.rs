@@ -22,10 +22,10 @@ use bevy::{
     platform::collections::HashSet,
     prelude::*,
     render::{
-        Extract, Render, RenderApp, RenderDebugFlags, RenderSet,
+        Extract, Render, RenderApp, RenderDebugFlags, RenderSystems,
         mesh::RenderMesh,
         render_asset::RenderAssets,
-        render_graph::{RenderGraphApp, ViewNodeRunner},
+        render_graph::{RenderGraphExt, ViewNodeRunner},
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItemExtraIndex, SortedRenderPhasePlugin,
             ViewSortedRenderPhases, sort_phase_system,
@@ -65,8 +65,8 @@ impl Plugin for MToonOutlinePlugin {
                 (
                     queue_outlines
                         .after(queue_material_meshes::<MToonMaterial>)
-                        .in_set(RenderSet::QueueMeshes),
-                    sort_phase_system::<OutlinePhaseItem>.in_set(RenderSet::PhaseSort),
+                        .in_set(RenderSystems::QueueMeshes),
+                    sort_phase_system::<OutlinePhaseItem>.in_set(RenderSystems::PhaseSort),
                 ),
             );
 
