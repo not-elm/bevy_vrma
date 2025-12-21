@@ -97,11 +97,11 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
 
 #[cfg(test)]
 mod tests {
+    use bevy::camera::visibility::RenderLayers;
     use crate::system_param::cameras::Cameras;
     use crate::tests::{TestResult, test_app};
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::{Camera, Camera3d, Commands, GlobalTransform};
-    use bevy::render::view::RenderLayers;
 
     #[test]
     fn test_all_layers() -> TestResult {
@@ -119,12 +119,13 @@ mod tests {
                 RenderLayers::layer(2),
                 Camera3d::default(),
             ));
-        })?;
+        }).expect("Failed to run system");
         app.update();
 
         let layers = app
             .world_mut()
-            .run_system_once(|cameras: Cameras| cameras.all_layers())?;
+            .run_system_once(|cameras: Cameras| cameras.all_layers())
+            .expect("Failed to run system");
         assert_eq!(layers, RenderLayers::from_layers(&[1, 2]));
         Ok(())
     }

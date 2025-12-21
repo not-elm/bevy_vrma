@@ -1,7 +1,7 @@
-use crate::vrm::mtoon::MToonMaterial;
-use bevy::pbr::MaterialPipeline;
+use crate::vrm::mtoon::{MToonMaterial, MToonMaterialKey};
+use bevy::mesh::MeshVertexBufferLayoutRef;
+use bevy::pbr::{MaterialPipeline, MaterialPipelineKey, MeshPipelineKey};
 use bevy::prelude::*;
-use bevy_mesh::vertex::MeshVertexBufferLayoutRef;
 use bevy::render::render_resource::{
     CompareFunction, Face, RenderPipelineDescriptor, SpecializedMeshPipeline,
     SpecializedMeshPipelineError,
@@ -9,19 +9,26 @@ use bevy::render::render_resource::{
 
 #[derive(Resource)]
 pub(super) struct MToonOutlinePipeline {
-    base: MaterialPipeline<MToonMaterial>,
+    base: MaterialPipeline,
 }
 
 impl FromWorld for MToonOutlinePipeline {
     fn from_world(world: &mut World) -> Self {
         Self {
-            base: MaterialPipeline::from_world(world),
+            base: world.resource::<MaterialPipeline>().clone(),
         }
     }
 }
 
+/// Key for outline pipeline specialization
+#[derive(Clone, Hash, PartialEq, Eq)]
+pub(super) struct OutlinePipelineKey {
+    pub mesh_key: MeshPipelineKey,
+    pub bind_group_data: MToonMaterialKey,
+}
+
 impl SpecializedMeshPipeline for MToonOutlinePipeline {
-    type Key = <MaterialPipeline<MToonMaterial> as SpecializedMeshPipeline>::Key;
+    type Key = OutlinePipelineKey;
 
     fn specialize(
         &self,
@@ -29,7 +36,17 @@ impl SpecializedMeshPipeline for MToonOutlinePipeline {
         layout: &MeshVertexBufferLayoutRef,
     ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
         const PASS_NAME: &str = "OUTLINE_PASS";
-        let mut descriptor = self.base.specialize(key.clone(), layout)?;
+        // First specialize the base mesh pipeline
+        let mut descriptor = self.base.mesh_pipeline.specialize(key.mesh_key, layout)?;
+
+        // Then apply the material-specific specialization
+        let material_key = MaterialPipelineKey {
+            mesh_key: key.mesh_key,
+            bind_group_data: key.bind_group_data,
+        };
+        MToonMaterial::specialize(&self.base, &mut descriptor, layout, material_key)?;
+
+        // Finally, apply outline-specific modifications
         descriptor.label.replace("mtoon_outline_pipeline".into());
         descriptor.vertex.shader_defs.push(PASS_NAME.into());
         if let Some(stencil) = descriptor.depth_stencil.as_mut() {

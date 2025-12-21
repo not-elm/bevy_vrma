@@ -6,16 +6,16 @@ mod uv_animation;
 use crate::vrm::mtoon::material::outline::{MToonOutline, OutlineWidthMode};
 use crate::vrm::mtoon::{MTOON_FRAGMENT_SHADER_HANDLE, MTOON_VERTEX_SHADER_HANDLE};
 use bevy::math::Affine2;
+use bevy::mesh::MeshVertexBufferLayoutRef;
 use bevy::pbr::{MaterialPipeline, MaterialPipelineKey, OpaqueRendererMethod};
 use bevy::prelude::*;
-use bevy_mesh::vertex::MeshVertexBufferLayoutRef;
 use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_resource::{
     AsBindGroup, AsBindGroupShaderType, Face, RenderPipelineDescriptor, ShaderType,
     SpecializedMeshPipelineError,
 };
 use bevy::render::texture::GpuImage;
-use bevy_shader::ShaderRef;
+use bevy::shader::ShaderRef;
 use bitflags::bitflags;
 pub use rim_lighting::RimLighting;
 pub use shade::Shade;
@@ -142,7 +142,7 @@ impl Material for MToonMaterial {
     }
 
     fn specialize(
-        _pipeline: &MaterialPipeline<Self>,
+        _pipeline: &MaterialPipeline,
         descriptor: &mut RenderPipelineDescriptor,
         _layout: &MeshVertexBufferLayoutRef,
         key: MaterialPipelineKey<Self>,

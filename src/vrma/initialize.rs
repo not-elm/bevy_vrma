@@ -105,6 +105,7 @@ fn trigger_loaded(
     for (vrma_entity, child_of) in vrmas.iter() {
         commands.trigger(LoadedVrma {
             vrm: child_of.parent(),
+            vrma: vrma_entity,
         });
     }
 }

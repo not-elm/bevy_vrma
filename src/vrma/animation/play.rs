@@ -12,20 +12,23 @@ use std::time::Duration;
 /// If there are multiple VRMA entities, the animation of all other VRMAs will be stopped except for the one specified in the trigger.
 #[derive(EntityEvent, Debug, Reflect)]
 pub struct PlayVrma {
+    #[event_target]
+    pub vrma: Entity,
+
     /// Repetition behavior of an animation.
-    /// Default is [`RepeatAnimation::Never`].
     pub repeat: RepeatAnimation,
 
     /// A time until the existing animation fades out.
-    /// Default is 300 milliseconds.
     pub transition_duration: Duration,
-
-    pub entity: Entity,
 }
 
-impl Default for PlayVrma {
-    fn default() -> Self {
+impl PlayVrma {
+    /// Creates a new `PlayVrma` event with default settings.
+    ///
+    /// Default repeat is [`RepeatAnimation::Never`] and transition duration is 300 milliseconds.
+    pub fn new(entity: Entity) -> Self {
         Self {
+            vrma: entity,
             repeat: RepeatAnimation::Never,
             transition_duration: Duration::from_millis(300),
         }
@@ -35,7 +38,9 @@ impl Default for PlayVrma {
 /// The trigger event to stop the Vrma's animation.
 ///You need to emit this via [`Trigger`] with the target entity of the VRMA you want to stop the animation on.
 #[derive(EntityEvent, Debug)]
-pub struct StopVrma(Entity);
+pub struct StopVrma {
+    pub entity: Entity,
+}
 
 pub(super) struct VrmaAnimationPlayPlugin;
 
@@ -195,7 +200,7 @@ mod tests {
         app.world_mut()
             .commands()
             .entity(vrma)
-            .trigger(PlayVrma::default());
+            .trigger(|entity| PlayVrma::new(entity));
         app.update();
 
         app.run_system_once(|player: Query<&AnimationPlayer>| {
@@ -222,10 +227,10 @@ mod tests {
         app.world_mut()
             .commands()
             .entity(vrma)
-            .trigger(PlayVrma::default());
+            .trigger(|entity| PlayVrma::new(entity));
         app.update();
 
-        app.world_mut().commands().entity(vrma).trigger(StopVrma);
+        app.world_mut().commands().entity(vrma).trigger(|entity| StopVrma { entity });
         app.update();
 
         app.run_system_once(|player: Query<&AnimationPlayer>| {

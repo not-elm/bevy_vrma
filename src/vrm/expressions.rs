@@ -178,11 +178,13 @@ mod tests {
         app.update();
 
         app.world_mut()
-            .run_system_once(move |s: ChildSearcher| s.find_expressions_root(vrm_entity))?
+            .run_system_once(move |s: ChildSearcher| s.find_expressions_root(vrm_entity))
+            .expect("Failed to run system")
             .expect("Expression root not found");
 
         app.world_mut()
-            .run_system_once(move |s: ChildSearcher| s.find_from_name(vrm_entity, "happy"))?
+            .run_system_once(move |s: ChildSearcher| s.find_from_name(vrm_entity, "happy"))
+            .expect("Failed to run system")
             .expect("Expression node not found");
         Ok(())
     }

@@ -49,7 +49,7 @@ fn spawn_vrm(
 }
 
 fn apply_drag_move_cube(
-    trigger: Trigger<Pointer<Drag>>,
+    trigger: On<Pointer<Drag>>,
     mut transforms: Query<&mut Transform>,
     cameras: Query<(&Camera, &GlobalTransform)>,
 ) {
@@ -57,7 +57,7 @@ fn apply_drag_move_cube(
     let Ok(ray) = camera.viewport_to_world(camera_gtf, trigger.pointer_location.position) else {
         return;
     };
-    let Ok(mut tf) = transforms.get_mut(trigger.target) else {
+    let Ok(mut tf) = transforms.get_mut(trigger.event_target()) else {
         return;
     };
     let plane = InfinitePlane3d::new(camera_gtf.back());

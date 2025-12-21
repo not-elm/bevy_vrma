@@ -4,17 +4,18 @@ mod render_command;
 mod view_node;
 
 use crate::error::vrm_error;
-use crate::vrm::mtoon::MToonMaterial;
+use crate::vrm::mtoon::{MToonMaterial, MToonMaterialKey};
 use crate::vrm::mtoon::outline_pass::phase_item::OutlinePhaseItem;
-use crate::vrm::mtoon::outline_pass::pipeline::MToonOutlinePipeline;
+use crate::vrm::mtoon::outline_pass::pipeline::{MToonOutlinePipeline, OutlinePipelineKey};
 use crate::vrm::mtoon::outline_pass::render_command::DrawOutline;
 use crate::vrm::mtoon::outline_pass::view_node::{OutlineDrawNode, OutlineDrawPassLabel};
 use bevy::pbr::{
-    MaterialBindGroupAllocator, MaterialPipelineKey, PreparedMaterial, RenderMeshInstanceFlags,
+    MaterialBindGroupAllocators, MaterialPipelineKey, PreparedMaterial, RenderMeshInstanceFlags,
     ViewKeyCache, alpha_mode_pipeline_key, queue_material_meshes,
 };
 use bevy::render::sync_world::MainEntityHashMap;
 use bevy::render::view::RenderVisibilityRanges;
+use std::any::TypeId;
 use bevy::{
     core_pipeline::core_3d::graph::{Core3d, Node3d},
     math::FloatOrd,
@@ -23,6 +24,7 @@ use bevy::{
     prelude::*,
     render::{
         Extract, Render, RenderApp, RenderDebugFlags, RenderSystems,
+        erased_render_asset::ErasedRenderAssets,
         mesh::RenderMesh,
         render_asset::RenderAssets,
         render_graph::{RenderGraphExt, ViewNodeRunner},
@@ -63,11 +65,13 @@ impl Plugin for MToonOutlinePlugin {
             .add_systems(
                 Render,
                 (
-                    queue_outlines
-                        .after(queue_material_meshes::<MToonMaterial>)
-                        .in_set(RenderSystems::QueueMeshes),
+                    queue_outlines.in_set(RenderSystems::QueueMeshes),
                     sort_phase_system::<OutlinePhaseItem>.in_set(RenderSystems::PhaseSort),
                 ),
+            )
+            .add_systems(
+                Render,
+                queue_outlines.after(queue_material_meshes),
             );
 
         render_app
@@ -128,11 +132,11 @@ fn queue_outlines(
     mut pipelines: ResMut<SpecializedMeshPipelines<MToonOutlinePipeline>>,
     mut outline_phases: ResMut<ViewSortedRenderPhases<OutlinePhaseItem>>,
     mut views: Query<(&ExtractedView, &RenderVisibleEntities)>,
-    material_bind_group_allocator: Res<MaterialBindGroupAllocator<MToonMaterial>>,
+    material_bind_group_allocators: Res<MaterialBindGroupAllocators>,
     view_key_cache: Res<ViewKeyCache>,
     render_visibility_ranges: Res<RenderVisibilityRanges>,
     instances: Res<MToonMaterialInstances>,
-    render_materials: Res<RenderAssets<PreparedMaterial<MToonMaterial>>>,
+    render_materials: Res<ErasedRenderAssets<PreparedMaterial>>,
     draw_functions: Res<DrawFunctions<OutlinePhaseItem>>,
     pipeline_cache: Res<PipelineCache>,
     outline_pipeline: Res<MToonOutlinePipeline>,
@@ -161,6 +165,7 @@ fn queue_outlines(
             let Some(material) = render_materials.get(*asset_id) else {
                 continue;
             };
+
             let mut mesh_pipeline_key_bits = material.properties.mesh_pipeline_key_bits;
             mesh_pipeline_key_bits.insert(alpha_mode_pipeline_key(
                 material.properties.alpha_mode,
@@ -189,21 +194,20 @@ fn queue_outlines(
                 }
             }
 
-            let material_key = MaterialPipelineKey {
+            // Get the material key from the prepared material properties
+            let mtoon_key = material.properties.material_key.to_key::<MToonMaterialKey>();
+
+            let outline_key = OutlinePipelineKey {
                 mesh_key,
-                bind_group_data: *material_bind_group_allocator
-                    .get(material.binding.group)
-                    .unwrap()
-                    .get_extra_data(material.binding.slot),
+                bind_group_data: mtoon_key,
             };
 
-            let pipeline_id = pipelines.specialize(
+            let pipeline_id = match pipelines.specialize(
                 &pipeline_cache,
                 &outline_pipeline,
-                material_key,
+                outline_key,
                 &mesh.layout,
-            );
-            let pipeline_id = match pipeline_id {
+            ) {
                 Ok(id) => id,
                 Err(err) => {
                     vrm_error!(err);

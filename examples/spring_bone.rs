@@ -37,12 +37,12 @@ fn spawn_vrm(
 }
 
 fn apply_drag_move_vrm(
-    trigger: Trigger<Pointer<Drag>>,
+    trigger: On<Pointer<Drag>>,
     mut transforms: Query<&mut Transform>,
     cameras: Query<(&Camera, &GlobalTransform)>,
     parents: Query<&ChildOf>,
 ) {
-    let vrm_entity = parents.root_ancestor(trigger.target);
+    let vrm_entity = parents.root_ancestor(trigger.event_target());
     let (camera, camera_gtf) = cameras.single().expect("expected a camera");
     let Ok(ray) = camera.viewport_to_world(camera_gtf, trigger.pointer_location.position) else {
         return;
