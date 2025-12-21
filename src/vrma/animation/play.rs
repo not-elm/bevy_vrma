@@ -7,7 +7,7 @@ use std::time::Duration;
 
 /// The trigger event to play the Vrma's animation.
 ///
-/// You need to emit this via [`Trigger`] with the target entity of the VRMA you want to play the animation on.
+/// You need to emit this via [`On`] with the target entity of the VRMA you want to play the animation on.
 ///
 /// If there are multiple VRMA entities, the animation of all other VRMAs will be stopped except for the one specified in the trigger.
 #[derive(EntityEvent, Debug, Reflect)]
@@ -36,7 +36,7 @@ impl PlayVrma {
 }
 
 /// The trigger event to stop the Vrma's animation.
-///You need to emit this via [`Trigger`] with the target entity of the VRMA you want to stop the animation on.
+///You need to emit this via [`On`] with the target entity of the VRMA you want to stop the animation on.
 #[derive(EntityEvent, Debug)]
 pub struct StopVrma {
     pub entity: Entity,
@@ -230,7 +230,10 @@ mod tests {
             .trigger(PlayVrma::new);
         app.update();
 
-        app.world_mut().commands().entity(vrma).trigger(|entity| StopVrma { entity });
+        app.world_mut()
+            .commands()
+            .entity(vrma)
+            .trigger(|entity| StopVrma { entity });
         app.update();
 
         app.run_system_once(|player: Query<&AnimationPlayer>| {

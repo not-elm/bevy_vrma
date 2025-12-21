@@ -4,15 +4,19 @@ mod render_command;
 mod view_node;
 
 use crate::error::vrm_error;
-use crate::vrm::mtoon::{MToonMaterial, MToonMaterialKey};
 use crate::vrm::mtoon::outline_pass::phase_item::OutlinePhaseItem;
 use crate::vrm::mtoon::outline_pass::pipeline::{MToonOutlinePipeline, OutlinePipelineKey};
 use crate::vrm::mtoon::outline_pass::render_command::DrawOutline;
 use crate::vrm::mtoon::outline_pass::view_node::{OutlineDrawNode, OutlineDrawPassLabel};
-use bevy::pbr::{MaterialBindGroupAllocators, MaterialPipelineKey, PreparedMaterial, RenderMeshInstanceFlags, ViewKeyCache, alpha_mode_pipeline_key, queue_material_meshes, MaterialPipeline, init_material_pipeline};
+use crate::vrm::mtoon::{MToonMaterial, MToonMaterialKey};
+use bevy::pbr::{
+    MaterialBindGroupAllocators, MaterialPipeline, MaterialPipelineKey, PreparedMaterial,
+    RenderMeshInstanceFlags, ViewKeyCache, alpha_mode_pipeline_key, init_material_pipeline,
+    queue_material_meshes,
+};
+use bevy::render::RenderStartup;
 use bevy::render::sync_world::MainEntityHashMap;
 use bevy::render::view::RenderVisibilityRanges;
-use std::any::TypeId;
 use bevy::{
     core_pipeline::core_3d::graph::{Core3d, Node3d},
     math::FloatOrd,
@@ -33,7 +37,7 @@ use bevy::{
         view::{ExtractedView, RenderVisibleEntities, RetainedViewEntity},
     },
 };
-use bevy::render::RenderStartup;
+use std::any::TypeId;
 
 pub struct MToonOutlinePlugin;
 
@@ -56,7 +60,10 @@ impl Plugin for MToonOutlinePlugin {
             .add_render_command::<OutlinePhaseItem, DrawOutline>()
             .init_resource::<ViewSortedRenderPhases<OutlinePhaseItem>>()
             .init_resource::<MToonMaterialInstances>()
-            .add_systems(RenderStartup, init_mtoon_outline_pipeline.after(init_material_pipeline))
+            .add_systems(
+                RenderStartup,
+                init_mtoon_outline_pipeline.after(init_material_pipeline),
+            )
             .add_systems(
                 ExtractSchedule,
                 (extract_camera_phases, extract_mtoon_materials),
@@ -68,10 +75,7 @@ impl Plugin for MToonOutlinePlugin {
                     sort_phase_system::<OutlinePhaseItem>.in_set(RenderSystems::PhaseSort),
                 ),
             )
-            .add_systems(
-                Render,
-                queue_outlines.after(queue_material_meshes),
-            );
+            .add_systems(Render, queue_outlines.after(queue_material_meshes));
 
         render_app
             .add_render_graph_node::<ViewNodeRunner<OutlineDrawNode>>(Core3d, OutlineDrawPassLabel)
@@ -184,7 +188,10 @@ fn queue_outlines(
             }
 
             // Get the material key from the prepared material properties
-            let mtoon_key = material.properties.material_key.to_key::<MToonMaterialKey>();
+            let mtoon_key = material
+                .properties
+                .material_key
+                .to_key::<MToonMaterialKey>();
 
             let outline_key = OutlinePipelineKey {
                 mesh_key,
@@ -222,7 +229,7 @@ fn queue_outlines(
 fn init_mtoon_outline_pipeline(
     mut commands: Commands,
     material_pipeline: Res<MaterialPipeline>,
-){
+) {
     commands.insert_resource(MToonOutlinePipeline {
         base: material_pipeline.clone(),
     });

@@ -97,29 +97,31 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
 
 #[cfg(test)]
 mod tests {
-    use bevy::camera::visibility::RenderLayers;
     use crate::system_param::cameras::Cameras;
     use crate::tests::{TestResult, test_app};
+    use bevy::camera::visibility::RenderLayers;
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::{Camera, Camera3d, Commands, GlobalTransform};
 
     #[test]
     fn test_all_layers() -> TestResult {
         let mut app = test_app();
-        app.world_mut().run_system_once(|mut commands: Commands| {
-            commands.spawn((
-                Camera::default(),
-                GlobalTransform::default(),
-                RenderLayers::layer(1),
-                Camera3d::default(),
-            ));
-            commands.spawn((
-                Camera::default(),
-                GlobalTransform::default(),
-                RenderLayers::layer(2),
-                Camera3d::default(),
-            ));
-        }).expect("Failed to run system");
+        app.world_mut()
+            .run_system_once(|mut commands: Commands| {
+                commands.spawn((
+                    Camera::default(),
+                    GlobalTransform::default(),
+                    RenderLayers::layer(1),
+                    Camera3d::default(),
+                ));
+                commands.spawn((
+                    Camera::default(),
+                    GlobalTransform::default(),
+                    RenderLayers::layer(2),
+                    Camera3d::default(),
+                ));
+            })
+            .expect("Failed to run system");
         app.update();
 
         let layers = app
