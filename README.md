@@ -100,6 +100,7 @@ All constraint types use spherical linear interpolation (slerp) based on the wei
 | bevy_vrm1 | bevy |
 |-----------|------|
 | 0.1.0 ~   | 0.16 |
+| 0.4.0-dev | 0.17 |
 
 ## Credits
 
@@ -108,7 +109,3 @@ Using [bevy_game_template](https://github.com/NiklasEi/bevy_game_template) to CI
 ### Sample Models
 
 - **AliciaSolid** by **© DWANGO Co., Ltd.**
-
-## Contact
-
-- **Discord:** `@not_not_elm`
