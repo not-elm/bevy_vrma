@@ -3,7 +3,7 @@ use crate::vrma::Vrma;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 
-#[derive(SystemParam, Reflect)]
+#[derive(SystemParam)]
 pub struct ParentSearcher<'w, 's> {
     entities: Query<'w, 's, (Option<&'static ChildOf>, Has<Vrm>, Has<Vrma>)>,
 }

@@ -28,6 +28,8 @@ impl Plugin for VrmLoaderPlugin {
         app.register_asset_loader(VrmLoader(GltfLoader {
             supported_compressed_formats,
             custom_vertex_attributes: Default::default(),
+            default_sampler: Default::default(),
+            default_use_model_forward_direction: Default::default(),
         }));
     }
 }

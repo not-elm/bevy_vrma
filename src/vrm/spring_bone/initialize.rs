@@ -9,8 +9,8 @@ use crate::vrm::spring_bone::{
 use bevy::app::{App, Update};
 use bevy::prelude::*;
 
-#[derive(Event)]
-pub(crate) struct RequestInitializeSpringBone;
+#[derive(EntityEvent)]
+pub(crate) struct RequestInitializeSpringBone(pub(crate) Entity);
 
 pub struct SpringBoneInitializePlugin;
 
@@ -27,12 +27,12 @@ impl Plugin for SpringBoneInitializePlugin {
 }
 
 fn apply_initialize_joint_props(
-    trigger: Trigger<RequestInitializeHumanoidBones>,
+    trigger: On<RequestInitializeHumanoidBones>,
     mut commands: Commands,
     child_searcher: ChildSearcher,
     models: Query<&SpringJointPropsRegistry>,
 ) {
-    let root = trigger.target();
+    let root = trigger.event_target();
     let Ok(nodes) = models.get(root) else {
         return;
     };
@@ -45,12 +45,12 @@ fn apply_initialize_joint_props(
 }
 
 fn apply_initialize_collider_shapes(
-    trigger: Trigger<RequestInitializeSpringBone>,
+    trigger: On<RequestInitializeSpringBone>,
     mut commands: Commands,
     child_searcher: ChildSearcher,
     models: Query<&SpringColliderRegistry>,
 ) {
-    let entity = trigger.target();
+    let entity = trigger.event_target();
     let Ok(registry) = models.get(entity) else {
         return;
     };
@@ -63,12 +63,12 @@ fn apply_initialize_collider_shapes(
 }
 
 fn apply_initialize_spring_roots(
-    trigger: Trigger<RequestInitializeSpringBone>,
+    trigger: On<RequestInitializeSpringBone>,
     mut commands: Commands,
     child_searcher: ChildSearcher,
     models: Query<&SpringNodeRegistry>,
 ) {
-    let entity = trigger.target();
+    let entity = trigger.event_target();
     let Ok(registry) = models.get(entity) else {
         return;
     };
@@ -133,7 +133,7 @@ fn init_spring_joint_states(
                 current_tail: tail_pos,
                 bone_axis: tail_tf.translation.normalize(),
                 bone_length: tail_tf.translation.length(),
-                initial_local_matrix: head_tf.compute_matrix(),
+                initial_local_matrix: head_tf.to_matrix(),
                 initial_local_rotation: head_tf.rotation,
             };
             par_commands.command_scope(|mut commands| {

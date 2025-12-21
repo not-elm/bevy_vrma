@@ -27,7 +27,7 @@ impl ViewNode for OutlineDrawNode {
         &self,
         graph: &mut RenderGraphContext,
         render_context: &mut RenderContext<'w>,
-        (camera, view, target, depth_texture): QueryItem<'w, Self::ViewQuery>,
+        (camera, view, target, depth_texture): QueryItem<'w, '_, Self::ViewQuery>,
         world: &'w World,
     ) -> bevy::prelude::Result<(), NodeRunError> {
         let Some(outline_phases) = world.get_resource::<ViewSortedRenderPhases<OutlinePhaseItem>>()
