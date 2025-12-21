@@ -200,7 +200,7 @@ mod tests {
         app.world_mut()
             .commands()
             .entity(vrma)
-            .trigger(|entity| PlayVrma::new(entity));
+            .trigger(PlayVrma::new);
         app.update();
 
         app.run_system_once(|player: Query<&AnimationPlayer>| {
@@ -227,7 +227,7 @@ mod tests {
         app.world_mut()
             .commands()
             .entity(vrma)
-            .trigger(|entity| PlayVrma::new(entity));
+            .trigger(PlayVrma::new);
         app.update();
 
         app.world_mut().commands().entity(vrma).trigger(|entity| StopVrma { entity });
