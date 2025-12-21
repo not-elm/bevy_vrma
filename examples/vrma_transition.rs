@@ -81,8 +81,9 @@ fn play_vrma<const I: usize>(
     let Ok(vrma_entity) = vrmas.single() else {
         return;
     };
-    commands.entity(vrma_entity).trigger(PlayVrma {
+    commands.trigger(PlayVrma {
         repeat: RepeatAnimation::Forever,
         transition_duration: Duration::from_millis(300),
+        vrma: vrma_entity,
     });
 }

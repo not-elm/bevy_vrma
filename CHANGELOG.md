@@ -1,4 +1,8 @@
-## v0.3.1(Unreleased)
+## v0.4.0-dev (Unreleased)
+
+### Breaking Changes
+- Migrated Bevy dependency from v0.16 to v0.17.
+- Outline rendering now uses a strict depth compare to avoid full-surface outline fill on thin meshes.
 
 ### Bug Fixes
 

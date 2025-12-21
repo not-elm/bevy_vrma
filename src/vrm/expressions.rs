@@ -16,8 +16,8 @@ pub(crate) struct ExpressionNode {
     pub morph_target_index: usize,
 }
 
-#[derive(Event)]
-pub(crate) struct RequestInitializeExpressions;
+#[derive(EntityEvent)]
+pub(crate) struct RequestInitializeExpressions(pub(crate) Entity);
 
 #[derive(Reflect)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -90,12 +90,12 @@ fn convert_to_node(
 }
 
 fn apply_initialize_expressions(
-    trigger: Trigger<RequestInitializeExpressions>,
+    trigger: On<RequestInitializeExpressions>,
     mut commands: Commands,
     expressions: Query<&VrmExpressionRegistry>,
     searcher: ChildSearcher,
 ) {
-    let vrm_entity = trigger.target();
+    let vrm_entity = trigger.event_target();
     let expressions_root = commands.spawn(Name::new(Vrm::EXPRESSIONS_ROOT)).id();
     commands.entity(vrm_entity).add_child(expressions_root);
 
@@ -178,11 +178,13 @@ mod tests {
         app.update();
 
         app.world_mut()
-            .run_system_once(move |s: ChildSearcher| s.find_expressions_root(vrm_entity))?
+            .run_system_once(move |s: ChildSearcher| s.find_expressions_root(vrm_entity))
+            .expect("Failed to run system")
             .expect("Expression root not found");
 
         app.world_mut()
-            .run_system_once(move |s: ChildSearcher| s.find_from_name(vrm_entity, "happy"))?
+            .run_system_once(move |s: ChildSearcher| s.find_from_name(vrm_entity, "happy"))
+            .expect("Failed to run system")
             .expect("Expression node not found");
         Ok(())
     }

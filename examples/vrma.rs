@@ -42,12 +42,13 @@ fn spawn_vrm(
 /// When the VRMA animation player is set up, a [`LoadedVrma`] trigger is fired.
 /// You cannot play animations until this load is complete.
 fn apply_play_vrma(
-    trigger: Trigger<LoadedVrma>,
+    trigger: On<LoadedVrma>,
     mut commands: Commands,
 ) {
-    let vrma_entity = trigger.target();
-    commands.entity(vrma_entity).trigger(PlayVrma {
+    let vrma_entity = trigger.vrma;
+    commands.trigger(PlayVrma {
         repeat: RepeatAnimation::Forever,
         transition_duration: Duration::ZERO,
+        vrma: vrma_entity,
     });
 }

@@ -4,15 +4,17 @@ mod render_command;
 mod view_node;
 
 use crate::error::vrm_error;
-use crate::vrm::mtoon::MToonMaterial;
 use crate::vrm::mtoon::outline_pass::phase_item::OutlinePhaseItem;
-use crate::vrm::mtoon::outline_pass::pipeline::MToonOutlinePipeline;
+use crate::vrm::mtoon::outline_pass::pipeline::{MToonOutlinePipeline, OutlinePipelineKey};
 use crate::vrm::mtoon::outline_pass::render_command::DrawOutline;
 use crate::vrm::mtoon::outline_pass::view_node::{OutlineDrawNode, OutlineDrawPassLabel};
+use crate::vrm::mtoon::{MToonMaterial, MToonMaterialKey};
 use bevy::pbr::{
-    MaterialBindGroupAllocator, MaterialPipelineKey, PreparedMaterial, RenderMeshInstanceFlags,
-    ViewKeyCache, alpha_mode_pipeline_key, queue_material_meshes,
+    MaterialBindGroupAllocators, MaterialPipeline, MaterialPipelineKey, PreparedMaterial,
+    RenderMeshInstanceFlags, ViewKeyCache, alpha_mode_pipeline_key, init_material_pipeline,
+    queue_material_meshes,
 };
+use bevy::render::RenderStartup;
 use bevy::render::sync_world::MainEntityHashMap;
 use bevy::render::view::RenderVisibilityRanges;
 use bevy::{
@@ -22,10 +24,11 @@ use bevy::{
     platform::collections::HashSet,
     prelude::*,
     render::{
-        Extract, Render, RenderApp, RenderDebugFlags, RenderSet,
+        Extract, Render, RenderApp, RenderDebugFlags, RenderSystems,
+        erased_render_asset::ErasedRenderAssets,
         mesh::RenderMesh,
         render_asset::RenderAssets,
-        render_graph::{RenderGraphApp, ViewNodeRunner},
+        render_graph::{RenderGraphExt, ViewNodeRunner},
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItemExtraIndex, SortedRenderPhasePlugin,
             ViewSortedRenderPhases, sort_phase_system,
@@ -34,6 +37,7 @@ use bevy::{
         view::{ExtractedView, RenderVisibleEntities, RetainedViewEntity},
     },
 };
+use std::any::TypeId;
 
 pub struct MToonOutlinePlugin;
 
@@ -57,18 +61,21 @@ impl Plugin for MToonOutlinePlugin {
             .init_resource::<ViewSortedRenderPhases<OutlinePhaseItem>>()
             .init_resource::<MToonMaterialInstances>()
             .add_systems(
+                RenderStartup,
+                init_mtoon_outline_pipeline.after(init_material_pipeline),
+            )
+            .add_systems(
                 ExtractSchedule,
                 (extract_camera_phases, extract_mtoon_materials),
             )
             .add_systems(
                 Render,
                 (
-                    queue_outlines
-                        .after(queue_material_meshes::<MToonMaterial>)
-                        .in_set(RenderSet::QueueMeshes),
-                    sort_phase_system::<OutlinePhaseItem>.in_set(RenderSet::PhaseSort),
+                    queue_outlines.in_set(RenderSystems::QueueMeshes),
+                    sort_phase_system::<OutlinePhaseItem>.in_set(RenderSystems::PhaseSort),
                 ),
-            );
+            )
+            .add_systems(Render, queue_outlines.after(queue_material_meshes));
 
         render_app
             .add_render_graph_node::<ViewNodeRunner<OutlineDrawNode>>(Core3d, OutlineDrawPassLabel)
@@ -80,16 +87,6 @@ impl Plugin for MToonOutlinePlugin {
                     Node3d::EndMainPass,
                 ),
             );
-    }
-
-    fn finish(
-        &self,
-        app: &mut App,
-    ) {
-        let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
-            return;
-        };
-        render_app.init_resource::<MToonOutlinePipeline>();
     }
 }
 
@@ -128,11 +125,11 @@ fn queue_outlines(
     mut pipelines: ResMut<SpecializedMeshPipelines<MToonOutlinePipeline>>,
     mut outline_phases: ResMut<ViewSortedRenderPhases<OutlinePhaseItem>>,
     mut views: Query<(&ExtractedView, &RenderVisibleEntities)>,
-    material_bind_group_allocator: Res<MaterialBindGroupAllocator<MToonMaterial>>,
+    material_bind_group_allocators: Res<MaterialBindGroupAllocators>,
     view_key_cache: Res<ViewKeyCache>,
     render_visibility_ranges: Res<RenderVisibilityRanges>,
     instances: Res<MToonMaterialInstances>,
-    render_materials: Res<RenderAssets<PreparedMaterial<MToonMaterial>>>,
+    render_materials: Res<ErasedRenderAssets<PreparedMaterial>>,
     draw_functions: Res<DrawFunctions<OutlinePhaseItem>>,
     pipeline_cache: Res<PipelineCache>,
     outline_pipeline: Res<MToonOutlinePipeline>,
@@ -161,6 +158,7 @@ fn queue_outlines(
             let Some(material) = render_materials.get(*asset_id) else {
                 continue;
             };
+
             let mut mesh_pipeline_key_bits = material.properties.mesh_pipeline_key_bits;
             mesh_pipeline_key_bits.insert(alpha_mode_pipeline_key(
                 material.properties.alpha_mode,
@@ -189,21 +187,23 @@ fn queue_outlines(
                 }
             }
 
-            let material_key = MaterialPipelineKey {
+            // Get the material key from the prepared material properties
+            let mtoon_key = material
+                .properties
+                .material_key
+                .to_key::<MToonMaterialKey>();
+
+            let outline_key = OutlinePipelineKey {
                 mesh_key,
-                bind_group_data: *material_bind_group_allocator
-                    .get(material.binding.group)
-                    .unwrap()
-                    .get_extra_data(material.binding.slot),
+                bind_group_data: mtoon_key,
             };
 
-            let pipeline_id = pipelines.specialize(
+            let pipeline_id = match pipelines.specialize(
                 &pipeline_cache,
                 &outline_pipeline,
-                material_key,
+                outline_key,
                 &mesh.layout,
-            );
-            let pipeline_id = match pipeline_id {
+            ) {
                 Ok(id) => id,
                 Err(err) => {
                     vrm_error!(err);
@@ -224,4 +224,13 @@ fn queue_outlines(
             }
         }
     }
+}
+
+fn init_mtoon_outline_pipeline(
+    mut commands: Commands,
+    material_pipeline: Res<MaterialPipeline>,
+) {
+    commands.insert_resource(MToonOutlinePipeline {
+        base: material_pipeline.clone(),
+    });
 }

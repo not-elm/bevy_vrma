@@ -25,8 +25,8 @@ pub mod prelude {
     pub use crate::vrm::humanoid_bone::bones::*;
 }
 
-#[derive(Event)]
-pub(crate) struct RequestInitializeHumanoidBones;
+#[derive(EntityEvent)]
+pub(crate) struct RequestInitializeHumanoidBones(pub(crate) Entity);
 
 #[derive(Component, Deref, Reflect, Default)]
 pub(crate) struct HumanoidBoneRegistry(HashMap<VrmBone, Name>);
@@ -90,12 +90,12 @@ macro_rules! insert_bone {
 }
 
 fn apply_insert_rest_transforms(
-    trigger: Trigger<RequestInitializeHumanoidBones>,
+    trigger: On<RequestInitializeHumanoidBones>,
     mut commands: Commands,
     childrens: Query<&Children>,
     transforms: Query<(&Transform, &GlobalTransform)>,
 ) {
-    let vrm = trigger.target();
+    let vrm = trigger.event_target();
     insert_rest_transforms_recursive(&mut commands, vrm, &childrens, &transforms);
 }
 
@@ -120,7 +120,7 @@ fn insert_rest_transforms_recursive(
 }
 
 fn apply_initialize_humanoid_bones(
-    trigger: Trigger<RequestInitializeHumanoidBones>,
+    trigger: On<RequestInitializeHumanoidBones>,
     mut commands: Commands,
     searcher: ChildSearcher,
     models: Query<&HumanoidBoneRegistry>,
@@ -128,7 +128,7 @@ fn apply_initialize_humanoid_bones(
     transforms: Query<(&Transform, &GlobalTransform)>,
     has_vrm: Query<Has<Vrm>>,
 ) {
-    let model_entity = trigger.target();
+    let model_entity = trigger.event_target();
     let Ok(registry) = models.get(model_entity) else {
         return;
     };

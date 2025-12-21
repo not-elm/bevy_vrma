@@ -1,6 +1,6 @@
 use crate::prelude::{RestTransform, VrmSystemSets};
 use crate::vrm::node_constraint::AimConstraintDestinations;
-use bevy::app::Animation;
+use bevy::app::AnimationSystems;
 use bevy::prelude::*;
 
 pub(crate) struct AimConstraintBindPlugin;
@@ -14,7 +14,7 @@ impl Plugin for AimConstraintBindPlugin {
             PostUpdate,
             bind_aim_constraints
                 .in_set(VrmSystemSets::Constraints)
-                .after(Animation),
+                .after(AnimationSystems),
         );
     }
 }

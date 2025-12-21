@@ -3,10 +3,9 @@
 
 use crate::prelude::*;
 use crate::system_set::VrmSystemSets;
-use bevy::app::{Animation, App, Plugin};
-use bevy::prelude::TransformSystem::TransformPropagate;
+use bevy::app::{App, Plugin};
+use bevy::camera::RenderTarget;
 use bevy::prelude::*;
-use bevy::render::camera::RenderTarget;
 use bevy::window::{PrimaryWindow, WindowRef};
 
 /// Holds the entity of looking the target entity.
@@ -232,10 +231,7 @@ fn calc_yaw_pitch(
     look_at_space: &GlobalTransform,
     target: Vec3,
 ) -> (f32, f32) {
-    let local_target = look_at_space
-        .compute_matrix()
-        .inverse()
-        .transform_point3(target);
+    let local_target = look_at_space.to_matrix().inverse().transform_point3(target);
 
     let z = local_target.dot(Vec3::Z);
     let x = local_target.dot(Vec3::X);

@@ -97,9 +97,11 @@ pub struct VrmaDuration(pub Duration);
 ///
 /// This event is emitted as a trigger.
 /// The target of the trigger is the VRMA entity.
-#[derive(Debug, Event, Copy, Clone, Reflect)]
+#[derive(Debug, EntityEvent, Copy, Clone, Reflect)]
 pub struct LoadedVrma {
     pub vrm: Entity,
+    #[event_target]
+    pub vrma: Entity,
 }
 
 /// The component that holds the animation clip of VRMA.

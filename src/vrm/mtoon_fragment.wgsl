@@ -165,12 +165,8 @@ fn calc_mtoon_lighting_shading(
     light_id: u32,
 ) -> f32 {
     let light = &lights.directional_lights[light_id];
-    let light_color = (*light).color.rgb;
     let NdotL = saturate(dot(input.world_normal, (*light).direction_to_light));
     let shade_shift = calc_mtoon_lighting_reflectance_shading_shift(input);
-#ifdef OUTLINE_PASS
-    let shading = mtoon_linearstep(-1.0 + material.shading_toony_factor, 1.0 - material.shading_toony_factor, NdotL + shade_shift);
-#else
     let shade_input = mix(-1., 1., mtoon_linearstep(-1., 1., NdotL));
     let view_z = dot(vec4<f32>(
         view.view_from_world[0].z,
@@ -185,7 +181,6 @@ fn calc_mtoon_lighting_shading(
         view_z,
     );
     let shading =  mtoon_linearstep(-1.0 + material.shading_toony_factor, 1.0 - material.shading_toony_factor, shade_input + shade_shift) * shadow;
-#endif
    return shading;
 }
 
@@ -204,9 +199,6 @@ fn calc_mtoon_lighting_reflectance_shading_shift(
 fn apply_global_illumination(
     in: MToonInput,
 ) -> vec3<f32> {
-#ifdef OUTLINE_PASS
-    return vec3(0.);
-#else
     let base_color = in.lit_color.rgb;
     let diffuse_color = calc_diffuse_color(
         base_color,
@@ -224,7 +216,6 @@ fn apply_global_illumination(
         in.pbr.diffuse_occlusion,
     );
     return view.exposure * in_direct_light;
-#endif
 }
 
 fn calc_shade_color(in: MToonInput) -> vec3<f32>{
@@ -237,16 +228,12 @@ fn calc_shade_color(in: MToonInput) -> vec3<f32>{
 }
 
 fn apply_emissive_light(in: MToonInput) -> vec3<f32> {
-#ifdef OUTLINE_PASS
-    return vec3(0.);
-#else
     let emissive = in.pbr.material.emissive.rgb;
     if ((in.pbr.flags & EMISSIVE_TEXTURE) != 0u) {
         return emissive * textureSampleBias(emissive_texture, emissive_sampler, in.uv, view.mip_bias).rgb;
     } else {
         return emissive;
     }
-#endif
 }
 
 fn apply_rim_lighting(in: PbrInput, uv: vec2<f32>, direct_light: vec3<f32>, in_direct: vec3<f32>) -> vec3<f32>{
@@ -264,11 +251,7 @@ fn apply_rim_lighting(in: PbrInput, uv: vec2<f32>, direct_light: vec3<f32>, in_d
     if((material.flags & RIM_MAP_TEXTURE) != 0u) {
         rim *= textureSampleBias(rim_multiply_texture, rim_multiply_sampler, uv, view.mip_bias).rgb;
     }
-#ifdef OUTLINE_PASS
-    rim *= mix(vec3(0.0), direct_light, material.rim_lighting_mix_factor);
-#else
     rim *= mix(vec3(1.0), direct_light + in_direct, material.rim_lighting_mix_factor);
-#endif
     return rim;
 }
 

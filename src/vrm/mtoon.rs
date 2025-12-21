@@ -7,7 +7,7 @@ use crate::prelude::*;
 use crate::vrm::gltf::materials::VrmcMaterialsExtensitions;
 use crate::vrm::mtoon::outline_pass::MToonOutlinePlugin;
 use crate::vrm::mtoon::setup::MToonMaterialSetupPlugin;
-use bevy::asset::{AssetId, load_internal_asset, weak_handle};
+use bevy::asset::{AssetId, load_internal_asset, uuid_handle};
 use bevy::prelude::*;
 use std::collections::HashMap;
 
@@ -16,11 +16,11 @@ pub mod prelude {
 }
 
 const MTOON_FRAGMENT_SHADER_HANDLE: Handle<Shader> =
-    weak_handle!("9a96eff2-1676-1dc0-9abc-2fd5e7134443");
+    uuid_handle!("9a96eff2-1676-1dc0-9abc-2fd5e7134443");
 const MTOON_VERTEX_SHADER_HANDLE: Handle<Shader> =
-    weak_handle!("f4041db8-c464-b84c-e3c9-e618527945a1");
+    uuid_handle!("f4041db8-c464-b84c-e3c9-e618527945a1");
 const MTOON_TYPES_SHADER_HANDLE: Handle<Shader> =
-    weak_handle!("5d9302a3-6498-9d2a-fadb-842d01c87697");
+    uuid_handle!("5d9302a3-6498-9d2a-fadb-842d01c87697");
 
 pub struct MtoonMaterialPlugin;
 

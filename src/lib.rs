@@ -20,7 +20,6 @@ pub(crate) mod tests {
     use bevy::MinimalPlugins;
     use bevy::asset::AssetPlugin;
     use bevy::prelude::ImagePlugin;
-    use bevy::render::camera::CameraPlugin;
     use bevy::window::WindowPlugin;
 
     pub type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
@@ -39,7 +38,6 @@ pub(crate) mod tests {
             AssetPlugin::default(),
             ImagePlugin::default(),
             WindowPlugin::default(),
-            CameraPlugin,
         ));
         app
     }

@@ -2,7 +2,7 @@ use crate::prelude::ChildSearcher;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::{AnimationPlayer, Children, Entity, Query, Reflect};
 
-#[derive(SystemParam, Reflect)]
+#[derive(SystemParam)]
 pub struct VrmAnimation<'w, 's> {
     searcher: ChildSearcher<'w, 's>,
     players: Query<'w, 's, &'static AnimationPlayer>,

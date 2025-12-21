@@ -103,8 +103,9 @@ fn trigger_loaded(
     vrmas: Query<(Entity, &ChildOf), (Added<Initialized>, With<Vrma>)>,
 ) {
     for (vrma_entity, child_of) in vrmas.iter() {
-        commands.entity(vrma_entity).trigger(LoadedVrma {
+        commands.trigger(LoadedVrma {
             vrm: child_of.parent(),
+            vrma: vrma_entity,
         });
     }
 }

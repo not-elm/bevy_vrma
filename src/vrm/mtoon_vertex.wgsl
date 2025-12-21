@@ -8,6 +8,7 @@
     morph::morph,
     forward_io::{Vertex, VertexOutput},
     view_transformations::position_world_to_clip,
+    mesh_view_bindings::globals,
 }
 #import mtoon::types::{
     MToonMaterialUniform,
@@ -15,6 +16,9 @@
     outline_width_multiply_texture,
     outline_width_multiply_sampler,
     OUTLINE_WIDTH_MULTIPLY_TEXTURE,
+    uv_animation_mask_texture,
+    uv_animation_mask_sampler,
+    UV_ANIMATION_MASK_TEXTURE,
 }
 
 @vertex
@@ -53,8 +57,10 @@ fn vertex(vertex_no_morph: Vertex) -> VertexOutput {
 #ifdef VERTEX_POSITIONS
     out.world_position = mesh_functions::mesh_position_local_to_world(world_from_local, vec4<f32>(vertex.position, 1.0));
 #ifdef OUTLINE_PASS
-    let outline_width = outline_width(vertex.uv);
-    out.world_position = vec4(out.world_position.xyz + out.world_normal.xyz * outline_width, 1.0);
+    let animated_uv = calc_animated_uv((material.uv_transform * vec3(vertex.uv, 1.0)).xy);
+    let outline_width = outline_width(animated_uv);
+    let outline_normal = normalize(out.world_normal.xyz);
+    out.world_position = vec4(out.world_position.xyz + outline_normal * outline_width, 1.0);
 #endif
     out.position = position_world_to_clip(out.world_position.xyz);
 #endif
@@ -93,16 +99,29 @@ fn vertex(vertex_no_morph: Vertex) -> VertexOutput {
 fn outline_width(uv: vec2<f32>) -> f32{
     let w = material.outline_width_factor;
     if ((material.flags & OUTLINE_WIDTH_MULTIPLY_TEXTURE) != 0) {
-        let dims: vec2<u32> = textureDimensions(outline_width_multiply_texture, 0);
-        let coord = vec2<u32>(uv * vec2<f32>(dims));
-        let texel: vec4<f32> = textureLoad(
-            outline_width_multiply_texture,
-            coord,
-            0
-        );
+        let texel = textureSampleLevel(outline_width_multiply_texture, outline_width_multiply_sampler, uv, 0.0);
         return w * texel.g;
     } else {
         return w;
+    }
+}
+
+fn calc_animated_uv(uv: vec2<f32>) -> vec2<f32>{
+    let time = calc_uv_time(uv);
+    let translate = time * vec2(material.uv_animation_scroll_speed_x, material.uv_animation_rotation_speed_y);
+    let rotate_rad = fract(time * material.uv_animation_rotation_speed);
+    let cos_rotate = cos(rotate_rad);
+    let sin_rotate = sin(rotate_rad);
+    let pivot = vec2<f32>(0.5, 0.5);
+    return mat2x2(cos_rotate, -sin_rotate, sin_rotate, cos_rotate) * (uv - pivot) + pivot + translate;
+}
+
+fn calc_uv_time(uv: vec2<f32>) -> f32{
+    if((material.flags & UV_ANIMATION_MASK_TEXTURE) != 0u) {
+        let mask = textureSampleLevel(uv_animation_mask_texture, uv_animation_mask_sampler, uv, 0.0).b;
+        return mask * globals.time;
+    }else{
+        return globals.time;
     }
 }
 

@@ -1,11 +1,12 @@
-use bevy::ecs::system::SystemParam;
-use bevy::math::{Vec2, Vec3};
-use bevy::prelude::{
-    Camera, Camera3d, Component, Entity, GlobalTransform, InfinitePlane3d, Query, Reflect, With,
+use bevy::{
+    camera::{RenderTarget, visibility::RenderLayers},
+    ecs::system::SystemParam,
+    math::{Vec2, Vec3},
+    prelude::{
+        Camera, Camera3d, Component, Entity, GlobalTransform, InfinitePlane3d, Query, Reflect, With,
+    },
+    window::WindowRef,
 };
-use bevy::render::camera::RenderTarget;
-use bevy::render::view::RenderLayers;
-use bevy::window::WindowRef;
 
 pub type CameraQuery<'w> = (Entity, &'w Camera, &'w GlobalTransform, &'w RenderLayers);
 
@@ -98,32 +99,35 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
 mod tests {
     use crate::system_param::cameras::Cameras;
     use crate::tests::{TestResult, test_app};
+    use bevy::camera::visibility::RenderLayers;
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::{Camera, Camera3d, Commands, GlobalTransform};
-    use bevy::render::view::RenderLayers;
 
     #[test]
     fn test_all_layers() -> TestResult {
         let mut app = test_app();
-        app.world_mut().run_system_once(|mut commands: Commands| {
-            commands.spawn((
-                Camera::default(),
-                GlobalTransform::default(),
-                RenderLayers::layer(1),
-                Camera3d::default(),
-            ));
-            commands.spawn((
-                Camera::default(),
-                GlobalTransform::default(),
-                RenderLayers::layer(2),
-                Camera3d::default(),
-            ));
-        })?;
+        app.world_mut()
+            .run_system_once(|mut commands: Commands| {
+                commands.spawn((
+                    Camera::default(),
+                    GlobalTransform::default(),
+                    RenderLayers::layer(1),
+                    Camera3d::default(),
+                ));
+                commands.spawn((
+                    Camera::default(),
+                    GlobalTransform::default(),
+                    RenderLayers::layer(2),
+                    Camera3d::default(),
+                ));
+            })
+            .expect("Failed to run system");
         app.update();
 
         let layers = app
             .world_mut()
-            .run_system_once(|cameras: Cameras| cameras.all_layers())?;
+            .run_system_once(|cameras: Cameras| cameras.all_layers())
+            .expect("Failed to run system");
         assert_eq!(layers, RenderLayers::from_layers(&[1, 2]));
         Ok(())
     }
