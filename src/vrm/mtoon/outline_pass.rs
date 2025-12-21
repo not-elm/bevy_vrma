@@ -9,10 +9,7 @@ use crate::vrm::mtoon::outline_pass::phase_item::OutlinePhaseItem;
 use crate::vrm::mtoon::outline_pass::pipeline::{MToonOutlinePipeline, OutlinePipelineKey};
 use crate::vrm::mtoon::outline_pass::render_command::DrawOutline;
 use crate::vrm::mtoon::outline_pass::view_node::{OutlineDrawNode, OutlineDrawPassLabel};
-use bevy::pbr::{
-    MaterialBindGroupAllocators, MaterialPipelineKey, PreparedMaterial, RenderMeshInstanceFlags,
-    ViewKeyCache, alpha_mode_pipeline_key, queue_material_meshes,
-};
+use bevy::pbr::{MaterialBindGroupAllocators, MaterialPipelineKey, PreparedMaterial, RenderMeshInstanceFlags, ViewKeyCache, alpha_mode_pipeline_key, queue_material_meshes, MaterialPipeline, init_material_pipeline};
 use bevy::render::sync_world::MainEntityHashMap;
 use bevy::render::view::RenderVisibilityRanges;
 use std::any::TypeId;
@@ -36,6 +33,7 @@ use bevy::{
         view::{ExtractedView, RenderVisibleEntities, RetainedViewEntity},
     },
 };
+use bevy::render::RenderStartup;
 
 pub struct MToonOutlinePlugin;
 
@@ -58,6 +56,7 @@ impl Plugin for MToonOutlinePlugin {
             .add_render_command::<OutlinePhaseItem, DrawOutline>()
             .init_resource::<ViewSortedRenderPhases<OutlinePhaseItem>>()
             .init_resource::<MToonMaterialInstances>()
+            .add_systems(RenderStartup, init_mtoon_outline_pipeline.after(init_material_pipeline))
             .add_systems(
                 ExtractSchedule,
                 (extract_camera_phases, extract_mtoon_materials),
@@ -84,16 +83,6 @@ impl Plugin for MToonOutlinePlugin {
                     Node3d::EndMainPass,
                 ),
             );
-    }
-
-    fn finish(
-        &self,
-        app: &mut App,
-    ) {
-        let Some(render_app) = app.get_sub_app_mut(RenderApp) else {
-            return;
-        };
-        render_app.init_resource::<MToonOutlinePipeline>();
     }
 }
 
@@ -228,4 +217,13 @@ fn queue_outlines(
             }
         }
     }
+}
+
+fn init_mtoon_outline_pipeline(
+    mut commands: Commands,
+    material_pipeline: Res<MaterialPipeline>,
+){
+    commands.insert_resource(MToonOutlinePipeline {
+        base: material_pipeline.clone(),
+    });
 }

@@ -9,7 +9,7 @@ use bevy::render::render_resource::{
 
 #[derive(Resource)]
 pub(super) struct MToonOutlinePipeline {
-    base: MaterialPipeline,
+    pub base: MaterialPipeline,
 }
 
 impl FromWorld for MToonOutlinePipeline {
