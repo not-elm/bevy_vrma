@@ -50,7 +50,9 @@ impl SpecializedMeshPipeline for MToonOutlinePipeline {
         descriptor.label.replace("mtoon_outline_pipeline".into());
         descriptor.vertex.shader_defs.push(PASS_NAME.into());
         if let Some(stencil) = descriptor.depth_stencil.as_mut() {
-            stencil.depth_compare = CompareFunction::GreaterEqual;
+            // Avoid drawing backfaces that sit at the same depth as the front faces.
+            // This reduces full-surface outline fills on thin meshes.
+            stencil.depth_compare = CompareFunction::Greater;
         }
         descriptor.primitive.cull_mode.replace(Face::Front);
         if let Some(fragment) = descriptor.fragment.as_mut() {
