@@ -8,13 +8,14 @@ use crate::vrm::mtoon::{MTOON_FRAGMENT_SHADER_HANDLE, MTOON_VERTEX_SHADER_HANDLE
 use bevy::math::Affine2;
 use bevy::pbr::{MaterialPipeline, MaterialPipelineKey, OpaqueRendererMethod};
 use bevy::prelude::*;
-use bevy::render::mesh::MeshVertexBufferLayoutRef;
+use bevy_mesh::vertex::MeshVertexBufferLayoutRef;
 use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_resource::{
-    AsBindGroup, AsBindGroupShaderType, Face, RenderPipelineDescriptor, ShaderRef, ShaderType,
+    AsBindGroup, AsBindGroupShaderType, Face, RenderPipelineDescriptor, ShaderType,
     SpecializedMeshPipelineError,
 };
 use bevy::render::texture::GpuImage;
+use bevy_shader::ShaderRef;
 use bitflags::bitflags;
 pub use rim_lighting::RimLighting;
 pub use shade::Shade;

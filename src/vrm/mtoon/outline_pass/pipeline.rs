@@ -1,7 +1,7 @@
 use crate::vrm::mtoon::MToonMaterial;
 use bevy::pbr::MaterialPipeline;
 use bevy::prelude::*;
-use bevy::render::mesh::MeshVertexBufferLayoutRef;
+use bevy_mesh::vertex::MeshVertexBufferLayoutRef;
 use bevy::render::render_resource::{
     CompareFunction, Face, RenderPipelineDescriptor, SpecializedMeshPipeline,
     SpecializedMeshPipelineError,

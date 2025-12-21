@@ -60,6 +60,6 @@ fn any_update_spring_joints(spring_joints: Query<&Transform, Changed<Transform>>
         .any(|tf| 0.1 < tf.rotation.angle_between(Quat::IDENTITY))
 }
 
-fn request_redraw(mut request: EventWriter<RequestRedraw>) {
+fn request_redraw(mut request: MessageWriter<RequestRedraw>) {
     request.write(RequestRedraw);
 }
