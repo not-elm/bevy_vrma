@@ -1,7 +1,6 @@
 //! This library extends the original shader to support multiple directional lights.
 
 use bevy::prelude::*;
-use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_vrm1::prelude::*;
 
 #[derive(Component)]
@@ -12,7 +11,7 @@ struct RotateArc;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, PanOrbitCameraPlugin, VrmPlugin))
+        .add_plugins((DefaultPlugins, VrmPlugin))
         .add_systems(Startup, (spawn_camera, spawn_vrm, spawn_directional_light))
         .add_systems(Update, (rotate_circle, rotate_arc))
         .run();
@@ -43,11 +42,7 @@ fn spawn_camera(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    commands.spawn((
-        Camera3d::default(),
-        PanOrbitCamera::default(),
-        Transform::from_xyz(0.0, 2.5, 3.5),
-    ));
+    commands.spawn((Camera3d::default(), Transform::from_xyz(0.0, 2.5, 3.5)));
     // Ground
     commands.spawn((
         Mesh3d(meshes.add(Plane3d::new(Vec3::Y, Vec2::new(1000.0, 1000.0)))),

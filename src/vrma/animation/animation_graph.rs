@@ -8,7 +8,7 @@ use crate::vrma::animation::bone_translation::{
     HipsTranslationAnimationCurve, register_hips_translation_transformation,
 };
 use crate::vrma::{VrmAnimationClipHandle, VrmAnimationNodeIndex};
-use bevy::animation::{AnimationTarget, animated_field};
+use bevy::animation::{AnimationTargetId, animated_field};
 use bevy::app::App;
 use bevy::prelude::*;
 
@@ -136,7 +136,7 @@ fn apply_replace_humanoid_bone_animation_clips(
     clip_handles: Query<&VrmAnimationClipHandle>,
     parents: Query<&ChildOf>,
     vrms: Query<&HumanoidBoneRegistry>,
-    bones: Query<(&RestTransform, &RestGlobalTransform, &AnimationTarget)>,
+    bones: Query<(&RestTransform, &RestGlobalTransform, &AnimationTargetId)>,
     nodes: Query<&VrmAnimationNodeIndex>,
     searcher: ChildSearcher,
 ) {
@@ -185,7 +185,7 @@ fn replace_bone_animation_clips(
     root_bone: Entity,
     registry: &HumanoidBoneRegistry,
     searcher: &ChildSearcher,
-    bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTarget)>,
+    bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTargetId)>,
 ) {
     let animation_curves = clip.curves_mut();
     for (bone, name) in registry.iter() {
@@ -209,12 +209,12 @@ fn replace_bone_animation_clips(
                 dist_rest_gtf,
             );
         }
-        if let Some(curves) = animation_curves.remove(&vrma_bone_target.id) {
+        if let Some(curves) = animation_curves.remove(vrma_bone_target) {
             let mut cs = Vec::new();
             for c in curves.iter() {
                 cs.push(animation_curve(c.clone(), bone.as_str() == "hips"));
             }
-            animation_curves.insert(bone_target.id, cs.clone());
+            animation_curves.insert(*bone_target, cs);
         }
     }
 }
@@ -251,7 +251,7 @@ fn apply_regenerate_expression_clips(
     trigger: On<RequestUpdateAnimationClips>,
     mut clips: ResMut<Assets<AnimationClip>>,
     clip_handles: Query<&VrmAnimationClipHandle>,
-    animation_targets: Query<&AnimationTarget>,
+    animation_targets: Query<&AnimationTargetId>,
     expressions: Query<&VrmExpressionRegistry>,
     searcher: ChildSearcher,
     parents: Query<&ChildOf>,
@@ -286,8 +286,8 @@ fn apply_regenerate_expression_clips(
             return;
         };
         let animation_curves = clip.curves_mut();
-        if let Some(curves) = animation_curves.remove(&vrma_target.id) {
-            animation_curves.insert(target.id, curves);
+        if let Some(curves) = animation_curves.remove(vrma_target) {
+            animation_curves.insert(*target, curves);
         }
     }
 }

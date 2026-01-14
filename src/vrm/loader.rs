@@ -1,10 +1,14 @@
 use bevy::app::{App, Plugin};
 use bevy::asset::io::Reader;
 use bevy::asset::{Asset, AssetLoader, Handle, LoadContext};
-use bevy::gltf::{Gltf, GltfAssetLabel, GltfError, GltfLoader, GltfLoaderSettings};
-use bevy::image::{CompressedImageFormats, Image};
+use bevy::gltf::{
+    DefaultGltfImageSampler, Gltf, GltfAssetLabel, GltfError, GltfLoader, GltfLoaderSettings,
+    extensions::GltfExtensionHandlers,
+};
+use bevy::image::{
+    CompressedImageFormatSupport, CompressedImageFormats, Image, ImageSamplerDescriptor,
+};
 use bevy::prelude::{AssetApp, Component, TypePath};
-use bevy::render::renderer::RenderDevice;
 use bevy::utils::default;
 
 pub struct VrmLoaderPlugin;
@@ -21,15 +25,36 @@ impl Plugin for VrmLoaderPlugin {
         &self,
         app: &mut App,
     ) {
-        let supported_compressed_formats = match app.world().get_resource::<RenderDevice>() {
-            Some(render_device) => CompressedImageFormats::from_features(render_device.features()),
-            None => CompressedImageFormats::NONE,
+        let supported_compressed_formats =
+            if let Some(resource) = app.world().get_resource::<CompressedImageFormatSupport>() {
+                resource.0
+            } else {
+                CompressedImageFormats::NONE
+            };
+        let default_sampler =
+            if let Some(resource) = app.world().get_resource::<DefaultGltfImageSampler>() {
+                resource.get_internal()
+            } else {
+                let resource = DefaultGltfImageSampler::new(&ImageSamplerDescriptor::default());
+                let sampler = resource.get_internal();
+                app.insert_resource(resource);
+                sampler
+            };
+        let extensions = if let Some(resource) = app.world().get_resource::<GltfExtensionHandlers>()
+        {
+            resource.0.clone()
+        } else {
+            let resource = GltfExtensionHandlers::default();
+            let handlers = resource.0.clone();
+            app.insert_resource(resource);
+            handlers
         };
         app.register_asset_loader(VrmLoader(GltfLoader {
             supported_compressed_formats,
             custom_vertex_attributes: Default::default(),
-            default_sampler: Default::default(),
-            default_use_model_forward_direction: Default::default(),
+            default_sampler,
+            default_convert_coordinates: Default::default(),
+            extensions,
         }));
     }
 }
@@ -66,6 +91,7 @@ pub struct VrmAsset {
     pub(crate) images: Vec<Handle<Image>>,
 }
 
+#[derive(TypePath)]
 struct VrmLoader(GltfLoader);
 
 impl AssetLoader for VrmLoader {
