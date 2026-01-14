@@ -1,4 +1,8 @@
-## v0.4.0-dev (Unreleased)
+## v0.5.0
+
+- Migrated Bevy dependency from v0.17 to v0.18.
+
+## v0.4.0
 
 ### Breaking Changes
 - Migrated Bevy dependency from v0.16 to v0.17.
