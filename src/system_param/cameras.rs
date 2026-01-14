@@ -8,7 +8,13 @@ use bevy::{
     window::WindowRef,
 };
 
-pub type CameraQuery<'w> = (Entity, &'w Camera, &'w GlobalTransform, &'w RenderLayers);
+pub type CameraQuery<'w> = (
+    Entity,
+    &'w Camera,
+    Option<&'w RenderTarget>,
+    &'w GlobalTransform,
+    &'w RenderLayers,
+);
 
 #[derive(SystemParam, Reflect)]
 pub struct Cameras<'w, 's, Camera: Component = Camera3d> {
@@ -19,7 +25,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
     pub fn all_layers(&self) -> RenderLayers {
         self.cameras
             .iter()
-            .fold(RenderLayers::none(), |l1, (_, _, _, l2)| l1 | l2.clone())
+            .fold(RenderLayers::none(), |l1, (_, _, _, _, l2)| l1 | l2.clone())
     }
 
     #[inline]
@@ -27,12 +33,10 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
         &self,
         window_entity: Entity,
     ) -> Option<CameraQuery<'_>> {
-        self
-            .cameras
-            .iter()
-            .find(|(_, camera, _, _)| {
-                matches!(camera.target, RenderTarget::Window(WindowRef::Entity(entity)) if entity == window_entity)
-            })
+        self.cameras.iter().find(|(_, _, target, _, _)| {
+            let target = target.cloned().unwrap_or_default();
+            matches!(target, RenderTarget::Window(WindowRef::Entity(entity)) if entity == window_entity)
+        })
     }
 
     #[inline]
@@ -40,7 +44,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
         &self,
         world_pos: Vec3,
     ) -> Option<CameraQuery<'_>> {
-        self.cameras.iter().find(|(_, camera, gtf, _)| {
+        self.cameras.iter().find(|(_, camera, _, gtf, _)| {
             camera.logical_viewport_rect().is_some_and(|viewport| {
                 let Ok(pos) = camera.world_to_viewport(gtf, world_pos) else {
                     return false;
@@ -57,7 +61,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
     ) -> Option<CameraQuery<'_>> {
         self.cameras
             .iter()
-            .find(|(_, _, _, layer)| layers.intersects(layer))
+            .find(|(_, _, _, _, layer)| layers.intersects(layer))
     }
 
     #[inline]
@@ -66,7 +70,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
         layers: &RenderLayers,
         world_pos: Vec3,
     ) -> Option<Vec2> {
-        let (_, camera, camera_tf, _) = self.find_camera_from_layers(layers)?;
+        let (_, camera, _, camera_tf, _) = self.find_camera_from_layers(layers)?;
         camera.world_to_viewport(camera_tf, world_pos).ok()
     }
 
@@ -77,7 +81,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
         viewport_pos: Vec2,
         mascot_pos: Vec3,
     ) -> Option<Vec3> {
-        let (_, camera, camera_gtf, _) = self.find_camera_from_window(window_entity)?;
+        let (_, camera, _, camera_gtf, _) = self.find_camera_from_window(window_entity)?;
         let ray = camera.viewport_to_world(camera_gtf, viewport_pos).ok()?;
         let plane = InfinitePlane3d::new(camera_gtf.back());
         let distance = ray.intersect_plane(mascot_pos, plane)?;
@@ -90,7 +94,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
         window_entity: Entity,
         viewport_pos: Vec2,
     ) -> Option<Vec2> {
-        let (_, camera, camera_gtf, _) = self.find_camera_from_window(window_entity)?;
+        let (_, camera, _, camera_gtf, _) = self.find_camera_from_window(window_entity)?;
         camera.viewport_to_world_2d(camera_gtf, viewport_pos).ok()
     }
 }

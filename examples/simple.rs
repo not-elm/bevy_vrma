@@ -1,10 +1,9 @@
 use bevy::prelude::*;
-use bevy_panorbit_camera::{PanOrbitCamera, PanOrbitCameraPlugin};
 use bevy_vrm1::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, PanOrbitCameraPlugin, VrmPlugin))
+        .add_plugins((DefaultPlugins, VrmPlugin))
         .add_systems(Startup, (spawn_camera, spawn_vrm, spawn_directional_light))
         .run();
 }
@@ -26,8 +25,7 @@ fn spawn_camera(
 ) {
     commands.spawn((
         Camera3d::default(),
-        PanOrbitCamera::default(),
-        Transform::from_xyz(0.0, 2.5, 3.5),
+        Transform::from_xyz(0.0, 2.5, 3.5).looking_at(Vec3::ZERO, Vec3::Y),
     ));
     // Ground
     commands.spawn((

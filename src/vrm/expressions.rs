@@ -3,7 +3,7 @@ use crate::vrm::gltf::extensions::VrmExtensions;
 use crate::vrm::gltf::extensions::vrmc_vrm::MorphTargetBind;
 use crate::vrm::{Vrm, VrmExpression};
 use crate::vrma::RetargetSource;
-use bevy::animation::{AnimationTarget, AnimationTargetId};
+use bevy::animation::{AnimatedBy, AnimationTargetId};
 use bevy::app::Plugin;
 use bevy::asset::{Assets, Handle};
 use bevy::gltf::GltfNode;
@@ -112,10 +112,10 @@ fn apply_initialize_expressions(
                 RetargetExpressionNodes(obtain_expression_nodes(vrm_entity, &searcher, nodes)),
             ))
             .id();
-        commands.entity(expression_entity).insert(AnimationTarget {
-            id: AnimationTargetId::from_name(&Name::new(expression.to_string())),
-            player: expression_entity,
-        });
+        commands.entity(expression_entity).insert((
+            AnimationTargetId::from_name(&Name::new(expression.to_string())),
+            AnimatedBy(expression_entity),
+        ));
         commands
             .entity(expressions_root)
             .add_child(expression_entity);

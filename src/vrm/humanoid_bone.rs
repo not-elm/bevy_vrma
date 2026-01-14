@@ -14,7 +14,7 @@ use crate::vrm::gltf::extensions::VrmNode;
 use crate::vrm::humanoid_bone::bones::BonesPlugin;
 use crate::vrm::{RestGlobalTransform, RestTransform, VrmBone};
 use crate::vrma::RetargetSource;
-use bevy::animation::{AnimationTarget, AnimationTargetId};
+use bevy::animation::{AnimatedBy, AnimationTargetId};
 use bevy::app::{App, Plugin};
 use bevy::asset::{Assets, Handle};
 use bevy::gltf::GltfNode;
@@ -148,10 +148,8 @@ fn apply_initialize_humanoid_bones(
         commands.entity(*root_bone).insert((
             Name::new(Vrm::ROOT_BONE),
             RetargetSource,
-            AnimationTarget {
-                id: AnimationTargetId::from_name(&Name::new(Vrm::ROOT_BONE)),
-                player: *root_bone,
-            },
+            AnimationTargetId::from_name(&Name::new(Vrm::ROOT_BONE)),
+            AnimatedBy(*root_bone),
         ));
     }
 
@@ -169,10 +167,9 @@ fn apply_initialize_humanoid_bones(
             RetargetSource,
         ));
         if has_vrm {
-            commands.entity(bone_entity).insert(AnimationTarget {
-                id: AnimationTargetId::from_name(name),
-                player: *root_bone,
-            });
+            commands
+                .entity(bone_entity)
+                .insert((AnimationTargetId::from_name(name), AnimatedBy(*root_bone)));
         }
         insert_bone!(
             commands,

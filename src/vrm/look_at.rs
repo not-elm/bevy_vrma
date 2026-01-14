@@ -73,7 +73,7 @@ fn track_looking_target(
         &LeftEyeBoneEntity,
         &RightEyeBoneEntity,
     )>,
-    cameras: Query<(Entity, &Camera)>,
+    cameras: Query<(Entity, &Camera, Option<&RenderTarget>)>,
     transforms: Query<&Transform>,
     global_transforms: Query<&GlobalTransform>,
     rests: Query<(&RestTransform, &RestGlobalTransform)>,
@@ -128,7 +128,7 @@ fn calc_target_position(
     vrm_entity: Entity,
     transforms: &Query<&Transform>,
     global_transforms: &Query<&GlobalTransform>,
-    cameras: &Query<(Entity, &Camera)>,
+    cameras: &Query<(Entity, &Camera, Option<&RenderTarget>)>,
     windows: &Query<(&Window, Has<PrimaryWindow>)>,
 ) -> Option<Vec3> {
     match look_at {
@@ -140,7 +140,7 @@ fn calc_target_position(
                 cameras,
                 windows,
             ),
-            None => cameras.iter().find_map(|(camera_entity, _)| {
+            None => cameras.iter().find_map(|(camera_entity, _, _)| {
                 calc_look_at_cursor_position(
                     camera_entity,
                     vrm_entity,
@@ -200,13 +200,14 @@ fn calc_look_at_cursor_position(
     camera_entity: Entity,
     vrm_entity: Entity,
     global_transforms: &Query<&GlobalTransform>,
-    cameras: &Query<(Entity, &Camera)>,
+    cameras: &Query<(Entity, &Camera, Option<&RenderTarget>)>,
     windows: &Query<(&Window, Has<PrimaryWindow>)>,
 ) -> Option<Vec3> {
-    let (_, camera) = cameras.get(camera_entity).ok()?;
+    let (_, camera, target) = cameras.get(camera_entity).ok()?;
     let camera_gtf = global_transforms.get(camera_entity).ok()?;
     let head_gtf = global_transforms.get(vrm_entity).ok()?;
-    let RenderTarget::Window(window_ref) = camera.target else {
+    let target = target.cloned().unwrap_or_default();
+    let RenderTarget::Window(window_ref) = target else {
         return None;
     };
     let window = match window_ref {

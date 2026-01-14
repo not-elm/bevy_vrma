@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use bevy::animation::{
-    AnimationEntityMut, AnimationEvaluationError, AnimationTarget, animated_field,
+    AnimationEntityMut, AnimationEvaluationError, AnimationTargetId, animated_field,
 };
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
@@ -15,7 +15,7 @@ pub(crate) fn register_rotate_transformation(
     root_bone: Entity,
     registry: &HumanoidBoneRegistry,
     searcher: &ChildSearcher,
-    bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTarget)>,
+    bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTargetId)>,
 ) {
     let transformations =
         BoneRotateTransformations::new(vrma, node_index, root_bone, registry, searcher, bones);
@@ -38,7 +38,7 @@ impl BoneRotateTransformations {
         root_bone: Entity,
         registry: &HumanoidBoneRegistry,
         searcher: &ChildSearcher,
-        bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTarget)>,
+        bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTargetId)>,
     ) -> Self {
         let mut transformations = HashMap::new();
         for (bone, name) in registry.iter() {
