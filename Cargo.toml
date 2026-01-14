@@ -29,7 +29,7 @@ paste = "1"
 [dev-dependencies]
 bevy = { version = "0.18" }
 bevy_panorbit_camera = "0.33.0"
-bevy_test_helper = { git = "https://github.com/not-elm/bevy_test_helper", branch = "v0.17" }
+bevy_test_helper = { git = "https://github.com/not-elm/bevy_test_helper", branch = "v0.18" }
 
 [lints.clippy]
 type_complexity = "allow"
