@@ -1,5 +1,5 @@
 use crate::vrm::mtoon::{
-    MToonMaterial, MToonMaterialKey, MTOON_FRAGMENT_SHADER_HANDLE, MTOON_VERTEX_SHADER_HANDLE,
+    MTOON_FRAGMENT_SHADER_HANDLE, MTOON_VERTEX_SHADER_HANDLE, MToonMaterial, MToonMaterialKey,
 };
 use bevy::mesh::MeshVertexBufferLayoutRef;
 use bevy::pbr::{MaterialPipeline, MaterialPipelineKey, MeshPipelineKey};
@@ -56,14 +56,19 @@ impl SpecializedMeshPipeline for MToonOutlinePipeline {
         }
 
         if descriptor.layout.len() <= 3 {
-            descriptor.layout.resize(4, BindGroupLayoutDescriptor::default());
+            descriptor
+                .layout
+                .resize(4, BindGroupLayoutDescriptor::default());
         }
         descriptor.layout[3] = self.material_layout.clone();
 
         descriptor.label.replace("mtoon_outline_pipeline".into());
 
         let material_bind_group_def = ShaderDefVal::Int("MATERIAL_BIND_GROUP".into(), 3);
-        descriptor.vertex.shader_defs.push(material_bind_group_def.clone());
+        descriptor
+            .vertex
+            .shader_defs
+            .push(material_bind_group_def.clone());
         descriptor.vertex.shader_defs.push(PASS_NAME.into());
         if let Some(depth_stencil) = descriptor.depth_stencil.as_mut() {
             depth_stencil.depth_compare = CompareFunction::GreaterEqual;
