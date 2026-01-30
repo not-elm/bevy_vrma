@@ -1,3 +1,11 @@
+## v0.5.1 
+
+### Bug Fixes
+
+- Fixed MToon outline rendering pipeline after Bevy 0.17+ migration
+    - Outline pass now correctly uses MToonMaterial vertex/fragment shaders instead of default PBR
+    - Added MToon material bind group layout at index 3 with MATERIAL_BIND_GROUP=3
+
 ## v0.5.0
 
 - Migrated Bevy dependency from v0.17 to v0.18.
