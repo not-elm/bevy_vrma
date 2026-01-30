@@ -229,8 +229,12 @@ fn queue_outlines(
 fn init_mtoon_outline_pipeline(
     mut commands: Commands,
     material_pipeline: Res<MaterialPipeline>,
+    render_device: Res<bevy::render::renderer::RenderDevice>,
 ) {
+    use bevy::render::render_resource::AsBindGroup;
+    let material_layout = MToonMaterial::bind_group_layout_descriptor(&render_device);
     commands.insert_resource(MToonOutlinePipeline {
         base: material_pipeline.clone(),
+        material_layout,
     });
 }
