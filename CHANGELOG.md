@@ -1,5 +1,7 @@
 ## v0.5.1 
 
+[Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.5.1)
+
 ### Bug Fixes
 
 - Fixed MToon outline rendering pipeline after Bevy 0.17+ migration
