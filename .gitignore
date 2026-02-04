@@ -5,3 +5,4 @@ Cargo.lock
 .DS_Store
 /develop/
 ./docs/plans/
+.claude/memo.md
