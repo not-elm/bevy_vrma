@@ -8,11 +8,11 @@ use bevy::camera::RenderTarget;
 use bevy::prelude::*;
 use bevy::window::{PrimaryWindow, WindowRef};
 
-/// Holds the entity of looking the target entity.
+/// Controls what the VRM model looks at.
 /// This component should be inserted into the root entity of the VRM.
 ///
-/// [`LookAt::Cursor`] is used to look at the mouse cursor in the window.
-/// [`LookAt::Target`] is used to look at the specified entity.
+/// [`LookAt::Cursor`] tracks the mouse cursor across all windows.
+/// [`LookAt::Target`] looks at a specified entity.
 ///
 /// ```no_run
 /// use bevy::prelude::*;
@@ -22,12 +22,10 @@ use bevy::window::{PrimaryWindow, WindowRef};
 ///     mut commands: Commands,
 ///     asset_server: Res<AssetServer>,
 /// ) {
-///     let camera = commands.spawn(Camera3d::default()).id();
+///     commands.spawn((Camera3d::default(), Transform::from_xyz(0.0, 1.3, 1.0)));
 ///     commands.spawn((
 ///         VrmHandle(asset_server.load("model.vrm")),
-///         LookAt::Cursor {
-///             camera: Some(camera),
-///         },
+///         LookAt::Cursor,
 ///     ));
 /// }
 /// ```
@@ -36,12 +34,11 @@ use bevy::window::{PrimaryWindow, WindowRef};
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
 pub enum LookAt {
-    /// Look at the window cursor.
-    /// The camera entity that is specified as the render target of the window must be passed.
-    /// If `None`, it searches all cameras and uses the cursor position of the first one found.
-    Cursor { camera: Option<Entity> },
+    /// Look at the mouse cursor. Automatically finds the window with the cursor
+    /// and the `Camera3d` rendering to it.
+    Cursor,
 
-    /// Specify the entity of the target.
+    /// Look at a specific target entity.
     Target(Entity),
 }
 
@@ -73,11 +70,11 @@ fn track_looking_target(
         &LeftEyeBoneEntity,
         &RightEyeBoneEntity,
     )>,
-    cameras: Query<(Entity, &Camera, Option<&RenderTarget>)>,
+    cameras: Query<(&Camera, &RenderTarget, &GlobalTransform), With<Camera3d>>,
     transforms: Query<&Transform>,
     global_transforms: Query<&GlobalTransform>,
     rests: Query<(&RestTransform, &RestGlobalTransform)>,
-    windows: Query<(&Window, Has<PrimaryWindow>)>,
+    windows: Query<(Entity, &Window, Has<PrimaryWindow>)>,
 ) {
     vrms.iter()
         .for_each(|(look_at, properties, head, left_eye, right_eye)| {
@@ -94,9 +91,8 @@ fn track_looking_target(
             let look_at_space = head_gtf.mul_transform(look_at_space_tf);
             let Some(target) = calc_target_position(
                 look_at,
-                head.0,
+                head_gtf,
                 &transforms,
-                &global_transforms,
                 &cameras,
                 &windows,
             ) else {
@@ -125,32 +121,16 @@ fn track_looking_target(
 
 fn calc_target_position(
     look_at: &LookAt,
-    vrm_entity: Entity,
+    head_gtf: &GlobalTransform,
     transforms: &Query<&Transform>,
-    global_transforms: &Query<&GlobalTransform>,
-    cameras: &Query<(Entity, &Camera, Option<&RenderTarget>)>,
-    windows: &Query<(&Window, Has<PrimaryWindow>)>,
+    cameras: &Query<(&Camera, &RenderTarget, &GlobalTransform), With<Camera3d>>,
+    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>,
 ) -> Option<Vec3> {
     match look_at {
-        LookAt::Cursor { camera } => match camera {
-            Some(camera_entity) => calc_look_at_cursor_position(
-                *camera_entity,
-                vrm_entity,
-                global_transforms,
-                cameras,
-                windows,
-            ),
-            None => cameras.iter().find_map(|(camera_entity, _, _)| {
-                calc_look_at_cursor_position(
-                    camera_entity,
-                    vrm_entity,
-                    global_transforms,
-                    cameras,
-                    windows,
-                )
-            }),
-        },
-        LookAt::Target(target_entity) => transforms.get(*target_entity).map(|t| t.translation).ok(),
+        LookAt::Cursor => find_cursor_target(head_gtf, cameras, windows),
+        LookAt::Target(target_entity) => {
+            transforms.get(*target_entity).map(|t| t.translation).ok()
+        }
     }
 }
 
@@ -196,35 +176,27 @@ fn apply_bone(
     commands.entity(right_eye.0).insert(applied_right_eye_tf);
 }
 
-fn calc_look_at_cursor_position(
-    camera_entity: Entity,
-    vrm_entity: Entity,
-    global_transforms: &Query<&GlobalTransform>,
-    cameras: &Query<(Entity, &Camera, Option<&RenderTarget>)>,
-    windows: &Query<(&Window, Has<PrimaryWindow>)>,
+fn find_cursor_target(
+    head_gtf: &GlobalTransform,
+    cameras: &Query<(&Camera, &RenderTarget, &GlobalTransform), With<Camera3d>>,
+    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>,
 ) -> Option<Vec3> {
-    let (_, camera, target) = cameras.get(camera_entity).ok()?;
-    let camera_gtf = global_transforms.get(camera_entity).ok()?;
-    let head_gtf = global_transforms.get(vrm_entity).ok()?;
-    let target = target.cloned().unwrap_or_default();
-    let RenderTarget::Window(window_ref) = target else {
-        return None;
-    };
-    let window = match window_ref {
-        WindowRef::Primary => windows
-            .iter()
-            .find_map(|(w, primary)| primary.then_some(w))?,
-        WindowRef::Entity(window_entity) => windows.get(window_entity).map(|(w, _)| w).ok()?,
-    };
-
-    let cursor = window.cursor_position()?;
+    let (cursor, camera, camera_gtf) =
+        windows.iter().find_map(|(window_entity, window, is_primary)| {
+            let cursor = window.cursor_position()?;
+            let (camera, _, camera_gtf) = cameras.iter().find(|(_, target, _)| match *target {
+                RenderTarget::Window(WindowRef::Primary) => is_primary,
+                RenderTarget::Window(WindowRef::Entity(e)) => *e == window_entity,
+                _ => false,
+            })?;
+            Some((cursor, camera, camera_gtf))
+        })?;
 
     let ray = camera.viewport_to_world(camera_gtf, cursor).ok()?;
     let delta = camera_gtf.translation() - head_gtf.translation();
     let plane_origin = head_gtf.translation() + delta * 0.5;
-    let plane_up = InfinitePlane3d::new(camera_gtf.back());
-    let distance = ray.intersect_plane(plane_origin, plane_up)?;
-
+    let plane_normal = InfinitePlane3d::new(camera_gtf.back());
+    let distance = ray.intersect_plane(plane_origin, plane_normal)?;
     Some(ray.get_point(distance))
 }
 
