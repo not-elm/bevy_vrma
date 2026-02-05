@@ -193,6 +193,7 @@ fn find_cursor_position_normalized_multi_window(
         let size = window.size();
         window_bounds.push((pos, size));
 
+        // Last window with cursor wins; typically only one window reports cursor per frame
         if let Some(cursor_local) = window.cursor_position() {
             cursor_global = Some(pos + cursor_local);
         }
@@ -217,6 +218,10 @@ fn find_cursor_position_normalized_multi_window(
 
     let center = (min + max) / 2.0;
     let half_size = (max - min) / 2.0;
+
+    if half_size.x == 0.0 || half_size.y == 0.0 {
+        return None;
+    }
 
     // Normalize relative to center
     Some((cursor_global - center) / half_size)
