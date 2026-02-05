@@ -4,9 +4,8 @@
 use crate::prelude::*;
 use crate::system_set::VrmSystemSets;
 use bevy::app::{App, Plugin};
-use bevy::camera::RenderTarget;
 use bevy::prelude::*;
-use bevy::window::{PrimaryWindow, WindowRef};
+use bevy::window::PrimaryWindow;
 
 /// Controls what the VRM model looks at.
 /// This component should be inserted into the root entity of the VRM.
@@ -70,7 +69,6 @@ fn track_looking_target(
         &LeftEyeBoneEntity,
         &RightEyeBoneEntity,
     )>,
-    cameras: Query<(&Camera, &RenderTarget, &GlobalTransform), With<Camera3d>>,
     transforms: Query<&Transform>,
     global_transforms: Query<&GlobalTransform>,
     rests: Query<(&RestTransform, &RestGlobalTransform)>,
@@ -84,21 +82,27 @@ fn track_looking_target(
             let Ok(head_tf) = transforms.get(head.0) else {
                 return;
             };
-            let look_at_space = GlobalTransform::default();
-            let mut look_at_space_tf = look_at_space.reparented_to(head_gtf);
-            look_at_space_tf.translation = Vec3::from(properties.offset_from_head_bone);
-            look_at_space_tf.rotation = head_tf.rotation.inverse();
-            let look_at_space = head_gtf.mul_transform(look_at_space_tf);
-            let Some(target) = calc_target_position(
-                look_at,
-                head_gtf,
-                &transforms,
-                &cameras,
-                &windows,
-            ) else {
-                return;
+
+            let (yaw, pitch) = match look_at {
+                LookAt::Cursor => {
+                    let Some(normalized) = find_cursor_position_normalized(&windows) else {
+                        return;
+                    };
+                    calc_yaw_pitch_from_screen(normalized, properties)
+                }
+                LookAt::Target(target_entity) => {
+                    let Ok(target_gtf) = global_transforms.get(*target_entity) else {
+                        return;
+                    };
+                    let look_at_space = GlobalTransform::default();
+                    let mut look_at_space_tf = look_at_space.reparented_to(head_gtf);
+                    look_at_space_tf.translation = Vec3::from(properties.offset_from_head_bone);
+                    look_at_space_tf.rotation = head_tf.rotation.inverse();
+                    let look_at_space = head_gtf.mul_transform(look_at_space_tf);
+                    calc_yaw_pitch(&look_at_space, target_gtf.translation())
+                }
             };
-            let (yaw, pitch) = calc_yaw_pitch(&look_at_space, target);
+
             match properties.r#type {
                 LookAtType::Bone => {
                     apply_bone(
@@ -117,21 +121,6 @@ fn track_looking_target(
                 }
             }
         });
-}
-
-fn calc_target_position(
-    look_at: &LookAt,
-    head_gtf: &GlobalTransform,
-    transforms: &Query<&Transform>,
-    cameras: &Query<(&Camera, &RenderTarget, &GlobalTransform), With<Camera3d>>,
-    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>,
-) -> Option<Vec3> {
-    match look_at {
-        LookAt::Cursor => find_cursor_target(head_gtf, cameras, windows),
-        LookAt::Target(target_entity) => {
-            transforms.get(*target_entity).map(|t| t.translation).ok()
-        }
-    }
 }
 
 fn apply_bone(
@@ -176,28 +165,30 @@ fn apply_bone(
     commands.entity(right_eye.0).insert(applied_right_eye_tf);
 }
 
-fn find_cursor_target(
-    head_gtf: &GlobalTransform,
-    cameras: &Query<(&Camera, &RenderTarget, &GlobalTransform), With<Camera3d>>,
+fn find_cursor_position_normalized(
     windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>,
-) -> Option<Vec3> {
-    let (cursor, camera, camera_gtf) =
-        windows.iter().find_map(|(window_entity, window, is_primary)| {
-            let cursor = window.cursor_position()?;
-            let (camera, _, camera_gtf) = cameras.iter().find(|(_, target, _)| match *target {
-                RenderTarget::Window(WindowRef::Primary) => is_primary,
-                RenderTarget::Window(WindowRef::Entity(e)) => *e == window_entity,
-                _ => false,
-            })?;
-            Some((cursor, camera, camera_gtf))
-        })?;
+) -> Option<Vec2> {
+    windows.iter().find_map(|(_, window, _)| {
+        let cursor = window.cursor_position()?;
+        let size = window.size();
+        Some(Vec2::new(
+            (cursor.x / size.x - 0.5) * 2.0,
+            (cursor.y / size.y - 0.5) * 2.0,
+        ))
+    })
+}
 
-    let ray = camera.viewport_to_world(camera_gtf, cursor).ok()?;
-    let delta = camera_gtf.translation() - head_gtf.translation();
-    let plane_origin = head_gtf.translation() + delta * 0.5;
-    let plane_normal = InfinitePlane3d::new(camera_gtf.back());
-    let distance = ray.intersect_plane(plane_origin, plane_normal)?;
-    Some(ray.get_point(distance))
+fn calc_yaw_pitch_from_screen(normalized: Vec2, properties: &LookAtProperties) -> (f32, f32) {
+    let horizontal_max = properties
+        .range_map_horizontal_outer
+        .input_max_value
+        .max(properties.range_map_horizontal_inner.input_max_value);
+    let vertical_max = properties
+        .range_map_vertical_down
+        .input_max_value
+        .max(properties.range_map_vertical_up.input_max_value);
+
+    (normalized.x * horizontal_max, normalized.y * vertical_max)
 }
 
 fn calc_yaw_pitch(
