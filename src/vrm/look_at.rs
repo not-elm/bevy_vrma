@@ -168,6 +168,12 @@ fn apply_bone(
 fn find_cursor_position_normalized(
     windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>,
 ) -> Option<Vec2> {
+    // Try multi-window first
+    if let Some(normalized) = find_cursor_position_normalized_multi_window(windows) {
+        return Some(normalized);
+    }
+
+    // Fallback to single-window behavior
     windows.iter().find_map(|(_, window, _)| {
         let cursor = window.cursor_position()?;
         let size = window.size();
