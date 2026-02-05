@@ -5,7 +5,7 @@ use crate::prelude::*;
 use crate::system_set::VrmSystemSets;
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
-use bevy::window::PrimaryWindow;
+use bevy::window::{PrimaryWindow, WindowPosition};
 
 /// Controls what the VRM model looks at.
 /// This component should be inserted into the root entity of the VRM.
@@ -176,6 +176,50 @@ fn find_cursor_position_normalized(
             (cursor.y / size.y - 0.5) * 2.0,
         ))
     })
+}
+
+fn find_cursor_position_normalized_multi_window(
+    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>,
+) -> Option<Vec2> {
+    // Collect windows with explicit positions
+    let mut window_bounds: Vec<(Vec2, Vec2)> = Vec::new(); // (position, size)
+    let mut cursor_global: Option<Vec2> = None;
+
+    for (_, window, _) in windows.iter() {
+        let WindowPosition::At(pos) = window.position else {
+            continue; // Skip windows without explicit position
+        };
+        let pos = Vec2::new(pos.x as f32, pos.y as f32);
+        let size = window.size();
+        window_bounds.push((pos, size));
+
+        if let Some(cursor_local) = window.cursor_position() {
+            cursor_global = Some(pos + cursor_local);
+        }
+    }
+
+    // Fallback: not enough positioned windows
+    if window_bounds.len() < 2 {
+        return None;
+    }
+
+    let cursor_global = cursor_global?;
+
+    // Calculate bounding box
+    let min = window_bounds
+        .iter()
+        .map(|(pos, _)| *pos)
+        .reduce(|a, b| a.min(b))?;
+    let max = window_bounds
+        .iter()
+        .map(|(pos, size)| *pos + *size)
+        .reduce(|a, b| a.max(b))?;
+
+    let center = (min + max) / 2.0;
+    let half_size = (max - min) / 2.0;
+
+    // Normalize relative to center
+    Some((cursor_global - center) / half_size)
 }
 
 fn calc_yaw_pitch_from_screen(normalized: Vec2, properties: &LookAtProperties) -> (f32, f32) {
