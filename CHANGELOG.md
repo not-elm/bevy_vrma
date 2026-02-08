@@ -1,3 +1,8 @@
+## Unreleased
+
+- change visibility of Spring structs to public
+
+
 ## v0.5.1 
 
 [Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.5.1)
