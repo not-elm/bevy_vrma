@@ -30,7 +30,7 @@ pub(crate) struct SpringJointState {
 #[reflect(Component, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct SpringRoot {
+pub struct SpringRoot {
     /// Represents a list of entity of spring joints belonging to the spring chain.
     /// This component is inserted into the root entity of the chain.
     pub joints: SpringJoints,
@@ -46,25 +46,25 @@ pub(crate) struct SpringRoot {
 #[reflect(Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct SpringJoints(pub Vec<Entity>);
+pub struct SpringJoints(pub Vec<Entity>);
 
 #[derive(PartialEq, Debug, Clone, Default, Deref, Reflect)]
 #[reflect(Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct SpringColliders(pub Vec<(Entity, ColliderShape)>);
+pub struct SpringColliders(pub Vec<(Entity, ColliderShape)>);
 
 #[derive(Eq, PartialEq, Debug, Clone, Default, Deref, Reflect)]
 #[reflect(Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct SpringCenterNode(pub Option<Entity>);
+pub struct SpringCenterNode(pub Option<Entity>);
 
 #[derive(Component, Debug, Copy, Clone, Default, PartialEq, Reflect)]
 #[reflect(Default, Component)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
-pub(crate) struct SpringJointProps {
+pub struct SpringJointProps {
     pub drag_force: f32,
     pub gravity_dir: Vec3,
     pub gravity_power: f32,

@@ -6,7 +6,7 @@ mod loader;
 mod look_at;
 mod mtoon;
 mod node_constraint;
-pub(crate) mod spring_bone;
+pub mod spring_bone;
 
 use crate::macros::marker_component;
 use crate::new_type;
@@ -34,6 +34,7 @@ pub mod prelude {
         loader::{VrmAsset, VrmHandle},
         look_at::LookAt,
         mtoon::prelude::*,
+        spring_bone::{SpringJointProps, SpringJoints, SpringRoot},
     };
 }
 
