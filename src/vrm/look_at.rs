@@ -92,8 +92,7 @@ fn track_looking_target(
 
             let (yaw, pitch) = match look_at {
                 LookAt::Cursor => {
-                    let Some(target_pos) =
-                        find_cursor_world_position(&windows, &cameras, head_gtf)
+                    let Some(target_pos) = find_cursor_world_position(&windows, &cameras, head_gtf)
                     else {
                         return;
                     };
