@@ -5,7 +5,7 @@ use crate::prelude::*;
 use crate::system_set::VrmSystemSets;
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
-use bevy::window::{PrimaryWindow, WindowPosition};
+use bevy::window::Window;
 
 /// Controls what the VRM model looks at.
 /// This component should be inserted into the root entity of the VRM.
@@ -72,7 +72,8 @@ fn track_looking_target(
     transforms: Query<&Transform>,
     global_transforms: Query<&GlobalTransform>,
     rests: Query<(&RestTransform, &RestGlobalTransform)>,
-    windows: Query<(Entity, &Window, Has<PrimaryWindow>)>,
+    windows: Query<(Entity, &Window)>,
+    cameras: Cameras,
 ) {
     vrms.iter()
         .for_each(|(look_at, properties, head, left_eye, right_eye)| {
@@ -83,22 +84,25 @@ fn track_looking_target(
                 return;
             };
 
+            let look_at_space = GlobalTransform::default();
+            let mut look_at_space_tf = look_at_space.reparented_to(head_gtf);
+            look_at_space_tf.translation = Vec3::from(properties.offset_from_head_bone);
+            look_at_space_tf.rotation = head_tf.rotation.inverse();
+            let look_at_space = head_gtf.mul_transform(look_at_space_tf);
+
             let (yaw, pitch) = match look_at {
                 LookAt::Cursor => {
-                    let Some(normalized) = find_cursor_position_normalized(&windows) else {
+                    let Some(target_pos) =
+                        find_cursor_world_position(&windows, &cameras, head_gtf)
+                    else {
                         return;
                     };
-                    calc_yaw_pitch_from_screen(normalized, properties)
+                    calc_yaw_pitch(&look_at_space, target_pos)
                 }
                 LookAt::Target(target_entity) => {
                     let Ok(target_gtf) = global_transforms.get(*target_entity) else {
                         return;
                     };
-                    let look_at_space = GlobalTransform::default();
-                    let mut look_at_space_tf = look_at_space.reparented_to(head_gtf);
-                    look_at_space_tf.translation = Vec3::from(properties.offset_from_head_bone);
-                    look_at_space_tf.rotation = head_tf.rotation.inverse();
-                    let look_at_space = head_gtf.mul_transform(look_at_space_tf);
                     calc_yaw_pitch(&look_at_space, target_gtf.translation())
                 }
             };
@@ -165,88 +169,16 @@ fn apply_bone(
     commands.entity(right_eye.0).insert(applied_right_eye_tf);
 }
 
-fn find_cursor_position_normalized(
-    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>
-) -> Option<Vec2> {
-    // Try multi-window first
-    if let Some(normalized) = find_cursor_position_normalized_multi_window(windows) {
-        return Some(normalized);
-    }
-
-    // Fallback to single-window behavior
-    windows.iter().find_map(|(_, window, _)| {
+fn find_cursor_world_position(
+    windows: &Query<(Entity, &Window)>,
+    cameras: &Cameras,
+    head_gtf: &GlobalTransform,
+) -> Option<Vec3> {
+    let (window_entity, cursor_pos) = windows.iter().find_map(|(entity, window)| {
         let cursor = window.cursor_position()?;
-        let size = window.size();
-        Some(Vec2::new(
-            (cursor.x / size.x - 0.5) * 2.0,
-            (cursor.y / size.y - 0.5) * 2.0,
-        ))
-    })
-}
-
-fn find_cursor_position_normalized_multi_window(
-    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>
-) -> Option<Vec2> {
-    // Collect windows with explicit positions
-    let mut window_bounds: Vec<(Vec2, Vec2)> = Vec::new(); // (position, size)
-    let mut cursor_global: Option<Vec2> = None;
-
-    for (_, window, _) in windows.iter() {
-        let WindowPosition::At(pos) = window.position else {
-            continue; // Skip windows without explicit position
-        };
-        let pos = Vec2::new(pos.x as f32, pos.y as f32);
-        let size = window.size();
-        window_bounds.push((pos, size));
-
-        // Last window with cursor wins; typically only one window reports cursor per frame
-        if let Some(cursor_local) = window.cursor_position() {
-            cursor_global = Some(pos + cursor_local);
-        }
-    }
-
-    // Fallback: not enough positioned windows
-    if window_bounds.len() < 2 {
-        return None;
-    }
-
-    let cursor_global = cursor_global?;
-
-    // Calculate bounding box
-    let min = window_bounds
-        .iter()
-        .map(|(pos, _)| *pos)
-        .reduce(|a, b| a.min(b))?;
-    let max = window_bounds
-        .iter()
-        .map(|(pos, size)| *pos + *size)
-        .reduce(|a, b| a.max(b))?;
-
-    let center = (min + max) / 2.0;
-    let half_size = (max - min) / 2.0;
-
-    if half_size.x == 0.0 || half_size.y == 0.0 {
-        return None;
-    }
-
-    // Normalize relative to center
-    Some((cursor_global - center) / half_size)
-}
-
-fn calc_yaw_pitch_from_screen(
-    normalized: Vec2,
-    properties: &LookAtProperties,
-) -> (f32, f32) {
-    let horizontal_max = properties
-        .range_map_horizontal_outer
-        .input_max_value
-        .max(properties.range_map_horizontal_inner.input_max_value);
-    let vertical_max = properties
-        .range_map_vertical_down
-        .input_max_value
-        .max(properties.range_map_vertical_up.input_max_value);
-
-    (normalized.x * horizontal_max, normalized.y * vertical_max)
+        Some((entity, cursor))
+    })?;
+    cameras.to_world_by_viewport(window_entity, cursor_pos, head_gtf.translation())
 }
 
 fn calc_yaw_pitch(
