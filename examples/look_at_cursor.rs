@@ -29,15 +29,9 @@ fn spawn_camera_and_vrm(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
-    let camera = commands
-        .spawn((Camera3d::default(), Transform::from_xyz(0.0, 1.3, 1.)))
-        .id();
-
+    commands.spawn((Camera3d::default(), Transform::from_xyz(0.0, 1.3, 1.)));
     commands.spawn((
         VrmHandle(asset_server.load("vrm/AliciaSolid.vrm")),
-        LookAt::Cursor {
-            // If you pass `None`, it will search for the camera in the scene to get the cursor position.
-            camera: Some(camera),
-        },
+        LookAt::Cursor,
     ));
 }

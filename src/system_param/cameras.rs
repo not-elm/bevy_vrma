@@ -2,10 +2,8 @@ use bevy::{
     camera::{RenderTarget, visibility::RenderLayers},
     ecs::system::SystemParam,
     math::{Vec2, Vec3},
-    prelude::{
-        Camera, Camera3d, Component, Entity, GlobalTransform, InfinitePlane3d, Query, Reflect, With,
-    },
-    window::WindowRef,
+    prelude::{Camera, Camera3d, Component, Entity, GlobalTransform, InfinitePlane3d, Query, With},
+    window::{PrimaryWindow, WindowRef},
 };
 
 pub type CameraQuery<'w> = (
@@ -13,19 +11,23 @@ pub type CameraQuery<'w> = (
     &'w Camera,
     Option<&'w RenderTarget>,
     &'w GlobalTransform,
-    &'w RenderLayers,
+    Option<&'w RenderLayers>,
 );
 
-#[derive(SystemParam, Reflect)]
+#[derive(SystemParam)]
 pub struct Cameras<'w, 's, Camera: Component = Camera3d> {
     pub cameras: Query<'w, 's, CameraQuery<'static>, With<Camera>>,
+    primary_window: Query<'w, 's, Entity, With<PrimaryWindow>>,
 }
 
 impl<Camera: Component> Cameras<'_, '_, Camera> {
     pub fn all_layers(&self) -> RenderLayers {
         self.cameras
             .iter()
-            .fold(RenderLayers::none(), |l1, (_, _, _, _, l2)| l1 | l2.clone())
+            .fold(RenderLayers::none(), |l1, (_, _, _, _, l2)| match l2 {
+                Some(l2) => l1 | l2.clone(),
+                None => l1,
+            })
     }
 
     #[inline]
@@ -35,7 +37,14 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
     ) -> Option<CameraQuery<'_>> {
         self.cameras.iter().find(|(_, _, target, _, _)| {
             let target = target.cloned().unwrap_or_default();
-            matches!(target, RenderTarget::Window(WindowRef::Entity(entity)) if entity == window_entity)
+            match target {
+                RenderTarget::Window(WindowRef::Entity(entity)) => entity == window_entity,
+                RenderTarget::Window(WindowRef::Primary) => self
+                    .primary_window
+                    .single()
+                    .is_ok_and(|e| e == window_entity),
+                _ => false,
+            }
         })
     }
 
@@ -61,7 +70,7 @@ impl<Camera: Component> Cameras<'_, '_, Camera> {
     ) -> Option<CameraQuery<'_>> {
         self.cameras
             .iter()
-            .find(|(_, _, _, _, layer)| layers.intersects(layer))
+            .find(|(_, _, _, _, layer)| layer.is_some_and(|l| layers.intersects(l)))
     }
 
     #[inline]
