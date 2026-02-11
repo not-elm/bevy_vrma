@@ -1,6 +1,16 @@
 ## Unreleased
 
-- change visibility of Spring structs to public
+### Breaking Changes
+
+- Simplified `LookAt::Cursor { camera: Option<Entity> }` to `LookAt::Cursor`
+
+### Bug Fixes
+
+- Fixed LookAt Cursor mode to use world-space ray casting instead of screen-space normalized coordinates, so gaze calculation now accounts for the avatar's world position
+
+### Improvements
+
+- Made Spring structs (`SpringRoot`, `SpringJoints`, `SpringJointProps`) public
 
 
 ## v0.5.1 
