@@ -166,7 +166,7 @@ fn apply_bone(
 }
 
 fn find_cursor_position_normalized(
-    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>,
+    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>
 ) -> Option<Vec2> {
     // Try multi-window first
     if let Some(normalized) = find_cursor_position_normalized_multi_window(windows) {
@@ -185,7 +185,7 @@ fn find_cursor_position_normalized(
 }
 
 fn find_cursor_position_normalized_multi_window(
-    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>,
+    windows: &Query<(Entity, &Window, Has<PrimaryWindow>)>
 ) -> Option<Vec2> {
     // Collect windows with explicit positions
     let mut window_bounds: Vec<(Vec2, Vec2)> = Vec::new(); // (position, size)
@@ -233,7 +233,10 @@ fn find_cursor_position_normalized_multi_window(
     Some((cursor_global - center) / half_size)
 }
 
-fn calc_yaw_pitch_from_screen(normalized: Vec2, properties: &LookAtProperties) -> (f32, f32) {
+fn calc_yaw_pitch_from_screen(
+    normalized: Vec2,
+    properties: &LookAtProperties,
+) -> (f32, f32) {
     let horizontal_max = properties
         .range_map_horizontal_outer
         .input_max_value
