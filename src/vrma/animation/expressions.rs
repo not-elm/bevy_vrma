@@ -37,7 +37,6 @@ impl VrmaExpressionNames {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use crate::tests::{TestResult, test_app};

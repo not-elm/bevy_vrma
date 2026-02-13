@@ -32,7 +32,10 @@ fn spawn_camera(mut commands: Commands) {
     commands.spawn((Camera3d::default(), Transform::from_xyz(0., 0.8, 2.5)));
 }
 
-fn spawn_vrm(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn spawn_vrm(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+) {
     commands.spawn(VrmHandle(asset_server.load("vrm/AliciaSolid.vrm")));
 }
 

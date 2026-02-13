@@ -1,10 +1,10 @@
 use crate::prelude::ChildSearcher;
+use crate::system_set::VrmSystemSets;
 use crate::vrm::gltf::extensions::VrmExtensions;
 use crate::vrm::gltf::extensions::vrmc_vrm::MorphTargetBind;
 use crate::vrm::{Vrm, VrmExpression};
 use crate::vrma::RetargetSource;
 use bevy::animation::{AnimatedBy, AnimationTargetId};
-use crate::system_set::VrmSystemSets;
 use bevy::app::Plugin;
 use bevy::asset::{Assets, Handle};
 use bevy::gltf::GltfNode;
@@ -54,7 +54,11 @@ pub struct SetExpressions {
 
 impl SetExpressions {
     /// Creates a [`SetExpressions`] event for a single expression.
-    pub fn single(entity: Entity, expression: impl Into<VrmExpression>, weight: f32) -> Self {
+    pub fn single(
+        entity: Entity,
+        expression: impl Into<VrmExpression>,
+        weight: f32,
+    ) -> Self {
         Self {
             entity,
             weights: [(expression.into(), weight)].into_iter().collect(),
@@ -209,10 +213,11 @@ fn apply_initialize_expressions(
 
 fn bind_expressions(
     mut expressions: Query<&mut MorphWeights>,
-    rig_expressions: Query<
-        (&Transform, &RetargetExpressionNodes, Option<&ExpressionOverride>),
-        Or<(Changed<Transform>, Changed<ExpressionOverride>)>,
-    >,
+    rig_expressions: Query<(
+        &Transform,
+        &RetargetExpressionNodes,
+        Option<&ExpressionOverride>,
+    )>,
 ) {
     for (tf, RetargetExpressionNodes(binds), maybe_override) in rig_expressions.iter() {
         let weight = match maybe_override {
@@ -239,7 +244,10 @@ fn apply_set_expressions(
     let vrm_entity = trigger.event_target();
     let Ok(map) = cache.get(vrm_entity) else {
         #[cfg(feature = "log")]
-        warn!("SetExpressions: ExpressionEntityMap not found for entity {:?}. VRM may not be initialized yet.", vrm_entity);
+        warn!(
+            "SetExpressions: ExpressionEntityMap not found for entity {:?}. VRM may not be initialized yet.",
+            vrm_entity
+        );
         return;
     };
     // Remove overrides not present in the new weights so that
@@ -530,8 +538,16 @@ mod tests {
             .trigger(SetExpressions::single(vrm_entity, "happy", 1.0));
         app.update();
 
-        assert!(app.world().get::<ExpressionOverride>(happy_entity).is_some());
-        assert!(app.world().get::<ExpressionOverride>(angry_entity).is_none());
+        assert!(
+            app.world()
+                .get::<ExpressionOverride>(happy_entity)
+                .is_some()
+        );
+        assert!(
+            app.world()
+                .get::<ExpressionOverride>(angry_entity)
+                .is_none()
+        );
 
         // Set angry — happy override should be removed
         app.world_mut()
@@ -540,7 +556,9 @@ mod tests {
         app.update();
 
         assert!(
-            app.world().get::<ExpressionOverride>(happy_entity).is_none(),
+            app.world()
+                .get::<ExpressionOverride>(happy_entity)
+                .is_none(),
             "Previous expression override should be removed"
         );
         let angry_override = app
