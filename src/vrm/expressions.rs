@@ -16,6 +16,17 @@ pub(crate) struct ExpressionNode {
     pub morph_target_index: usize,
 }
 
+/// Cached mapping from expression name to expression entity.
+/// Built during VRM initialization. Use this to query available expressions.
+#[derive(Component, Deref, Reflect)]
+pub struct ExpressionEntityMap(pub HashMap<VrmExpression, Entity>);
+
+/// Override weight for a single expression entity.
+/// Inserted by `SetExpressions`, removed by `ClearExpressions`.
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+pub(crate) struct ExpressionOverride(pub f32);
+
 #[derive(EntityEvent)]
 pub(crate) struct RequestInitializeExpressions(pub(crate) Entity);
 
@@ -72,6 +83,8 @@ impl Plugin for VrmExpressionPlugin {
         app.register_type::<BindExpressionNode>()
             .register_type::<RetargetExpressionNodes>()
             .register_type::<VrmExpressionRegistry>()
+            .register_type::<ExpressionEntityMap>()
+            .register_type::<ExpressionOverride>()
             .add_observer(apply_initialize_expressions);
     }
 }
@@ -100,8 +113,12 @@ fn apply_initialize_expressions(
     commands.entity(vrm_entity).add_child(expressions_root);
 
     let Ok(registry) = expressions.get(vrm_entity) else {
+        commands
+            .entity(vrm_entity)
+            .insert(ExpressionEntityMap(HashMap::default()));
         return;
     };
+    let mut entity_map = HashMap::default();
     for (expression, nodes) in registry.iter() {
         let expression_entity = commands
             .spawn((
@@ -119,7 +136,11 @@ fn apply_initialize_expressions(
         commands
             .entity(expressions_root)
             .add_child(expression_entity);
+        entity_map.insert(expression.clone(), expression_entity);
     }
+    commands
+        .entity(vrm_entity)
+        .insert(ExpressionEntityMap(entity_map));
 }
 
 fn obtain_expression_nodes(
@@ -143,7 +164,8 @@ mod tests {
     use crate::prelude::*;
     use crate::tests::{TestResult, test_app};
     use crate::vrm::expressions::{
-        ExpressionNode, RequestInitializeExpressions, VrmExpressionPlugin, VrmExpressionRegistry,
+        ExpressionEntityMap, ExpressionNode, RequestInitializeExpressions, VrmExpressionPlugin,
+        VrmExpressionRegistry,
     };
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::*;
@@ -186,6 +208,44 @@ mod tests {
             .run_system_once(move |s: ChildSearcher| s.find_from_name(vrm_entity, "happy"))
             .expect("Failed to run system")
             .expect("Expression node not found");
+        Ok(())
+    }
+
+    #[test]
+    fn test_expression_entity_map_built_on_init() -> TestResult {
+        let mut app = test_app();
+        app.add_plugins(VrmExpressionPlugin);
+
+        let vrm_entity = app
+            .world_mut()
+            .spawn((VrmExpressionRegistry(
+                [(
+                    VrmExpression::from("happy"),
+                    vec![ExpressionNode {
+                        name: Name::new("Test"),
+                        morph_target_index: 0,
+                    }],
+                )]
+                .into_iter()
+                .collect(),
+            ),))
+            .with_children(|c| {
+                c.spawn(Name::new("Test"));
+            })
+            .id();
+
+        app.world_mut()
+            .commands()
+            .entity(vrm_entity)
+            .trigger(RequestInitializeExpressions);
+        app.update();
+
+        let map = app
+            .world()
+            .get::<ExpressionEntityMap>(vrm_entity)
+            .expect("ExpressionEntityMap not found");
+
+        assert!(map.0.contains_key(&VrmExpression::from("happy")));
         Ok(())
     }
 }
