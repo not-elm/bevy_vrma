@@ -1,8 +1,6 @@
 //!  This module handles the retargeting of expressions from a VRM model to a mascot model.
 
-use crate::system_set::VrmSystemSets;
 use crate::vrm::VrmExpression;
-use crate::vrm::expressions::{BindExpressionNode, ExpressionOverride, RetargetExpressionNodes};
 use crate::vrma::gltf::extensions::VrmaExtensions;
 use bevy::app::App;
 use bevy::prelude::*;
@@ -12,16 +10,10 @@ pub(in crate::vrma) struct VrmaRetargetExpressionsPlugin;
 impl Plugin for VrmaRetargetExpressionsPlugin {
     fn build(
         &self,
-        app: &mut App,
+        _app: &mut App,
     ) {
-        app.register_type::<RetargetExpressionNodes>()
-            .register_type::<BindExpressionNode>()
-            .add_systems(
-                PostUpdate,
-                bind_expressions
-                    .in_set(VrmSystemSets::Expressions)
-                    .after(VrmSystemSets::GazeControl),
-            );
+        // bind_expressions system is now registered in VrmExpressionPlugin
+        // so it works with or without VrmaPlugin.
     }
 }
 
@@ -45,42 +37,19 @@ impl VrmaExpressionNames {
     }
 }
 
-fn bind_expressions(
-    mut expressions: Query<&mut MorphWeights>,
-    rig_expressions: Query<
-        (&Transform, &RetargetExpressionNodes, Option<&ExpressionOverride>),
-        Or<(Changed<Transform>, Changed<ExpressionOverride>)>,
-    >,
-) {
-    for (tf, RetargetExpressionNodes(binds), maybe_override) in rig_expressions.iter() {
-        let weight = match maybe_override {
-            Some(ExpressionOverride(w)) => *w,
-            None => tf.translation.x,
-        };
-        for BindExpressionNode {
-            expression_entity,
-            index,
-        } in binds.iter()
-        {
-            if let Ok(mut morph_weights) = expressions.get_mut(*expression_entity) {
-                morph_weights.weights_mut()[*index] = weight;
-            }
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
     use crate::tests::{TestResult, test_app};
-    use crate::vrm::expressions::ExpressionOverride;
+    use crate::vrm::expressions::{
+        BindExpressionNode, ExpressionOverride, RetargetExpressionNodes, VrmExpressionPlugin,
+    };
     use bevy::prelude::*;
-
-    use super::*;
 
     #[test]
     fn test_bind_expressions_prefers_override() -> TestResult {
         let mut app = test_app();
-        app.add_plugins(VrmaRetargetExpressionsPlugin);
+        app.add_plugins(VrmExpressionPlugin);
 
         // Create a mesh entity with morph weights
         let mesh_entity = app
@@ -111,7 +80,7 @@ mod tests {
     #[test]
     fn test_bind_expressions_falls_back_to_transform() -> TestResult {
         let mut app = test_app();
-        app.add_plugins(VrmaRetargetExpressionsPlugin);
+        app.add_plugins(VrmExpressionPlugin);
 
         let mesh_entity = app
             .world_mut()

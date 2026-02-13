@@ -4,6 +4,7 @@ use crate::vrm::gltf::extensions::vrmc_vrm::MorphTargetBind;
 use crate::vrm::{Vrm, VrmExpression};
 use crate::vrma::RetargetSource;
 use bevy::animation::{AnimatedBy, AnimationTargetId};
+use crate::system_set::VrmSystemSets;
 use bevy::app::Plugin;
 use bevy::asset::{Assets, Handle};
 use bevy::gltf::GltfNode;
@@ -142,7 +143,13 @@ impl Plugin for VrmExpressionPlugin {
             .register_type::<ExpressionOverride>()
             .add_observer(apply_initialize_expressions)
             .add_observer(apply_set_expressions)
-            .add_observer(apply_clear_expressions);
+            .add_observer(apply_clear_expressions)
+            .add_systems(
+                PostUpdate,
+                bind_expressions
+                    .in_set(VrmSystemSets::Expressions)
+                    .after(VrmSystemSets::GazeControl),
+            );
     }
 }
 
@@ -198,6 +205,30 @@ fn apply_initialize_expressions(
     commands
         .entity(vrm_entity)
         .insert(ExpressionEntityMap(entity_map));
+}
+
+fn bind_expressions(
+    mut expressions: Query<&mut MorphWeights>,
+    rig_expressions: Query<
+        (&Transform, &RetargetExpressionNodes, Option<&ExpressionOverride>),
+        Or<(Changed<Transform>, Changed<ExpressionOverride>)>,
+    >,
+) {
+    for (tf, RetargetExpressionNodes(binds), maybe_override) in rig_expressions.iter() {
+        let weight = match maybe_override {
+            Some(ExpressionOverride(w)) => *w,
+            None => tf.translation.x,
+        };
+        for BindExpressionNode {
+            expression_entity,
+            index,
+        } in binds.iter()
+        {
+            if let Ok(mut morph_weights) = expressions.get_mut(*expression_entity) {
+                morph_weights.weights_mut()[*index] = weight;
+            }
+        }
+    }
 }
 
 fn apply_set_expressions(
