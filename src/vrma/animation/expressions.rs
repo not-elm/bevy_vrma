@@ -2,7 +2,7 @@
 
 use crate::system_set::VrmSystemSets;
 use crate::vrm::VrmExpression;
-use crate::vrm::expressions::{BindExpressionNode, RetargetExpressionNodes};
+use crate::vrm::expressions::{BindExpressionNode, ExpressionOverride, RetargetExpressionNodes};
 use crate::vrma::gltf::extensions::VrmaExtensions;
 use bevy::app::App;
 use bevy::prelude::*;
@@ -47,11 +47,16 @@ impl VrmaExpressionNames {
 
 fn bind_expressions(
     mut expressions: Query<&mut MorphWeights>,
-    rig_expressions: Query<(&Transform, &RetargetExpressionNodes), Changed<Transform>>,
+    rig_expressions: Query<
+        (&Transform, &RetargetExpressionNodes, Option<&ExpressionOverride>),
+        Or<(Changed<Transform>, Changed<ExpressionOverride>)>,
+    >,
 ) {
-    for (tf, RetargetExpressionNodes(binds)) in rig_expressions.iter() {
-        // VRMA uses x coordinate to represent expression weight.
-        let weight = tf.translation.x;
+    for (tf, RetargetExpressionNodes(binds), maybe_override) in rig_expressions.iter() {
+        let weight = match maybe_override {
+            Some(ExpressionOverride(w)) => *w,
+            None => tf.translation.x,
+        };
         for BindExpressionNode {
             expression_entity,
             index,
@@ -61,5 +66,74 @@ fn bind_expressions(
                 morph_weights.weights_mut()[*index] = weight;
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::tests::{TestResult, test_app};
+    use crate::vrm::expressions::ExpressionOverride;
+    use bevy::prelude::*;
+
+    use super::*;
+
+    #[test]
+    fn test_bind_expressions_prefers_override() -> TestResult {
+        let mut app = test_app();
+        app.add_plugins(VrmaRetargetExpressionsPlugin);
+
+        // Create a mesh entity with morph weights
+        let mesh_entity = app
+            .world_mut()
+            .spawn(MorphWeights::new(vec![0.0], None)?)
+            .id();
+
+        // Create an expression entity with VRMA value (Transform) and override
+        app.world_mut().spawn((
+            Transform::from_translation(Vec3::new(0.3, 0.0, 0.0)),
+            RetargetExpressionNodes(vec![BindExpressionNode {
+                expression_entity: mesh_entity,
+                index: 0,
+            }]),
+            ExpressionOverride(0.9),
+        ));
+        app.update();
+
+        let morph = app.world().get::<MorphWeights>(mesh_entity).unwrap();
+        assert!(
+            (morph.weights()[0] - 0.9).abs() < f32::EPSILON,
+            "Expected override value 0.9, got {}",
+            morph.weights()[0]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_bind_expressions_falls_back_to_transform() -> TestResult {
+        let mut app = test_app();
+        app.add_plugins(VrmaRetargetExpressionsPlugin);
+
+        let mesh_entity = app
+            .world_mut()
+            .spawn(MorphWeights::new(vec![0.0], None)?)
+            .id();
+
+        // No ExpressionOverride — should use Transform.translation.x
+        app.world_mut().spawn((
+            Transform::from_translation(Vec3::new(0.5, 0.0, 0.0)),
+            RetargetExpressionNodes(vec![BindExpressionNode {
+                expression_entity: mesh_entity,
+                index: 0,
+            }]),
+        ));
+        app.update();
+
+        let morph = app.world().get::<MorphWeights>(mesh_entity).unwrap();
+        assert!(
+            (morph.weights()[0] - 0.5).abs() < f32::EPSILON,
+            "Expected VRMA value 0.5, got {}",
+            morph.weights()[0]
+        );
+        Ok(())
     }
 }
