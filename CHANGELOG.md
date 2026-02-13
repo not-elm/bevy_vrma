@@ -12,6 +12,7 @@
 
 - Added direct expression control API (`SetExpressions`, `ClearExpressions`) for controlling VRM facial expression weights from user code without VRMA animation files
 - Added `ExpressionEntityMap` component for O(1) expression entity lookups and introspection of available expressions
+- Added `ModifyExpressions` event for partial expression updates that preserve existing overrides
 - Added `expressions` example demonstrating keyboard-driven expression control
 
 ### Improvements
