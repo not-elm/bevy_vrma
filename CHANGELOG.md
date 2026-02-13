@@ -8,9 +8,16 @@
 
 - Fixed LookAt Cursor mode to use world-space ray casting instead of screen-space normalized coordinates, so gaze calculation now accounts for the avatar's world position
 
+### Features
+
+- Added direct expression control API (`SetExpressions`, `ClearExpressions`) for controlling VRM facial expression weights from user code without VRMA animation files
+- Added `ExpressionEntityMap` component for O(1) expression entity lookups and introspection of available expressions
+- Added `expressions` example demonstrating keyboard-driven expression control
+
 ### Improvements
 
 - Made Spring structs (`SpringRoot`, `SpringJoints`, `SpringJointProps`) public
+- Moved `bind_expressions` system from `VrmaRetargetExpressionsPlugin` to `VrmExpressionPlugin` so expressions work with or without VRMA
 
 
 ## v0.5.1 
