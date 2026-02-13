@@ -34,7 +34,7 @@ pub(crate) struct ExpressionOverride(pub f32);
 /// When both VRMA animation and `SetExpressions` control the same expression,
 /// `SetExpressions` takes priority until [`ClearExpressions`] is triggered.
 ///
-/// ```ignore
+/// ```no_run
 /// use bevy::prelude::*;
 /// use bevy_vrm1::prelude::*;
 ///
