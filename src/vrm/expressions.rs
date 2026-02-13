@@ -385,7 +385,8 @@ mod tests {
     use crate::tests::{TestResult, test_app};
     use crate::vrm::expressions::{
         ClearExpressions, ExpressionEntityMap, ExpressionNode, ExpressionOverride,
-        RequestInitializeExpressions, SetExpressions, VrmExpressionPlugin, VrmExpressionRegistry,
+        ModifyExpressions, RequestInitializeExpressions, SetExpressions, VrmExpressionPlugin,
+        VrmExpressionRegistry,
     };
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::*;
@@ -645,6 +646,83 @@ mod tests {
             .world()
             .get::<ExpressionOverride>(angry_entity)
             .expect("New expression override not found");
+        assert!((angry_override.0 - 0.7).abs() < f32::EPSILON);
+        Ok(())
+    }
+
+    #[test]
+    fn test_modify_expressions_preserves_existing() -> TestResult {
+        let mut app = test_app();
+        app.add_plugins(VrmExpressionPlugin);
+
+        let vrm_entity = app
+            .world_mut()
+            .spawn((VrmExpressionRegistry(
+                [
+                    (
+                        VrmExpression::from("happy"),
+                        vec![ExpressionNode {
+                            name: Name::new("MeshA"),
+                            morph_target_index: 0,
+                        }],
+                    ),
+                    (
+                        VrmExpression::from("angry"),
+                        vec![ExpressionNode {
+                            name: Name::new("MeshB"),
+                            morph_target_index: 0,
+                        }],
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            ),))
+            .with_children(|c| {
+                c.spawn(Name::new("MeshA"));
+                c.spawn(Name::new("MeshB"));
+            })
+            .id();
+
+        app.world_mut()
+            .commands()
+            .entity(vrm_entity)
+            .trigger(RequestInitializeExpressions);
+        app.update();
+
+        let map = app.world().get::<ExpressionEntityMap>(vrm_entity).unwrap();
+        let happy_entity = *map.0.get(&VrmExpression::from("happy")).unwrap();
+        let angry_entity = *map.0.get(&VrmExpression::from("angry")).unwrap();
+
+        // Set happy via SetExpressions
+        app.world_mut()
+            .commands()
+            .trigger(SetExpressions::single(vrm_entity, "happy", 1.0));
+        app.update();
+
+        assert!(
+            app.world()
+                .get::<ExpressionOverride>(happy_entity)
+                .is_some()
+        );
+
+        // Modify angry — happy override should be preserved
+        app.world_mut()
+            .commands()
+            .trigger(ModifyExpressions::single(vrm_entity, "angry", 0.7));
+        app.update();
+
+        // happy override is still present
+        let happy_override = app
+            .world()
+            .get::<ExpressionOverride>(happy_entity)
+            .expect("Existing override should be preserved by ModifyExpressions");
+        assert!((happy_override.0 - 1.0).abs() < f32::EPSILON);
+
+        // angry override was added
+        let angry_override = app
+            .world()
+            .get::<ExpressionOverride>(angry_entity)
+            .expect("ModifyExpressions should add new override");
         assert!((angry_override.0 - 0.7).abs() < f32::EPSILON);
         Ok(())
     }
