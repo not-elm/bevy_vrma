@@ -27,6 +27,51 @@ pub struct ExpressionEntityMap(pub HashMap<VrmExpression, Entity>);
 #[reflect(Component)]
 pub(crate) struct ExpressionOverride(pub f32);
 
+/// Sets expression weights on a VRM model.
+///
+/// Trigger this event to directly control facial expressions.
+/// Expression weights are clamped to `0.0..=1.0`.
+/// When both VRMA animation and `SetExpressions` control the same expression,
+/// `SetExpressions` takes priority until [`ClearExpressions`] is triggered.
+///
+/// ```ignore
+/// use bevy::prelude::*;
+/// use bevy_vrm1::prelude::*;
+///
+/// fn set_happy(mut commands: Commands, vrms: Query<Entity, With<Vrm>>) {
+///     for vrm in vrms.iter() {
+///         commands.trigger(SetExpressions::single(vrm, "happy", 1.0));
+///     }
+/// }
+/// ```
+#[derive(EntityEvent, Debug)]
+pub struct SetExpressions {
+    #[event_target]
+    pub entity: Entity,
+    pub weights: HashMap<VrmExpression, f32>,
+}
+
+impl SetExpressions {
+    /// Creates a [`SetExpressions`] event for a single expression.
+    pub fn single(entity: Entity, expression: impl Into<VrmExpression>, weight: f32) -> Self {
+        Self {
+            entity,
+            weights: [(expression.into(), weight)].into_iter().collect(),
+        }
+    }
+
+    /// Creates a [`SetExpressions`] event from an iterator of expression-weight pairs.
+    pub fn from_iter(
+        entity: Entity,
+        iter: impl IntoIterator<Item = (impl Into<VrmExpression>, f32)>,
+    ) -> Self {
+        Self {
+            entity,
+            weights: iter.into_iter().map(|(e, w)| (e.into(), w)).collect(),
+        }
+    }
+}
+
 #[derive(EntityEvent)]
 pub(crate) struct RequestInitializeExpressions(pub(crate) Entity);
 
@@ -85,7 +130,8 @@ impl Plugin for VrmExpressionPlugin {
             .register_type::<VrmExpressionRegistry>()
             .register_type::<ExpressionEntityMap>()
             .register_type::<ExpressionOverride>()
-            .add_observer(apply_initialize_expressions);
+            .add_observer(apply_initialize_expressions)
+            .add_observer(apply_set_expressions);
     }
 }
 
@@ -143,6 +189,29 @@ fn apply_initialize_expressions(
         .insert(ExpressionEntityMap(entity_map));
 }
 
+fn apply_set_expressions(
+    trigger: On<SetExpressions>,
+    cache: Query<&ExpressionEntityMap>,
+    mut commands: Commands,
+) {
+    let vrm_entity = trigger.event_target();
+    let Ok(map) = cache.get(vrm_entity) else {
+        #[cfg(feature = "log")]
+        warn!("SetExpressions: ExpressionEntityMap not found for entity {:?}. VRM may not be initialized yet.", vrm_entity);
+        return;
+    };
+    for (expression, weight) in trigger.weights.iter() {
+        let Some(&expr_entity) = map.0.get(expression) else {
+            #[cfg(feature = "log")]
+            warn!("SetExpressions: expression '{}' not found", expression);
+            continue;
+        };
+        commands
+            .entity(expr_entity)
+            .insert(ExpressionOverride(weight.clamp(0.0, 1.0)));
+    }
+}
+
 fn obtain_expression_nodes(
     vrm_entity: Entity,
     searcher: &ChildSearcher,
@@ -164,8 +233,8 @@ mod tests {
     use crate::prelude::*;
     use crate::tests::{TestResult, test_app};
     use crate::vrm::expressions::{
-        ExpressionEntityMap, ExpressionNode, RequestInitializeExpressions, VrmExpressionPlugin,
-        VrmExpressionRegistry,
+        ExpressionEntityMap, ExpressionNode, ExpressionOverride, RequestInitializeExpressions,
+        SetExpressions, VrmExpressionPlugin, VrmExpressionRegistry,
     };
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::*;
@@ -208,6 +277,54 @@ mod tests {
             .run_system_once(move |s: ChildSearcher| s.find_from_name(vrm_entity, "happy"))
             .expect("Failed to run system")
             .expect("Expression node not found");
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_expressions() -> TestResult {
+        let mut app = test_app();
+        app.add_plugins(VrmExpressionPlugin);
+
+        let vrm_entity = app
+            .world_mut()
+            .spawn((VrmExpressionRegistry(
+                [(
+                    VrmExpression::from("happy"),
+                    vec![ExpressionNode {
+                        name: Name::new("Test"),
+                        morph_target_index: 0,
+                    }],
+                )]
+                .into_iter()
+                .collect(),
+            ),))
+            .with_children(|c| {
+                c.spawn(Name::new("Test"));
+            })
+            .id();
+
+        // Initialize expressions
+        app.world_mut()
+            .commands()
+            .entity(vrm_entity)
+            .trigger(RequestInitializeExpressions);
+        app.update();
+
+        // Set expression
+        app.world_mut()
+            .commands()
+            .trigger(SetExpressions::single(vrm_entity, "happy", 0.8));
+        app.update();
+
+        // Find the expression entity via the map
+        let map = app.world().get::<ExpressionEntityMap>(vrm_entity).unwrap();
+        let expr_entity = *map.0.get(&VrmExpression::from("happy")).unwrap();
+
+        let override_val = app
+            .world()
+            .get::<ExpressionOverride>(expr_entity)
+            .expect("ExpressionOverride not found");
+        assert!((override_val.0 - 0.8).abs() < f32::EPSILON);
         Ok(())
     }
 
