@@ -77,6 +77,59 @@ impl SetExpressions {
     }
 }
 
+/// Modifies specific expression weights without affecting others (partial update).
+///
+/// Unlike [`SetExpressions`] which replaces all overrides,
+/// this only inserts/updates the specified expressions.
+/// Existing overrides not mentioned in this call remain unchanged.
+///
+/// **Note**: Triggering both [`SetExpressions`] and `ModifyExpressions`
+/// on the same entity in the same frame produces undefined results
+/// due to Bevy observer ordering not being guaranteed.
+///
+/// ```no_run
+/// use bevy::prelude::*;
+/// use bevy_vrm1::prelude::*;
+///
+/// fn add_blink(mut commands: Commands, vrms: Query<Entity, With<Vrm>>) {
+///     for vrm in vrms.iter() {
+///         // Only modifies "blink", leaves other overrides (e.g. "happy") intact
+///         commands.trigger(ModifyExpressions::single(vrm, "blink", 1.0));
+///     }
+/// }
+/// ```
+#[derive(EntityEvent, Debug)]
+pub struct ModifyExpressions {
+    #[event_target]
+    pub entity: Entity,
+    pub weights: HashMap<VrmExpression, f32>,
+}
+
+impl ModifyExpressions {
+    /// Creates a [`ModifyExpressions`] event for a single expression.
+    pub fn single(
+        entity: Entity,
+        expression: impl Into<VrmExpression>,
+        weight: f32,
+    ) -> Self {
+        Self {
+            entity,
+            weights: [(expression.into(), weight)].into_iter().collect(),
+        }
+    }
+
+    /// Creates a [`ModifyExpressions`] event from an iterator of expression-weight pairs.
+    pub fn from_iter(
+        entity: Entity,
+        iter: impl IntoIterator<Item = (impl Into<VrmExpression>, f32)>,
+    ) -> Self {
+        Self {
+            entity,
+            weights: iter.into_iter().map(|(e, w)| (e.into(), w)).collect(),
+        }
+    }
+}
+
 /// Clears expression overrides, returning control to VRMA animation.
 ///
 /// After triggering this event, expressions previously set by [`SetExpressions`]
@@ -148,6 +201,7 @@ impl Plugin for VrmExpressionPlugin {
             .add_observer(apply_initialize_expressions)
             .add_observer(apply_set_expressions)
             .add_observer(apply_clear_expressions)
+            .add_observer(apply_modify_expressions)
             .add_systems(
                 PostUpdate,
                 bind_expressions
@@ -280,6 +334,32 @@ fn apply_clear_expressions(
     };
     for &expr_entity in map.0.values() {
         commands.entity(expr_entity).remove::<ExpressionOverride>();
+    }
+}
+
+fn apply_modify_expressions(
+    trigger: On<ModifyExpressions>,
+    cache: Query<&ExpressionEntityMap>,
+    mut commands: Commands,
+) {
+    let vrm_entity = trigger.event_target();
+    let Ok(map) = cache.get(vrm_entity) else {
+        #[cfg(feature = "log")]
+        warn!(
+            "ModifyExpressions: ExpressionEntityMap not found for entity {:?}. VRM may not be initialized yet.",
+            vrm_entity
+        );
+        return;
+    };
+    for (expression, weight) in trigger.weights.iter() {
+        let Some(&expr_entity) = map.0.get(expression) else {
+            #[cfg(feature = "log")]
+            warn!("ModifyExpressions: expression '{}' not found", expression);
+            continue;
+        };
+        commands
+            .entity(expr_entity)
+            .insert(ExpressionOverride(weight.clamp(0.0, 1.0)));
     }
 }
 
