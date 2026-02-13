@@ -242,6 +242,13 @@ fn apply_set_expressions(
         warn!("SetExpressions: ExpressionEntityMap not found for entity {:?}. VRM may not be initialized yet.", vrm_entity);
         return;
     };
+    // Remove overrides not present in the new weights so that
+    // each SetExpressions call fully replaces the previous state.
+    for (&expr_entity, expression) in map.0.iter().map(|(e, id)| (id, e)) {
+        if !trigger.weights.contains_key(expression) {
+            commands.entity(expr_entity).remove::<ExpressionOverride>();
+        }
+    }
     for (expression, weight) in trigger.weights.iter() {
         let Some(&expr_entity) = map.0.get(expression) else {
             #[cfg(feature = "log")]
@@ -471,6 +478,76 @@ mod tests {
 
         // Verify override removed
         assert!(app.world().get::<ExpressionOverride>(expr_entity).is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn test_set_expressions_replaces_previous() -> TestResult {
+        let mut app = test_app();
+        app.add_plugins(VrmExpressionPlugin);
+
+        let vrm_entity = app
+            .world_mut()
+            .spawn((VrmExpressionRegistry(
+                [
+                    (
+                        VrmExpression::from("happy"),
+                        vec![ExpressionNode {
+                            name: Name::new("MeshA"),
+                            morph_target_index: 0,
+                        }],
+                    ),
+                    (
+                        VrmExpression::from("angry"),
+                        vec![ExpressionNode {
+                            name: Name::new("MeshB"),
+                            morph_target_index: 0,
+                        }],
+                    ),
+                ]
+                .into_iter()
+                .collect(),
+            ),))
+            .with_children(|c| {
+                c.spawn(Name::new("MeshA"));
+                c.spawn(Name::new("MeshB"));
+            })
+            .id();
+
+        app.world_mut()
+            .commands()
+            .entity(vrm_entity)
+            .trigger(RequestInitializeExpressions);
+        app.update();
+
+        let map = app.world().get::<ExpressionEntityMap>(vrm_entity).unwrap();
+        let happy_entity = *map.0.get(&VrmExpression::from("happy")).unwrap();
+        let angry_entity = *map.0.get(&VrmExpression::from("angry")).unwrap();
+
+        // Set happy
+        app.world_mut()
+            .commands()
+            .trigger(SetExpressions::single(vrm_entity, "happy", 1.0));
+        app.update();
+
+        assert!(app.world().get::<ExpressionOverride>(happy_entity).is_some());
+        assert!(app.world().get::<ExpressionOverride>(angry_entity).is_none());
+
+        // Set angry — happy override should be removed
+        app.world_mut()
+            .commands()
+            .trigger(SetExpressions::single(vrm_entity, "angry", 0.7));
+        app.update();
+
+        assert!(
+            app.world().get::<ExpressionOverride>(happy_entity).is_none(),
+            "Previous expression override should be removed"
+        );
+        let angry_override = app
+            .world()
+            .get::<ExpressionOverride>(angry_entity)
+            .expect("New expression override not found");
+        assert!((angry_override.0 - 0.7).abs() < f32::EPSILON);
         Ok(())
     }
 }
