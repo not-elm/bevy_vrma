@@ -72,6 +72,16 @@ impl SetExpressions {
     }
 }
 
+/// Clears expression overrides, returning control to VRMA animation.
+///
+/// After triggering this event, expressions previously set by [`SetExpressions`]
+/// will be controlled by VRMA animation again.
+#[derive(EntityEvent, Debug)]
+pub struct ClearExpressions {
+    #[event_target]
+    pub entity: Entity,
+}
+
 #[derive(EntityEvent)]
 pub(crate) struct RequestInitializeExpressions(pub(crate) Entity);
 
@@ -131,7 +141,8 @@ impl Plugin for VrmExpressionPlugin {
             .register_type::<ExpressionEntityMap>()
             .register_type::<ExpressionOverride>()
             .add_observer(apply_initialize_expressions)
-            .add_observer(apply_set_expressions);
+            .add_observer(apply_set_expressions)
+            .add_observer(apply_clear_expressions);
     }
 }
 
@@ -212,6 +223,20 @@ fn apply_set_expressions(
     }
 }
 
+fn apply_clear_expressions(
+    trigger: On<ClearExpressions>,
+    cache: Query<&ExpressionEntityMap>,
+    mut commands: Commands,
+) {
+    let vrm_entity = trigger.event_target();
+    let Ok(map) = cache.get(vrm_entity) else {
+        return;
+    };
+    for &expr_entity in map.0.values() {
+        commands.entity(expr_entity).remove::<ExpressionOverride>();
+    }
+}
+
 fn obtain_expression_nodes(
     vrm_entity: Entity,
     searcher: &ChildSearcher,
@@ -233,8 +258,8 @@ mod tests {
     use crate::prelude::*;
     use crate::tests::{TestResult, test_app};
     use crate::vrm::expressions::{
-        ExpressionEntityMap, ExpressionNode, ExpressionOverride, RequestInitializeExpressions,
-        SetExpressions, VrmExpressionPlugin, VrmExpressionRegistry,
+        ClearExpressions, ExpressionEntityMap, ExpressionNode, ExpressionOverride,
+        RequestInitializeExpressions, SetExpressions, VrmExpressionPlugin, VrmExpressionRegistry,
     };
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::*;
@@ -363,6 +388,58 @@ mod tests {
             .expect("ExpressionEntityMap not found");
 
         assert!(map.0.contains_key(&VrmExpression::from("happy")));
+        Ok(())
+    }
+
+    #[test]
+    fn test_clear_expressions() -> TestResult {
+        let mut app = test_app();
+        app.add_plugins(VrmExpressionPlugin);
+
+        let vrm_entity = app
+            .world_mut()
+            .spawn((VrmExpressionRegistry(
+                [(
+                    VrmExpression::from("happy"),
+                    vec![ExpressionNode {
+                        name: Name::new("Test"),
+                        morph_target_index: 0,
+                    }],
+                )]
+                .into_iter()
+                .collect(),
+            ),))
+            .with_children(|c| {
+                c.spawn(Name::new("Test"));
+            })
+            .id();
+
+        // Initialize
+        app.world_mut()
+            .commands()
+            .entity(vrm_entity)
+            .trigger(RequestInitializeExpressions);
+        app.update();
+
+        // Set expression
+        app.world_mut()
+            .commands()
+            .trigger(SetExpressions::single(vrm_entity, "happy", 0.8));
+        app.update();
+
+        // Verify override exists
+        let map = app.world().get::<ExpressionEntityMap>(vrm_entity).unwrap();
+        let expr_entity = *map.0.get(&VrmExpression::from("happy")).unwrap();
+        assert!(app.world().get::<ExpressionOverride>(expr_entity).is_some());
+
+        // Clear expressions
+        app.world_mut()
+            .commands()
+            .trigger(ClearExpressions { entity: vrm_entity });
+        app.update();
+
+        // Verify override removed
+        assert!(app.world().get::<ExpressionOverride>(expr_entity).is_none());
         Ok(())
     }
 }
