@@ -23,17 +23,21 @@ pub(crate) struct ExpressionNode {
 pub struct ExpressionEntityMap(pub HashMap<VrmExpression, Entity>);
 
 /// Override weight for a single expression entity.
-/// Inserted by `SetExpressions`, removed by `ClearExpressions`.
+/// Inserted by [`SetExpressions`] or [`ModifyExpressions`], removed by [`ClearExpressions`].
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 pub(crate) struct ExpressionOverride(pub f32);
 
-/// Sets expression weights on a VRM model.
+/// Sets expression weights on a VRM model, **replacing all previous overrides**.
 ///
 /// Trigger this event to directly control facial expressions.
 /// Expression weights are clamped to `0.0..=1.0`.
-/// When both VRMA animation and `SetExpressions` control the same expression,
-/// `SetExpressions` takes priority until [`ClearExpressions`] is triggered.
+/// Expressions not included in this call will return to VRMA animation control.
+///
+/// For partial updates that preserve existing overrides, see [`ModifyExpressions`].
+///
+/// **Note**: Triggering both `SetExpressions` and [`ModifyExpressions`]
+/// on the same entity in the same frame produces undefined results.
 ///
 /// ```no_run
 /// use bevy::prelude::*;
@@ -130,10 +134,10 @@ impl ModifyExpressions {
     }
 }
 
-/// Clears expression overrides, returning control to VRMA animation.
+/// Clears all expression overrides, returning control to VRMA animation.
 ///
 /// After triggering this event, expressions previously set by [`SetExpressions`]
-/// will be controlled by VRMA animation again.
+/// or [`ModifyExpressions`] will be controlled by VRMA animation again.
 #[derive(EntityEvent, Debug)]
 pub struct ClearExpressions {
     #[event_target]
