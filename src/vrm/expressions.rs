@@ -190,6 +190,9 @@ pub struct ModifyExpressions {
     pub weights: HashMap<VrmExpression, f32>,
 }
 
+/// The five VRM preset mouth expressions used for lip-sync.
+const MOUTH_EXPRESSIONS: [&str; 5] = ["aa", "ih", "ou", "ee", "oh"];
+
 impl ModifyExpressions {
     /// Creates a [`ModifyExpressions`] event for a single expression.
     pub fn single(
@@ -212,6 +215,75 @@ impl ModifyExpressions {
             entity,
             weights: iter.into_iter().map(|(e, w)| (e.into(), w)).collect(),
         }
+    }
+
+    /// Sets a single mouth expression for lip-sync, resetting all other mouth
+    /// expressions to 0.0.
+    ///
+    /// This is a convenience method that sets all five VRM preset mouth
+    /// expressions (aa, ih, ou, ee, oh) with the specified one active and
+    /// the rest at 0.0. Non-mouth expression overrides are preserved.
+    ///
+    /// Inserts `ExpressionOverride(0.0)` for inactive mouth expressions,
+    /// which overrides any VRMA animation value. Use [`ClearExpressions`]
+    /// to return all expressions to VRMA control.
+    ///
+    /// ```no_run
+    /// use bevy::prelude::*;
+    /// use bevy_vrm1::prelude::*;
+    ///
+    /// fn lip_sync(mut commands: Commands, vrms: Query<Entity, With<Vrm>>) {
+    ///     for vrm in vrms.iter() {
+    ///         commands.trigger(ModifyExpressions::mouth(vrm, "aa", 0.8));
+    ///     }
+    /// }
+    /// ```
+    pub fn mouth(
+        entity: Entity,
+        expression: impl Into<VrmExpression>,
+        weight: f32,
+    ) -> Self {
+        let active = expression.into();
+        let mut weights: HashMap<VrmExpression, f32> = MOUTH_EXPRESSIONS
+            .iter()
+            .map(|&name| (VrmExpression::from(name), 0.0))
+            .collect();
+        weights.insert(active, weight);
+        Self { entity, weights }
+    }
+
+    /// Sets multiple mouth expressions for blended lip-sync, resetting
+    /// unspecified mouth expressions to 0.0.
+    ///
+    /// Useful for blend-based lip-sync where multiple vowels are active
+    /// simultaneously (e.g. aa=0.3, ih=0.5). Non-mouth expression overrides
+    /// are preserved.
+    ///
+    /// ```no_run
+    /// use bevy::prelude::*;
+    /// use bevy_vrm1::prelude::*;
+    ///
+    /// fn blended_lip_sync(mut commands: Commands, vrms: Query<Entity, With<Vrm>>) {
+    ///     for vrm in vrms.iter() {
+    ///         commands.trigger(ModifyExpressions::mouth_weights(
+    ///             vrm,
+    ///             [("aa", 0.3), ("ih", 0.5)],
+    ///         ));
+    ///     }
+    /// }
+    /// ```
+    pub fn mouth_weights(
+        entity: Entity,
+        iter: impl IntoIterator<Item = (impl Into<VrmExpression>, f32)>,
+    ) -> Self {
+        let mut weights: HashMap<VrmExpression, f32> = MOUTH_EXPRESSIONS
+            .iter()
+            .map(|&name| (VrmExpression::from(name), 0.0))
+            .collect();
+        for (expr, weight) in iter {
+            weights.insert(expr.into(), weight);
+        }
+        Self { entity, weights }
     }
 }
 

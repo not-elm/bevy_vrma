@@ -5,10 +5,10 @@
 //! - 2: angry (`SetExpressions` — replaces all)
 //! - 3: sad (`SetExpressions` — replaces all)
 //! - 4: blink (`SetExpressions` — replaces all)
-//! - 5: aa (`ModifyExpressions` — partial update, preserves existing)
-//! - 6: ih (`ModifyExpressions` — partial update, preserves existing)
-//! - 7: ou (`ModifyExpressions` — partial update, preserves existing)
-//! - 8: ee (`ModifyExpressions` — partial update, preserves existing)
+//! - 5: aa lip-sync (`ModifyExpressions::mouth` — resets other vowels)
+//! - 6: ih lip-sync (`ModifyExpressions::mouth` — resets other vowels)
+//! - 7: ou lip-sync (`ModifyExpressions::mouth` — resets other vowels)
+//! - 8: ee lip-sync (`ModifyExpressions::mouth` — resets other vowels)
 //! - 0: clear all expressions (return to VRMA control)
 
 use bevy::prelude::*;
@@ -62,18 +62,18 @@ fn control_expressions(
         if input.just_pressed(KeyCode::Digit4) {
             commands.trigger(SetExpressions::single(vrm, "blink", 1.0));
         }
-        // ModifyExpressions: partial update (lip-sync friendly)
+        // ModifyExpressions::mouth: lip-sync friendly (resets other vowels)
         if input.just_pressed(KeyCode::Digit5) {
-            commands.trigger(ModifyExpressions::single(vrm, "aa", 1.0));
+            commands.trigger(ModifyExpressions::mouth(vrm, "aa", 1.0));
         }
         if input.just_pressed(KeyCode::Digit6) {
-            commands.trigger(ModifyExpressions::single(vrm, "ih", 1.0));
+            commands.trigger(ModifyExpressions::mouth(vrm, "ih", 1.0));
         }
         if input.just_pressed(KeyCode::Digit7) {
-            commands.trigger(ModifyExpressions::single(vrm, "ou", 1.0));
+            commands.trigger(ModifyExpressions::mouth(vrm, "ou", 1.0));
         }
         if input.just_pressed(KeyCode::Digit8) {
-            commands.trigger(ModifyExpressions::single(vrm, "ee", 1.0));
+            commands.trigger(ModifyExpressions::mouth(vrm, "ee", 1.0));
         }
         if input.just_pressed(KeyCode::Digit0) {
             commands.trigger(ClearExpressions { entity: vrm });
