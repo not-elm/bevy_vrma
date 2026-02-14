@@ -49,6 +49,9 @@ cargo run --example look_at_target
 # VRMA animation playback
 cargo run --example vrma
 cargo run --example vrma_transition
+
+# MToon multiple directional lights
+cargo run --example multiple_lights
 ```
 
 ### Linting
@@ -101,6 +104,8 @@ VrmSystemSets::Expressions
 VrmSystemSets::PropagateAfterExpressions (manual transform propagation)
     ↓
 VrmSystemSets::SpringBone
+    ↓
+VrmSystemSets::DetermineRedraw (triggers RequestRedraw if needed)
 ```
 
 **Important**: Manual transform propagation is inserted at two points to ensure `GlobalTransform` is updated before downstream systems use it. This is critical for correct rendering and physics.
@@ -185,7 +190,9 @@ When modifying update order or system timing, always reference:
 
 | bevy_vrm1 | bevy |
 |-----------|------|
-| 0.1.0+    | 0.16 |
+| 0.5.0 ~   | 0.18 |
+| 0.4.0 ~   | 0.17 |
+| 0.1.0 ~   | 0.16 |
 
 Rust edition: 2024
 

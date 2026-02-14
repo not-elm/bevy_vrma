@@ -3,14 +3,27 @@
 ### Breaking Changes
 
 - Simplified `LookAt::Cursor { camera: Option<Entity> }` to `LookAt::Cursor`
+- `ModifyExpressions` doc comments updated to clarify its role as a partial update API (equivalent to UniVRM's `SetWeight` / three-vrm's `setValue`)
+- `VrmExpressionRegistry` value type changed from `Vec<ExpressionNode>` to `ExpressionMetadata`
 
 ### Bug Fixes
 
 - Fixed LookAt Cursor mode to use world-space ray casting instead of screen-space normalized coordinates, so gaze calculation now accounts for the avatar's world position
+- Fixed `MorphTargetBind.weight` being parsed but ignored — now correctly applied as `expression_weight × bind.weight`
+- Fixed expression weights using direct assignment instead of additive accumulation per VRM 1.0 spec
+- Implemented `overrideBlink`/`overrideLookAt`/`overrideMouth` expression override system (was parsed but unused)
+- Implemented `isBinary` threshold behavior (weight > 0.5 → 1.0, otherwise 0.0)
+
+### Features
+
+- Added direct expression control API (`SetExpressions`, `ClearExpressions`) for controlling VRM facial expression weights from user code without VRMA animation files
+- Added `ExpressionEntityMap` component for O(1) expression entity lookups and introspection of available expressions
+- Added `expressions` example demonstrating keyboard-driven expression control
 
 ### Improvements
 
 - Made Spring structs (`SpringRoot`, `SpringJoints`, `SpringJointProps`) public
+- Moved `bind_expressions` system from `VrmaRetargetExpressionsPlugin` to `VrmExpressionPlugin` so expressions work with or without VRMA
 
 
 ## v0.5.1 
