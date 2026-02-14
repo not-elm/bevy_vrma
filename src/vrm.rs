@@ -29,7 +29,10 @@ pub mod prelude {
     pub use crate::vrm::{
         Initialized, RestGlobalTransform, RestTransform, Vrm, VrmBone, VrmExpression, VrmPath,
         VrmPlugin,
-        expressions::{ClearExpressions, ExpressionEntityMap, ModifyExpressions, SetExpressions},
+        expressions::{
+            BinaryExpression, ClearExpressions, ExpressionEntityMap, ExpressionOverride,
+            ExpressionOverrideSettings, ExpressionOverrideType, ModifyExpressions, SetExpressions,
+        },
         gltf::prelude::*,
         humanoid_bone::prelude::*,
         loader::{VrmAsset, VrmHandle},

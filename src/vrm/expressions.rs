@@ -12,7 +12,7 @@ use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) enum ExpressionCategory {
+pub enum ExpressionCategory {
     Mouth,
     Blink,
     LookAt,
@@ -31,7 +31,7 @@ impl ExpressionCategory {
 }
 
 #[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum ExpressionOverrideType {
+pub enum ExpressionOverrideType {
     None,
     Block,
     Blend,
@@ -66,7 +66,7 @@ impl ExpressionOverrideType {
 
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
-pub(crate) struct ExpressionOverrideSettings {
+pub struct ExpressionOverrideSettings {
     pub override_mouth: ExpressionOverrideType,
     pub override_blink: ExpressionOverrideType,
     pub override_look_at: ExpressionOverrideType,
@@ -78,7 +78,7 @@ pub(crate) struct ExpressionCategoryTag(pub ExpressionCategory);
 
 #[derive(Component, Reflect, Debug, Clone, Copy)]
 #[reflect(Component)]
-pub(crate) struct BinaryExpression;
+pub struct BinaryExpression;
 
 #[derive(Reflect, Debug, Clone)]
 pub(crate) struct ExpressionMetadata {
@@ -104,7 +104,7 @@ pub struct ExpressionEntityMap(pub HashMap<VrmExpression, Entity>);
 /// Inserted by [`SetExpressions`] or [`ModifyExpressions`], removed by [`ClearExpressions`].
 #[derive(Component, Reflect)]
 #[reflect(Component)]
-pub(crate) struct ExpressionOverride(pub f32);
+pub struct ExpressionOverride(pub f32);
 
 /// Sets expression weights on a VRM model, **replacing all previous overrides**.
 ///
