@@ -316,9 +316,7 @@ pub(crate) struct BindExpressionNode {
 pub(crate) struct RetargetExpressionNodes(pub(crate) Vec<BindExpressionNode>);
 
 #[derive(Component, Deref, Reflect)]
-pub(crate) struct VrmExpressionRegistry(
-    pub(crate) HashMap<VrmExpression, ExpressionMetadata>,
-);
+pub(crate) struct VrmExpressionRegistry(pub(crate) HashMap<VrmExpression, ExpressionMetadata>);
 
 impl VrmExpressionRegistry {
     pub fn new(
@@ -494,11 +492,7 @@ fn bind_expressions(
         };
         let is_binary = maybe_binary.is_some();
         let output_weight = if is_binary {
-            if raw_weight > 0.5 {
-                1.0
-            } else {
-                0.0
-            }
+            if raw_weight > 0.5 { 1.0 } else { 0.0 }
         } else {
             raw_weight.clamp(0.0, 1.0)
         };
@@ -657,9 +651,9 @@ mod tests {
     use crate::vrm::expressions::{
         BinaryExpression, BindExpressionNode, ClearExpressions, ExpressionCategory,
         ExpressionCategoryTag, ExpressionEntityMap, ExpressionMetadata, ExpressionNode,
-        ExpressionOverride, ExpressionOverrideSettings, ExpressionOverrideType,
-        ModifyExpressions, RequestInitializeExpressions, RetargetExpressionNodes,
-        SetExpressions, VrmExpressionPlugin, VrmExpressionRegistry,
+        ExpressionOverride, ExpressionOverrideSettings, ExpressionOverrideType, ModifyExpressions,
+        RequestInitializeExpressions, RetargetExpressionNodes, SetExpressions, VrmExpressionPlugin,
+        VrmExpressionRegistry,
     };
     use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::*;
