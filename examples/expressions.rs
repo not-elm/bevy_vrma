@@ -1,10 +1,14 @@
 //! This example shows how to directly control VRM expressions from code.
 //!
 //! Press number keys to trigger expressions:
-//! - 1: happy
-//! - 2: angry
-//! - 3: sad
-//! - 4: blink
+//! - 1: happy (`SetExpressions` — replaces all)
+//! - 2: angry (`SetExpressions` — replaces all)
+//! - 3: sad (`SetExpressions` — replaces all)
+//! - 4: blink (`SetExpressions` — replaces all)
+//! - 5: aa (`ModifyExpressions` — partial update, preserves existing)
+//! - 6: ih (`ModifyExpressions` — partial update, preserves existing)
+//! - 7: ou (`ModifyExpressions` — partial update, preserves existing)
+//! - 8: ee (`ModifyExpressions` — partial update, preserves existing)
 //! - 0: clear all expressions (return to VRMA control)
 
 use bevy::prelude::*;
@@ -36,7 +40,7 @@ fn spawn_vrm(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
-    commands.spawn(VrmHandle(asset_server.load("vrm/AliciaSolid.vrm")));
+    commands.spawn(VrmHandle(asset_server.load("vrm/Elmer.vrm")));
 }
 
 fn control_expressions(
@@ -45,6 +49,7 @@ fn control_expressions(
     input: Res<ButtonInput<KeyCode>>,
 ) {
     for vrm in vrms.iter() {
+        // SetExpressions: replaces all overrides
         if input.just_pressed(KeyCode::Digit1) {
             commands.trigger(SetExpressions::single(vrm, "happy", 1.0));
         }
@@ -56,6 +61,19 @@ fn control_expressions(
         }
         if input.just_pressed(KeyCode::Digit4) {
             commands.trigger(SetExpressions::single(vrm, "blink", 1.0));
+        }
+        // ModifyExpressions: partial update (lip-sync friendly)
+        if input.just_pressed(KeyCode::Digit5) {
+            commands.trigger(ModifyExpressions::single(vrm, "aa", 1.0));
+        }
+        if input.just_pressed(KeyCode::Digit6) {
+            commands.trigger(ModifyExpressions::single(vrm, "ih", 1.0));
+        }
+        if input.just_pressed(KeyCode::Digit7) {
+            commands.trigger(ModifyExpressions::single(vrm, "ou", 1.0));
+        }
+        if input.just_pressed(KeyCode::Digit8) {
+            commands.trigger(ModifyExpressions::single(vrm, "ee", 1.0));
         }
         if input.just_pressed(KeyCode::Digit0) {
             commands.trigger(ClearExpressions { entity: vrm });

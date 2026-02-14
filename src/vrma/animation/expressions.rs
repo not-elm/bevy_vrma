@@ -41,28 +41,39 @@ impl VrmaExpressionNames {
 mod tests {
     use crate::tests::{TestResult, test_app};
     use crate::vrm::expressions::{
-        BindExpressionNode, ExpressionOverride, RetargetExpressionNodes, VrmExpressionPlugin,
+        BindExpressionNode, ExpressionCategory, ExpressionCategoryTag, ExpressionOverride,
+        ExpressionOverrideSettings, ExpressionOverrideType, RetargetExpressionNodes,
+        VrmExpressionPlugin,
     };
     use bevy::prelude::*;
+
+    fn default_override_settings() -> ExpressionOverrideSettings {
+        ExpressionOverrideSettings {
+            override_mouth: ExpressionOverrideType::None,
+            override_blink: ExpressionOverrideType::None,
+            override_look_at: ExpressionOverrideType::None,
+        }
+    }
 
     #[test]
     fn test_bind_expressions_prefers_override() -> TestResult {
         let mut app = test_app();
         app.add_plugins(VrmExpressionPlugin);
 
-        // Create a mesh entity with morph weights
         let mesh_entity = app
             .world_mut()
             .spawn(MorphWeights::new(vec![0.0], None)?)
             .id();
 
-        // Create an expression entity with VRMA value (Transform) and override
         app.world_mut().spawn((
             Transform::from_translation(Vec3::new(0.3, 0.0, 0.0)),
             RetargetExpressionNodes(vec![BindExpressionNode {
                 expression_entity: mesh_entity,
                 index: 0,
+                weight: 1.0,
             }]),
+            ExpressionCategoryTag(ExpressionCategory::Other),
+            default_override_settings(),
             ExpressionOverride(0.9),
         ));
         app.update();
@@ -86,13 +97,15 @@ mod tests {
             .spawn(MorphWeights::new(vec![0.0], None)?)
             .id();
 
-        // No ExpressionOverride — should use Transform.translation.x
         app.world_mut().spawn((
             Transform::from_translation(Vec3::new(0.5, 0.0, 0.0)),
             RetargetExpressionNodes(vec![BindExpressionNode {
                 expression_entity: mesh_entity,
                 index: 0,
+                weight: 1.0,
             }]),
+            ExpressionCategoryTag(ExpressionCategory::Other),
+            default_override_settings(),
         ));
         app.update();
 
