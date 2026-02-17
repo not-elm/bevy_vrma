@@ -60,7 +60,7 @@ impl Plugin for LookAtPlugin {
     }
 }
 
-fn track_looking_target(
+pub(crate) fn track_looking_target(
     mut commands: Commands,
     vrms: Query<(
         &LookAt,
@@ -168,7 +168,7 @@ fn apply_bone(
     commands.entity(right_eye.0).insert(applied_right_eye_tf);
 }
 
-fn find_cursor_world_position(
+pub(crate) fn find_cursor_world_position(
     windows: &Query<(Entity, &Window)>,
     cameras: &Cameras,
     head_gtf: &GlobalTransform,
@@ -180,7 +180,7 @@ fn find_cursor_world_position(
     cameras.to_world_by_viewport(window_entity, cursor_pos, head_gtf.translation())
 }
 
-fn calc_yaw_pitch(
+pub(crate) fn calc_yaw_pitch(
     look_at_space: &GlobalTransform,
     target: Vec3,
 ) -> (f32, f32) {
