@@ -1,3 +1,4 @@
+pub mod body_tracking;
 pub(crate) mod expressions;
 pub(crate) mod gltf;
 pub(crate) mod humanoid_bone;
@@ -29,6 +30,7 @@ pub mod prelude {
     pub use crate::vrm::{
         Initialized, RestGlobalTransform, RestTransform, Vrm, VrmBone, VrmExpression, VrmPath,
         VrmPlugin,
+        body_tracking::BodyTracking,
         expressions::{
             BinaryExpression, ClearExpressions, ExpressionEntityMap, ExpressionOverride,
             ExpressionOverrideSettings, ExpressionOverrideType, ModifyExpressions, SetExpressions,
