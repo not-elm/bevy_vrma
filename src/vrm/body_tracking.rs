@@ -23,6 +23,8 @@ use bevy::window::Window;
 /// ```
 #[derive(Component, Debug, Clone, Reflect)]
 #[reflect(Component)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
 pub struct BodyTracking {
     /// Fraction of total gaze angle applied to head bone (0.0-1.0).
     pub head_weight: f32,
@@ -78,6 +80,8 @@ impl Default for BodyTracking {
 /// Inserted automatically when `BodyTracking` is present.
 #[derive(Component, Debug, Clone, Reflect, Default)]
 #[reflect(Component)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", reflect(Serialize, Deserialize))]
 pub struct SmoothedGaze {
     pub yaw: f32,
     pub pitch: f32,
