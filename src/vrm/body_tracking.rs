@@ -174,8 +174,8 @@ fn track_body_tracking(
         Option<&SpineBoneEntity>,
         &mut SmoothedGaze,
     )>,
-    mut transforms: Query<(&mut Transform, &mut GlobalTransform, &ChildOf)>,
-    global_transforms: Query<&GlobalTransform>,
+    mut transforms: Query<(&mut Transform, &mut GlobalTransform), Without<Camera>>,
+    child_ofs: Query<&ChildOf>,
     rests: Query<(&RestTransform, &RestGlobalTransform)>,
     windows: Query<(Entity, &Window)>,
     cameras: Cameras,
@@ -187,15 +187,12 @@ fn track_body_tracking(
         vrms.iter_mut()
     {
         // 1. Get head GlobalTransform and build LookAt space.
-        let Ok(head_gtf) = global_transforms.get(head.0) else {
-            continue;
-        };
-        let Ok((head_tf, _, _)) = transforms.get(head.0) else {
+        let Ok((&head_tf, &head_gtf)) = transforms.get(head.0) else {
             continue;
         };
 
         let look_at_space = GlobalTransform::default();
-        let mut look_at_space_tf = look_at_space.reparented_to(head_gtf);
+        let mut look_at_space_tf = look_at_space.reparented_to(&head_gtf);
         look_at_space_tf.translation = Vec3::from(properties.offset_from_head_bone);
         look_at_space_tf.rotation = head_tf.rotation.inverse();
         let look_at_space = head_gtf.mul_transform(look_at_space_tf);
@@ -204,14 +201,14 @@ fn track_body_tracking(
         let (raw_yaw, raw_pitch) = match look_at {
             LookAt::Cursor => {
                 let Some(target_pos) =
-                    find_cursor_world_position(&windows, &cameras, head_gtf)
+                    find_cursor_world_position(&windows, &cameras, &head_gtf)
                 else {
                     continue;
                 };
                 calc_yaw_pitch(&look_at_space, target_pos)
             }
             LookAt::Target(target_entity) => {
-                let Ok(target_gtf) = global_transforms.get(*target_entity) else {
+                let Ok((_, &target_gtf)) = transforms.get(*target_entity) else {
                     continue;
                 };
                 calc_yaw_pitch(&look_at_space, target_gtf.translation())
@@ -271,7 +268,7 @@ fn track_body_tracking(
             let rotation = bone_rotation(bone_yaw, bone_pitch, rest_tf, rest_gtf);
 
             // Get parent entity for chain propagation.
-            let Ok((_, _, child_of)) = transforms.get(bone.entity) else {
+            let Ok(child_of) = child_ofs.get(bone.entity) else {
                 continue;
             };
             let parent_entity = child_of.parent();
@@ -283,14 +280,14 @@ fn track_body_tracking(
                 .rev()
                 .find(|(e, _)| *e == parent_entity)
                 .map(|(_, gtf)| *gtf)
-                .or_else(|| global_transforms.get(parent_entity).copied().ok());
+                .or_else(|| transforms.get(parent_entity).map(|(_, gtf)| *gtf).ok());
 
             let Some(parent_gtf) = parent_gtf else {
                 continue;
             };
 
             // Write Transform.rotation and manually propagate GlobalTransform.
-            let Ok((mut tf, mut gtf, _)) = transforms.get_mut(bone.entity) else {
+            let Ok((mut tf, mut gtf)) = transforms.get_mut(bone.entity) else {
                 continue;
             };
             tf.rotation = rotation;
