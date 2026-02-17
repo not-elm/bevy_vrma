@@ -296,3 +296,59 @@ fn track_body_tracking(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_smooth_angle_converges() {
+        let mut current = 0.0;
+        for _ in 0..100 {
+            current = smooth_angle(current, 45.0, 10.0, 1.0 / 60.0);
+        }
+        assert!((current - 45.0).abs() < 0.1, "Should converge to target: {current}");
+    }
+
+    #[test]
+    fn test_smooth_angle_instant_when_speed_zero() {
+        let result = smooth_angle(0.0, 45.0, 0.0, 1.0 / 60.0);
+        assert!((result - 45.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_smooth_angle_shortest_arc() {
+        let result = smooth_angle(170.0, -170.0, 100.0, 1.0);
+        // Should go through 180 (20 degrees), not through 0 (340 degrees)
+        assert!(result > 170.0 || result < -160.0, "Should take shortest arc: {result}");
+    }
+
+    #[test]
+    fn test_smooth_angle_no_change_at_target() {
+        let result = smooth_angle(45.0, 45.0, 10.0, 1.0 / 60.0);
+        assert!((result - 45.0).abs() < f32::EPSILON);
+    }
+
+    #[test]
+    fn test_body_tracking_default_weights_sum_to_one() {
+        let bt = BodyTracking::default();
+        let total = bt.head_weight + bt.neck_weight + bt.chest_weight + bt.spine_weight;
+        assert!((total - 1.0).abs() < f32::EPSILON, "Default weights should sum to 1.0: {total}");
+    }
+
+    #[test]
+    fn test_body_tracking_default_spine_pitch_is_yaw_only() {
+        let bt = BodyTracking::default();
+        assert_eq!(bt.spine_pitch_max, 0.0);
+        assert_eq!(bt.chest_pitch_max, 0.0);
+    }
+
+    #[test]
+    fn test_bone_rotation_identity_at_zero() {
+        let rest_tf = RestTransform(Transform::IDENTITY);
+        let rest_gtf = RestGlobalTransform(GlobalTransform::IDENTITY);
+        let result = bone_rotation(0.0, 0.0, &rest_tf, &rest_gtf);
+        let diff = result.angle_between(Quat::IDENTITY);
+        assert!(diff < 0.001, "Zero yaw/pitch should produce near-identity: {diff}");
+    }
+}
