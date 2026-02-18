@@ -50,5 +50,6 @@ fn apply_play_vrma(
         repeat: RepeatAnimation::Forever,
         transition_duration: Duration::ZERO,
         vrma: vrma_entity,
+        reset_spring_bones: false,
     });
 }
