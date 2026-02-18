@@ -218,6 +218,7 @@ struct BoneEntry {
 
 fn track_body_tracking(
     mut vrms: Query<(
+        Entity,
         &LookAt,
         &LookAtProperties,
         &BodyTracking,
@@ -227,27 +228,45 @@ fn track_body_tracking(
         Option<&SpineBoneEntity>,
         &mut SmoothedGaze,
     )>,
-    mut transforms: Query<(&mut Transform, &mut GlobalTransform), Without<Camera>>,
+    mut transforms: Query<(&mut Transform, &mut GlobalTransform), (Without<Camera>, Without<Vrm>)>,
+    root_gtfs: Query<&GlobalTransform, With<Vrm>>,
     child_ofs: Query<&ChildOf>,
     rests: Query<(&RestTransform, &RestGlobalTransform)>,
     windows: Query<(Entity, &Window)>,
     cameras: Cameras,
     time: Res<Time>,
     mut bone_states: Local<HashMap<Entity, BoneState>>,
+    mut root_rest_rots: Local<HashMap<Entity, Quat>>,
 ) {
     let dt = time.delta_secs();
 
-    for (look_at, properties, tracking, head, neck, chest, spine, mut smoothed) in vrms.iter_mut() {
-        // 1. Get head GlobalTransform and build LookAt space.
+    for (root_entity, look_at, properties, tracking, head, neck, chest, spine, mut smoothed) in
+        vrms.iter_mut()
+    {
+        // 1. Build stable LookAt space using rest-pose orientation + root delta.
         let Ok((&head_tf, &head_gtf)) = transforms.get(head.0) else {
             continue;
         };
+        let Ok((rest_tf, rest_gtf)) = rests.get(head.0) else {
+            continue;
+        };
+        let Ok(root_gtf) = root_gtfs.get(root_entity) else {
+            continue;
+        };
 
-        let look_at_space = GlobalTransform::default();
-        let mut look_at_space_tf = look_at_space.reparented_to(&head_gtf);
-        look_at_space_tf.translation = Vec3::from(properties.offset_from_head_bone);
-        look_at_space_tf.rotation = head_tf.rotation.inverse();
-        let look_at_space = head_gtf.mul_transform(look_at_space_tf);
+        let root_rest_rot = *root_rest_rots
+            .entry(root_entity)
+            .or_insert(root_gtf.rotation());
+        let rest_parent_rot = rest_gtf.rotation() * rest_tf.rotation.inverse();
+        let relative_to_root = root_rest_rot.inverse() * rest_parent_rot;
+        let stable_rotation = root_gtf.rotation() * relative_to_root;
+
+        let offset = stable_rotation * Vec3::from(properties.offset_from_head_bone);
+        let look_at_space = GlobalTransform::from(Transform {
+            translation: head_gtf.translation() + offset,
+            rotation: stable_rotation,
+            scale: Vec3::ONE,
+        });
 
         // 2. Calculate raw yaw/pitch.
         let (raw_yaw, raw_pitch) = match look_at {
