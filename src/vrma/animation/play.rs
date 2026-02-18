@@ -1,4 +1,5 @@
 use crate::prelude::ChildSearcher;
+use crate::vrm::spring_bone::{SpringJointState, SpringRoot};
 use crate::vrma::VrmAnimationNodeIndex;
 use bevy::animation::{AnimationPlayer, RepeatAnimation};
 use bevy::app::{App, Plugin};
@@ -20,6 +21,10 @@ pub struct PlayVrma {
 
     /// A time until the existing animation fades out.
     pub transition_duration: Duration,
+
+    /// If true, resets all `SpringBone` velocities on the parent VRM entity
+    /// to prevent bouncing caused by sudden bone movements during animation transitions.
+    pub reset_spring_bones: bool,
 }
 
 impl PlayVrma {
@@ -31,6 +36,7 @@ impl PlayVrma {
             vrma: entity,
             repeat: RepeatAnimation::Never,
             transition_duration: Duration::from_millis(300),
+            reset_spring_bones: false,
         }
     }
 }
@@ -66,6 +72,8 @@ fn apply_play_vrma(
     parents: Query<&ChildOf>,
     childrens: Query<&Children>,
     vrmas: Query<&VrmAnimationNodeIndex>,
+    spring_roots: Query<&SpringRoot>,
+    mut joint_states: Query<&mut SpringJointState>,
 ) {
     let vrma_entity = trigger.event_target();
     let Ok(ChildOf(vrm_entity)) = parents.get(vrma_entity) else {
@@ -90,6 +98,32 @@ fn apply_play_vrma(
         &childrens,
         &searcher,
     );
+    if trigger.reset_spring_bones {
+        reset_spring_bone_velocities(*vrm_entity, &spring_roots, &mut joint_states, &childrens);
+    }
+}
+
+/// Recursively traverses descendants of `entity` to find all [`SpringRoot`] components
+/// and resets the velocity of their [`SpringJointState`]s.
+fn reset_spring_bone_velocities(
+    entity: Entity,
+    spring_roots: &Query<&SpringRoot>,
+    joint_states: &mut Query<&mut SpringJointState>,
+    children: &Query<&Children>,
+) {
+    let Ok(entity_children) = children.get(entity) else {
+        return;
+    };
+    for child in entity_children.into_iter().copied() {
+        if let Ok(root) = spring_roots.get(child) {
+            for &joint in root.joints.iter() {
+                if let Ok(mut state) = joint_states.get_mut(joint) {
+                    state.reset_velocity();
+                }
+            }
+        }
+        reset_spring_bone_velocities(child, spring_roots, joint_states, children);
+    }
 }
 
 fn play_humanoid_bone_animation(

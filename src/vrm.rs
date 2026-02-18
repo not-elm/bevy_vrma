@@ -1,3 +1,4 @@
+pub mod body_tracking;
 pub(crate) mod expressions;
 pub(crate) mod gltf;
 pub(crate) mod humanoid_bone;
@@ -11,6 +12,7 @@ pub mod spring_bone;
 use crate::macros::marker_component;
 use crate::new_type;
 use crate::system_set::VrmSystemSets;
+use crate::vrm::body_tracking::BodyTrackingPlugin;
 use crate::vrm::humanoid_bone::VrmHumanoidBonePlugin;
 use crate::vrm::initialize::VrmInitializePlugin;
 use crate::vrm::loader::{VrmAsset, VrmLoaderPlugin};
@@ -29,6 +31,7 @@ pub mod prelude {
     pub use crate::vrm::{
         Initialized, RestGlobalTransform, RestTransform, Vrm, VrmBone, VrmExpression, VrmPath,
         VrmPlugin,
+        body_tracking::{BodyTracking, SmoothedGaze},
         expressions::{
             BinaryExpression, ClearExpressions, ExpressionEntityMap, ExpressionOverride,
             ExpressionOverrideSettings, ExpressionOverrideType, ModifyExpressions, SetExpressions,
@@ -120,6 +123,7 @@ impl Plugin for VrmPlugin {
             VrmNodeConstraintPlugin,
             MtoonMaterialPlugin,
             LookAtPlugin,
+            BodyTrackingPlugin,
         ));
 
         // Add manual transform propagation systems to follow VRM spec update order

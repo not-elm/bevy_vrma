@@ -55,7 +55,7 @@ impl ExpressionOverrideType {
         }
     }
 
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse(s: &str) -> Self {
         match s {
             "block" => Self::Block,
             "blend" => Self::Blend,
@@ -346,13 +346,9 @@ impl VrmExpressionRegistry {
                         nodes: expression_nodes,
                         category: ExpressionCategory::from_preset_name(preset_name),
                         override_settings: ExpressionOverrideSettings {
-                            override_mouth: ExpressionOverrideType::from_str(
-                                &preset.override_mouth,
-                            ),
-                            override_blink: ExpressionOverrideType::from_str(
-                                &preset.override_blink,
-                            ),
-                            override_look_at: ExpressionOverrideType::from_str(
+                            override_mouth: ExpressionOverrideType::parse(&preset.override_mouth),
+                            override_blink: ExpressionOverrideType::parse(&preset.override_blink),
+                            override_look_at: ExpressionOverrideType::parse(
                                 &preset.override_look_at,
                             ),
                         },

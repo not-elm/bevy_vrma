@@ -26,6 +26,17 @@ pub(crate) struct SpringJointState {
     initial_local_rotation: Quat,
 }
 
+impl SpringJointState {
+    /// Resets the velocity by setting `prev_tail` to `current_tail`.
+    ///
+    /// This eliminates the inertia term `(current_tail - prev_tail)` in
+    /// the Verlet integration, preventing spring bones from bouncing
+    /// after sudden bone movements (e.g. animation transitions).
+    pub(crate) fn reset_velocity(&mut self) {
+        self.prev_tail = self.current_tail;
+    }
+}
+
 #[derive(Component, Debug, Clone, PartialEq, Default, Reflect)]
 #[reflect(Component, Default)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
