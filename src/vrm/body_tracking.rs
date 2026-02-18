@@ -474,7 +474,7 @@ mod tests {
         let result = smooth_angle(170.0, -170.0, 100.0, 1.0);
         // Should go through 180 (20 degrees), not through 0 (340 degrees)
         assert!(
-            result > 170.0 || result < -160.0,
+            !(-160.0..=170.0).contains(&result),
             "Should take shortest arc: {result}"
         );
     }
@@ -705,7 +705,7 @@ mod tests {
             }
         }
         assert!(
-            yaw >= -180.0 && yaw <= 180.0,
+            (-180.0..=180.0).contains(&yaw),
             "yaw should stay in [-180, 180]: {yaw}"
         );
         assert!(
@@ -743,7 +743,7 @@ mod tests {
                     let xz = (x * x + z * z).sqrt();
                     let pitch = (-y.atan2(xz)).to_degrees();
                     assert!(
-                        pitch >= -90.0 && pitch <= 90.0,
+                        (-90.0..=90.0).contains(&pitch),
                         "pitch out of range: {pitch} for x={x}, y={y}, z={z}"
                     );
                 }
@@ -762,9 +762,11 @@ mod tests {
             &RestGlobalTransform(GlobalTransform::IDENTITY),
         );
 
-        let mut state = BoneState::default();
-        state.prev_output = Quat::from_rotation_y(0.3); // some previous output
-        state.initialized = true;
+        let state = BoneState {
+            prev_output: Quat::from_rotation_y(0.3), // some previous output
+            initialized: true,
+            ..Default::default()
+        };
 
         let target = compute_additive_rotation(rest, rest, gaze);
         let output_smoothing = 0.0;
