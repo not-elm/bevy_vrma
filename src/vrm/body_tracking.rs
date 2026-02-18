@@ -485,4 +485,72 @@ mod tests {
             "Zero gaze should preserve animated rotation: diff={diff}"
         );
     }
+
+    #[test]
+    fn test_bone_state_no_accumulation_without_animation() {
+        // Simulate multiple frames without animation.
+        // The delta should NOT accumulate.
+        let rest = Quat::IDENTITY;
+        let rest_tf = RestTransform(Transform::IDENTITY);
+        let rest_gtf = RestGlobalTransform(GlobalTransform::IDENTITY);
+
+        let gaze = bone_rotation(20.0, 10.0, &rest_tf, &rest_gtf);
+        let mut state = BoneState::default();
+
+        // Frame 1: first initialization
+        let base = rest; // tf.rotation starts at rest
+        let delta = rest.inverse() * gaze;
+        let result1 = compute_additive_rotation(base, rest, gaze);
+        state.base = base;
+        state.last_delta = delta;
+        state.initialized = true;
+
+        // Frame 2: no animation wrote, tf.rotation == base * last_delta == result1
+        let tf_rotation = result1;
+        let expected = state.base * state.last_delta;
+        let anim_changed = tf_rotation.dot(expected).abs() < 0.999;
+        assert!(!anim_changed, "Should detect no animation change");
+
+        let base2 = state.base; // same base
+        let result2 = compute_additive_rotation(base2, rest, gaze);
+        state.last_delta = delta;
+
+        // Results should be identical (no accumulation)
+        let diff = result1.angle_between(result2);
+        assert!(
+            diff < 0.001,
+            "Should not accumulate across frames: diff={diff}"
+        );
+    }
+
+    #[test]
+    fn test_bone_state_detects_animation_change() {
+        let rest = Quat::IDENTITY;
+        let rest_tf = RestTransform(Transform::IDENTITY);
+        let rest_gtf = RestGlobalTransform(GlobalTransform::IDENTITY);
+
+        let gaze = bone_rotation(15.0, 0.0, &rest_tf, &rest_gtf);
+        let mut state = BoneState::default();
+
+        // Frame 1
+        let delta = rest.inverse() * gaze;
+        let result1 = compute_additive_rotation(rest, rest, gaze);
+        state.base = rest;
+        state.last_delta = delta;
+        state.initialized = true;
+
+        // Frame 2: animation writes a NEW rotation
+        let animated = Quat::from_rotation_x(0.3);
+        let expected = state.base * state.last_delta;
+        let anim_changed = animated.dot(expected).abs() < 0.999;
+        assert!(anim_changed, "Should detect animation change");
+
+        // New base should be the animated rotation
+        let result2 = compute_additive_rotation(animated, rest, gaze);
+        let diff = result2.angle_between(result1);
+        assert!(
+            diff > 0.01,
+            "With animation change, result should differ: diff={diff}"
+        );
+    }
 }
