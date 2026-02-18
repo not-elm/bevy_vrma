@@ -301,20 +301,24 @@ fn track_body_tracking(
             scale: Vec3::ONE,
         });
 
-        // 2. Calculate raw yaw/pitch.
+        // 2. Calculate raw yaw/pitch with z-depth clamping.
         let (raw_yaw, raw_pitch) = match look_at {
             LookAt::Cursor => {
                 let Some(target_pos) = find_cursor_world_position(&windows, &cameras, &head_gtf)
                 else {
                     continue;
                 };
-                calc_yaw_pitch(&look_at_space, target_pos)
+                calc_yaw_pitch_clamped(&look_at_space, target_pos, tracking.reference_depth)
             }
             LookAt::Target(target_entity) => {
                 let Ok((_, &target_gtf)) = transforms.get(*target_entity) else {
                     continue;
                 };
-                calc_yaw_pitch(&look_at_space, target_gtf.translation())
+                calc_yaw_pitch_clamped(
+                    &look_at_space,
+                    target_gtf.translation(),
+                    tracking.reference_depth,
+                )
             }
         };
 
