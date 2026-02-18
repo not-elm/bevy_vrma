@@ -289,6 +289,15 @@ fn track_body_tracking(
         smoothed.yaw = smooth_angle(smoothed.yaw, raw_yaw, tracking.smoothing, dt);
         smoothed.pitch = smooth_angle(smoothed.pitch, raw_pitch, tracking.smoothing, dt);
 
+        // Normalize yaw to [-180, 180] to prevent unbounded growth
+        // during ±180° crossings when cursor passes over the head.
+        while smoothed.yaw > 180.0 {
+            smoothed.yaw -= 360.0;
+        }
+        while smoothed.yaw < -180.0 {
+            smoothed.yaw += 360.0;
+        }
+
         // 4. Build bone chain bottom-up: spine -> chest -> neck -> head.
         let mut chain: Vec<BoneEntry> = Vec::with_capacity(4);
         if let Some(spine) = spine {
@@ -644,6 +653,65 @@ mod tests {
             smoothed_jump < jump_size,
             "Smoothed jump ({smoothed_jump}) should be less than raw jump ({jump_size})"
         );
+    }
+
+    #[test]
+    fn test_smoothed_yaw_stays_normalized_during_180_crossing() {
+        let mut yaw = 179.0;
+        for _ in 0..200 {
+            yaw = smooth_angle(yaw, -179.0, 10.0, 1.0 / 60.0);
+            while yaw > 180.0 {
+                yaw -= 360.0;
+            }
+            while yaw < -180.0 {
+                yaw += 360.0;
+            }
+        }
+        assert!(
+            yaw >= -180.0 && yaw <= 180.0,
+            "yaw should stay in [-180, 180]: {yaw}"
+        );
+        assert!(
+            (yaw - (-179.0)).abs() < 0.1,
+            "yaw should converge to target: {yaw}"
+        );
+    }
+
+    #[test]
+    fn test_bone_yaw_sign_correct_after_180_crossing() {
+        let weight = 0.4;
+        let yaw_max = 40.0;
+        let mut smoothed_yaw = 179.0;
+        for _ in 0..300 {
+            smoothed_yaw = smooth_angle(smoothed_yaw, -170.0, 10.0, 1.0 / 60.0);
+            while smoothed_yaw > 180.0 {
+                smoothed_yaw -= 360.0;
+            }
+            while smoothed_yaw < -180.0 {
+                smoothed_yaw += 360.0;
+            }
+        }
+        let bone_yaw = (smoothed_yaw * weight).clamp(-yaw_max, yaw_max);
+        assert!(
+            bone_yaw < 0.0,
+            "bone_yaw should be negative when target is -170: {bone_yaw}"
+        );
+    }
+
+    #[test]
+    fn test_pitch_always_bounded() {
+        for x in [-10.0_f32, -1.0, 0.0, 1.0, 10.0] {
+            for z in [-10.0_f32, -0.01, 0.0, 0.01, 10.0] {
+                for y in [-10.0_f32, -1.0, 0.0, 1.0, 10.0] {
+                    let xz = (x * x + z * z).sqrt();
+                    let pitch = (-y.atan2(xz)).to_degrees();
+                    assert!(
+                        pitch >= -90.0 && pitch <= 90.0,
+                        "pitch out of range: {pitch} for x={x}, y={y}, z={z}"
+                    );
+                }
+            }
+        }
     }
 
     #[test]
