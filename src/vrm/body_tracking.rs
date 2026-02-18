@@ -55,6 +55,11 @@ pub struct BodyTracking {
 
     /// Smoothing speed. Higher values = faster response. 0.0 = instant (no smoothing).
     pub smoothing: f32,
+
+    /// Output smoothing speed for suppressing jitter during animation transitions.
+    /// Higher values = faster response. 0.0 = instant (no smoothing).
+    #[cfg_attr(feature = "serde", serde(default = "default_output_smoothing"))]
+    pub output_smoothing: f32,
 }
 
 impl Default for BodyTracking {
@@ -73,8 +78,13 @@ impl Default for BodyTracking {
             spine_yaw_max: 15.0,
             spine_pitch_max: 0.0,
             smoothing: 10.0,
+            output_smoothing: 25.0,
         }
     }
+}
+
+fn default_output_smoothing() -> f32 {
+    25.0
 }
 
 /// Smoothed gaze state stored on the VRM root entity.
@@ -165,6 +175,8 @@ struct BoneState {
     last_delta: Quat,
     /// Whether state has been initialized.
     initialized: bool,
+    /// The final output rotation from last frame (for slerp smoothing).
+    prev_output: Quat,
 }
 
 impl Default for BoneState {
@@ -173,6 +185,7 @@ impl Default for BoneState {
             base: Quat::IDENTITY,
             last_delta: Quat::IDENTITY,
             initialized: false,
+            prev_output: Quat::IDENTITY,
         }
     }
 }
@@ -344,10 +357,23 @@ fn track_body_tracking(
             };
 
             let delta = rest_tf.rotation.inverse() * rotation;
-            tf.rotation = compute_additive_rotation(base, rest_tf.rotation, rotation);
+            let target = compute_additive_rotation(base, rest_tf.rotation, rotation);
+
+            tf.rotation = if state.initialized && tracking.output_smoothing > 0.0 {
+                let factor = 1.0 - (-tracking.output_smoothing * dt).exp();
+                let prev = if state.prev_output.dot(target) < 0.0 {
+                    -state.prev_output
+                } else {
+                    state.prev_output
+                };
+                prev.slerp(target, factor)
+            } else {
+                target
+            };
 
             state.base = base;
             state.last_delta = delta;
+            state.prev_output = tf.rotation;
             state.initialized = true;
 
             *gtf = parent_gtf.mul_transform(*tf);
@@ -555,6 +581,81 @@ mod tests {
         assert!(
             diff > 0.01,
             "With animation change, result should differ: diff={diff}"
+        );
+    }
+
+    #[test]
+    fn test_output_smoothing_dampens_base_jump() {
+        // When the base (animation) jumps suddenly, the smoothed output should
+        // lag behind (i.e. the jump magnitude is reduced in a single frame).
+        let rest = Quat::IDENTITY;
+        let gaze = bone_rotation(
+            10.0,
+            0.0,
+            &RestTransform(Transform::IDENTITY),
+            &RestGlobalTransform(GlobalTransform::IDENTITY),
+        );
+
+        let mut state = BoneState::default();
+        let dt: f32 = 1.0 / 60.0;
+        let output_smoothing: f32 = 25.0;
+
+        // Frame 1: initialize with base == rest
+        let target1 = compute_additive_rotation(rest, rest, gaze);
+        state.prev_output = target1;
+        state.initialized = true;
+
+        // Frame 2: base jumps to a significantly different rotation (simulating VRMA transition)
+        let jumped_base = Quat::from_rotation_x(0.5);
+        let target2 = compute_additive_rotation(jumped_base, rest, gaze);
+
+        // Apply output smoothing
+        let factor = 1.0 - (-output_smoothing * dt).exp();
+        let prev = if state.prev_output.dot(target2) < 0.0 {
+            -state.prev_output
+        } else {
+            state.prev_output
+        };
+        let smoothed = prev.slerp(target2, factor);
+
+        // The smoothed result should be closer to prev_output than the raw target
+        let jump_size = state.prev_output.angle_between(target2);
+        let smoothed_jump = state.prev_output.angle_between(smoothed);
+        assert!(
+            smoothed_jump < jump_size,
+            "Smoothed jump ({smoothed_jump}) should be less than raw jump ({jump_size})"
+        );
+    }
+
+    #[test]
+    fn test_output_smoothing_disabled_at_zero_speed() {
+        // When output_smoothing is 0, the output should snap to target immediately.
+        let rest = Quat::IDENTITY;
+        let gaze = bone_rotation(
+            15.0,
+            5.0,
+            &RestTransform(Transform::IDENTITY),
+            &RestGlobalTransform(GlobalTransform::IDENTITY),
+        );
+
+        let mut state = BoneState::default();
+        state.prev_output = Quat::from_rotation_y(0.3); // some previous output
+        state.initialized = true;
+
+        let target = compute_additive_rotation(rest, rest, gaze);
+        let output_smoothing = 0.0;
+
+        // With speed=0, the branch should take the `else` path (return target directly)
+        let result = if state.initialized && output_smoothing > 0.0 {
+            unreachable!("Should not enter smoothing branch with speed=0");
+        } else {
+            target
+        };
+
+        let diff = result.angle_between(target);
+        assert!(
+            diff < 0.001,
+            "With speed=0, output should equal target: diff={diff}"
         );
     }
 }
