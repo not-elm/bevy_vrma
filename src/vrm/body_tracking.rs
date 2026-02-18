@@ -4,6 +4,7 @@ use crate::vrm::look_at::{calc_yaw_pitch, find_cursor_world_position, track_look
 use crate::vrm::{RestGlobalTransform, RestTransform};
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
+use std::collections::HashMap;
 use bevy::window::Window;
 
 /// Optional body tracking that makes head, neck, chest, and spine bones
@@ -215,6 +216,7 @@ fn track_body_tracking(
     windows: Query<(Entity, &Window)>,
     cameras: Cameras,
     time: Res<Time>,
+    mut bone_states: Local<HashMap<Entity, BoneState>>,
 ) {
     let dt = time.delta_secs();
 
@@ -317,13 +319,34 @@ fn track_body_tracking(
                 continue;
             };
 
-            // Write Transform.rotation and manually propagate GlobalTransform.
+            // Write Transform.rotation additively and propagate GlobalTransform.
             let Ok((mut tf, mut gtf)) = transforms.get_mut(bone.entity) else {
                 continue;
             };
-            tf.rotation = rotation;
-            *gtf = parent_gtf.mul_transform(*tf);
 
+            let state = bone_states.entry(bone.entity).or_default();
+
+            // Detect whether animation updated the rotation since last frame.
+            // If tf.rotation differs from our expected value (base * last_delta),
+            // then the animation system has written a new value.
+            let base = if !state.initialized
+                || tf.rotation.dot(state.base * state.last_delta).abs() < 0.999
+            {
+                // Animation changed or first frame: use current rotation as base
+                tf.rotation
+            } else {
+                // No animation change: keep existing base
+                state.base
+            };
+
+            let delta = rest_tf.rotation.inverse() * rotation;
+            tf.rotation = compute_additive_rotation(base, rest_tf.rotation, rotation);
+
+            state.base = base;
+            state.last_delta = delta;
+            state.initialized = true;
+
+            *gtf = parent_gtf.mul_transform(*tf);
             computed_gtfs.push((bone.entity, *gtf));
         }
     }
