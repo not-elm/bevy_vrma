@@ -60,6 +60,12 @@ pub struct BodyTracking {
     /// Higher values = faster response. 0.0 = instant (no smoothing).
     #[cfg_attr(feature = "serde", serde(default = "default_output_smoothing"))]
     pub output_smoothing: f32,
+
+    /// Minimum forward depth (meters) for yaw/pitch calculation.
+    /// Prevents extreme yaw when the camera is directly in front of the model.
+    /// Higher values reduce sensitivity. Default: 1.0.
+    #[cfg_attr(feature = "serde", serde(default = "default_reference_depth"))]
+    pub reference_depth: f32,
 }
 
 impl Default for BodyTracking {
@@ -79,12 +85,17 @@ impl Default for BodyTracking {
             spine_pitch_max: 0.0,
             smoothing: 10.0,
             output_smoothing: 25.0,
+            reference_depth: 1.0,
         }
     }
 }
 
 fn default_output_smoothing() -> f32 {
     25.0
+}
+
+fn default_reference_depth() -> f32 {
+    1.0
 }
 
 /// Smoothed gaze state stored on the VRM root entity.
@@ -164,6 +175,28 @@ fn bone_rotation(
             0.0,
         )
         * rest_gtf.rotation()
+}
+
+/// Like [`calc_yaw_pitch`] but clamps the local Z component to `min_depth`
+/// before computing angles. This prevents extreme yaw values when the
+/// cursor projection places the target at the same depth as the head
+/// (e.g., camera directly in front of the model).
+fn calc_yaw_pitch_clamped(
+    look_at_space: &GlobalTransform,
+    target: Vec3,
+    min_depth: f32,
+) -> (f32, f32) {
+    let local_target = look_at_space.to_matrix().inverse().transform_point3(target);
+
+    let x = local_target.dot(Vec3::X);
+    let y = local_target.dot(Vec3::Y);
+    let z = local_target.dot(Vec3::Z).max(min_depth);
+
+    let yaw = (x.atan2(z)).to_degrees();
+    let xz = (x * x + z * z).sqrt();
+    let pitch = (-y.atan2(xz)).to_degrees();
+
+    (yaw, pitch)
 }
 
 /// Per-bone state for tracking animation changes between frames.
@@ -743,6 +776,119 @@ mod tests {
         assert!(
             diff < 0.001,
             "With speed=0, output should equal target: diff={diff}"
+        );
+    }
+
+    #[test]
+    fn test_calc_yaw_pitch_clamped_zero_depth_target() {
+        // When target is at the same Z-depth as the look_at_space origin,
+        // the clamped version should produce a small, proportional yaw
+        // instead of ~90 degrees.
+        let look_at_space = GlobalTransform::from(Transform {
+            translation: Vec3::new(0.0, 1.36, 0.0),
+            rotation: Quat::IDENTITY,
+            scale: Vec3::ONE,
+        });
+        // Target slightly to the right, at the same Z as origin
+        let target = Vec3::new(0.1, 1.3, 0.0);
+        let min_depth = 1.0;
+
+        let (yaw, _pitch) = calc_yaw_pitch_clamped(&look_at_space, target, min_depth);
+        // With min_depth=1.0, yaw should be atan2(0.1, 1.0) ≈ 5.7 degrees
+        assert!(
+            yaw.abs() < 10.0,
+            "Yaw should be small for slight offset: {yaw}"
+        );
+        assert!(yaw > 0.0, "Yaw should be positive for right offset: {yaw}");
+    }
+
+    #[test]
+    fn test_calc_yaw_pitch_clamped_preserves_valid_depth() {
+        // When target has meaningful Z depth (> min_depth), the clamp
+        // should not activate and the result should match calc_yaw_pitch.
+        let look_at_space = GlobalTransform::from(Transform {
+            translation: Vec3::ZERO,
+            rotation: Quat::IDENTITY,
+            scale: Vec3::ONE,
+        });
+        // Target at (1, 0, 3) — well in front, Z=3 > min_depth=1
+        let target = Vec3::new(1.0, 0.0, 3.0);
+        let min_depth = 1.0;
+
+        let (clamped_yaw, clamped_pitch) =
+            calc_yaw_pitch_clamped(&look_at_space, target, min_depth);
+        let (original_yaw, original_pitch) = calc_yaw_pitch(&look_at_space, target);
+
+        assert!(
+            (clamped_yaw - original_yaw).abs() < 0.01,
+            "Should match original when Z > min_depth: clamped={clamped_yaw}, original={original_yaw}"
+        );
+        assert!(
+            (clamped_pitch - original_pitch).abs() < 0.01,
+            "Pitch should match: clamped={clamped_pitch}, original={original_pitch}"
+        );
+    }
+
+    #[test]
+    fn test_calc_yaw_pitch_clamped_proportional() {
+        // Yaw should be proportional to horizontal offset for small values.
+        let look_at_space = GlobalTransform::from(Transform {
+            translation: Vec3::ZERO,
+            rotation: Quat::IDENTITY,
+            scale: Vec3::ONE,
+        });
+        let min_depth = 1.0;
+
+        let (yaw1, _) =
+            calc_yaw_pitch_clamped(&look_at_space, Vec3::new(0.1, 0.0, 0.0), min_depth);
+        let (yaw2, _) =
+            calc_yaw_pitch_clamped(&look_at_space, Vec3::new(0.2, 0.0, 0.0), min_depth);
+
+        // yaw2 should be roughly 2x yaw1 for small angles
+        let ratio = yaw2 / yaw1;
+        assert!(
+            (ratio - 2.0).abs() < 0.2,
+            "Yaw should be roughly proportional: ratio={ratio}"
+        );
+    }
+
+    #[test]
+    fn test_calc_yaw_pitch_clamped_center_is_zero() {
+        // When target is directly in front (along +Z or at origin), yaw should be ~0.
+        let look_at_space = GlobalTransform::from(Transform {
+            translation: Vec3::new(0.0, 1.3, 0.0),
+            rotation: Quat::IDENTITY,
+            scale: Vec3::ONE,
+        });
+        // Target at same position as origin (cursor at face center)
+        let target = Vec3::new(0.0, 1.3, 0.0);
+        let min_depth = 1.0;
+
+        let (yaw, _pitch) = calc_yaw_pitch_clamped(&look_at_space, target, min_depth);
+        assert!(
+            yaw.abs() < 0.01,
+            "Yaw should be ~0 when target is at origin: {yaw}"
+        );
+    }
+
+    #[test]
+    fn test_calc_yaw_pitch_clamped_behind_model() {
+        // When target is behind the model (negative Z), clamp should activate
+        // and produce a small, controlled yaw instead of a wild angle.
+        let look_at_space = GlobalTransform::from(Transform {
+            translation: Vec3::ZERO,
+            rotation: Quat::IDENTITY,
+            scale: Vec3::ONE,
+        });
+        // Target behind and slightly right
+        let target = Vec3::new(0.5, 0.0, -2.0);
+        let min_depth = 1.0;
+
+        let (yaw, _pitch) = calc_yaw_pitch_clamped(&look_at_space, target, min_depth);
+        // Z clamped from -2.0 to 1.0, so yaw = atan2(0.5, 1.0) ≈ 26.6 degrees
+        assert!(
+            yaw.abs() < 30.0,
+            "Yaw should be moderate for behind-model target: {yaw}"
         );
     }
 }
