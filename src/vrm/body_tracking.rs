@@ -155,6 +155,41 @@ fn bone_rotation(
         * rest_gtf.rotation()
 }
 
+/// Per-bone state for tracking animation changes between frames.
+#[derive(Debug, Clone)]
+struct BoneState {
+    /// The bone rotation before body tracking was applied (from animation or rest).
+    base: Quat,
+    /// The gaze delta applied last frame.
+    last_delta: Quat,
+    /// Whether state has been initialized.
+    initialized: bool,
+}
+
+impl Default for BoneState {
+    fn default() -> Self {
+        Self {
+            base: Quat::IDENTITY,
+            last_delta: Quat::IDENTITY,
+            initialized: false,
+        }
+    }
+}
+
+/// Compute additive rotation: apply the gaze delta (relative to rest) on top of
+/// the base (animated) rotation.
+///
+/// `base` — current bone rotation from animation (or rest if no animation).
+/// `rest` — the bone's rest pose local rotation.
+/// `gaze` — the target rotation computed by `bone_rotation()`.
+///
+/// Returns `base * (rest⁻¹ * gaze)`.
+/// When `base == rest`, this simplifies to `gaze` (identical to overwrite mode).
+fn compute_additive_rotation(base: Quat, rest: Quat, gaze: Quat) -> Quat {
+    let delta = rest.inverse() * gaze;
+    base * delta
+}
+
 /// Bone descriptor used when iterating through the chain.
 struct BoneEntry {
     entity: Entity,
@@ -183,9 +218,7 @@ fn track_body_tracking(
 ) {
     let dt = time.delta_secs();
 
-    for (look_at, properties, tracking, head, neck, chest, spine, mut smoothed) in
-        vrms.iter_mut()
-    {
+    for (look_at, properties, tracking, head, neck, chest, spine, mut smoothed) in vrms.iter_mut() {
         // 1. Get head GlobalTransform and build LookAt space.
         let Ok((&head_tf, &head_gtf)) = transforms.get(head.0) else {
             continue;
@@ -200,8 +233,7 @@ fn track_body_tracking(
         // 2. Calculate raw yaw/pitch.
         let (raw_yaw, raw_pitch) = match look_at {
             LookAt::Cursor => {
-                let Some(target_pos) =
-                    find_cursor_world_position(&windows, &cameras, &head_gtf)
+                let Some(target_pos) = find_cursor_world_position(&windows, &cameras, &head_gtf)
                 else {
                     continue;
                 };
@@ -263,8 +295,7 @@ fn track_body_tracking(
             };
 
             let bone_yaw = (smoothed.yaw * bone.weight).clamp(-bone.yaw_max, bone.yaw_max);
-            let bone_pitch =
-                (smoothed.pitch * bone.weight).clamp(-bone.pitch_max, bone.pitch_max);
+            let bone_pitch = (smoothed.pitch * bone.weight).clamp(-bone.pitch_max, bone.pitch_max);
             let rotation = bone_rotation(bone_yaw, bone_pitch, rest_tf, rest_gtf);
 
             // Get parent entity for chain propagation.
@@ -308,7 +339,10 @@ mod tests {
         for _ in 0..100 {
             current = smooth_angle(current, 45.0, 10.0, 1.0 / 60.0);
         }
-        assert!((current - 45.0).abs() < 0.1, "Should converge to target: {current}");
+        assert!(
+            (current - 45.0).abs() < 0.1,
+            "Should converge to target: {current}"
+        );
     }
 
     #[test]
@@ -321,7 +355,10 @@ mod tests {
     fn test_smooth_angle_shortest_arc() {
         let result = smooth_angle(170.0, -170.0, 100.0, 1.0);
         // Should go through 180 (20 degrees), not through 0 (340 degrees)
-        assert!(result > 170.0 || result < -160.0, "Should take shortest arc: {result}");
+        assert!(
+            result > 170.0 || result < -160.0,
+            "Should take shortest arc: {result}"
+        );
     }
 
     #[test]
@@ -334,7 +371,10 @@ mod tests {
     fn test_body_tracking_default_weights_sum_to_one() {
         let bt = BodyTracking::default();
         let total = bt.head_weight + bt.neck_weight + bt.chest_weight + bt.spine_weight;
-        assert!((total - 1.0).abs() < f32::EPSILON, "Default weights should sum to 1.0: {total}");
+        assert!(
+            (total - 1.0).abs() < f32::EPSILON,
+            "Default weights should sum to 1.0: {total}"
+        );
     }
 
     #[test]
@@ -350,6 +390,76 @@ mod tests {
         let rest_gtf = RestGlobalTransform(GlobalTransform::IDENTITY);
         let result = bone_rotation(0.0, 0.0, &rest_tf, &rest_gtf);
         let diff = result.angle_between(Quat::IDENTITY);
-        assert!(diff < 0.001, "Zero yaw/pitch should produce near-identity: {diff}");
+        assert!(
+            diff < 0.001,
+            "Zero yaw/pitch should produce near-identity: {diff}"
+        );
+    }
+
+    #[test]
+    fn test_compute_additive_rotation_no_animation() {
+        // When no animation is playing (base == rest), result should equal
+        // the full gaze rotation (same as current overwrite behavior).
+        let rest = Quat::from_rotation_y(0.3);
+        let gaze = bone_rotation(
+            15.0,
+            10.0,
+            &RestTransform(Transform::from_rotation(rest)),
+            &RestGlobalTransform(GlobalTransform::from(Transform::from_rotation(rest))),
+        );
+        let result = compute_additive_rotation(rest, rest, gaze);
+        let diff = result.angle_between(gaze);
+        assert!(
+            diff < 0.001,
+            "With no animation (base==rest), should equal gaze rotation: diff={diff}"
+        );
+    }
+
+    #[test]
+    fn test_compute_additive_rotation_with_animation() {
+        // When animation sets a different rotation, the gaze delta should be
+        // applied on top of the animated rotation, NOT replace it.
+        let rest = Quat::IDENTITY;
+        let animated = Quat::from_rotation_x(0.2); // Animation tilts spine forward
+        let gaze = bone_rotation(
+            10.0,
+            0.0,
+            &RestTransform(Transform::IDENTITY),
+            &RestGlobalTransform(GlobalTransform::IDENTITY),
+        );
+        let result = compute_additive_rotation(animated, rest, gaze);
+        // Result should NOT equal gaze (which ignores animation)
+        let diff_from_gaze = result.angle_between(gaze);
+        assert!(
+            diff_from_gaze > 0.01,
+            "With animation, result should differ from pure gaze: diff={diff_from_gaze}"
+        );
+        // Result should incorporate the animation's forward tilt
+        let diff_from_animated = result.angle_between(animated);
+        assert!(
+            diff_from_animated > 0.01,
+            "Result should also differ from pure animation: diff={diff_from_animated}"
+        );
+    }
+
+    #[test]
+    fn test_compute_additive_rotation_zero_gaze_preserves_animation() {
+        // When gaze is zero (looking straight ahead), the animation rotation
+        // should be fully preserved.
+        let rest = Quat::from_rotation_y(0.5);
+        let animated = Quat::from_rotation_x(0.3) * Quat::from_rotation_y(0.5);
+        let gaze_at_zero = bone_rotation(
+            0.0,
+            0.0,
+            &RestTransform(Transform::from_rotation(rest)),
+            &RestGlobalTransform(GlobalTransform::from(Transform::from_rotation(rest))),
+        );
+        // gaze_at_zero == rest, so delta == identity, result == animated
+        let result = compute_additive_rotation(animated, rest, gaze_at_zero);
+        let diff = result.angle_between(animated);
+        assert!(
+            diff < 0.001,
+            "Zero gaze should preserve animated rotation: diff={diff}"
+        );
     }
 }
