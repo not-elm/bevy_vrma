@@ -4,8 +4,8 @@ use crate::vrm::look_at::{calc_yaw_pitch, find_cursor_world_position, track_look
 use crate::vrm::{RestGlobalTransform, RestTransform};
 use bevy::app::{App, Plugin};
 use bevy::prelude::*;
-use std::collections::HashMap;
 use bevy::window::Window;
+use std::collections::HashMap;
 
 /// Optional body tracking that makes head, neck, chest, and spine bones
 /// follow the `LookAt` target. Insert alongside [`LookAt`] to enable.
@@ -186,7 +186,11 @@ impl Default for BoneState {
 ///
 /// Returns `base * (rest⁻¹ * gaze)`.
 /// When `base == rest`, this simplifies to `gaze` (identical to overwrite mode).
-fn compute_additive_rotation(base: Quat, rest: Quat, gaze: Quat) -> Quat {
+fn compute_additive_rotation(
+    base: Quat,
+    rest: Quat,
+    gaze: Quat,
+) -> Quat {
     let delta = rest.inverse() * gaze;
     base * delta
 }
