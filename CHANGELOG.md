@@ -19,6 +19,7 @@
 - Added direct expression control API (`SetExpressions`, `ClearExpressions`) for controlling VRM facial expression weights from user code without VRMA animation files
 - Added `ExpressionEntityMap` component for O(1) expression entity lookups and introspection of available expressions
 - Added `expressions` example demonstrating keyboard-driven expression control
+- The `BodyTracking` component has been added. By inserting it with LookAt, you can control not only the eyes but also the upper body.
 
 ### Improvements
 
