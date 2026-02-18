@@ -843,10 +843,8 @@ mod tests {
         });
         let min_depth = 1.0;
 
-        let (yaw1, _) =
-            calc_yaw_pitch_clamped(&look_at_space, Vec3::new(0.1, 0.0, 0.0), min_depth);
-        let (yaw2, _) =
-            calc_yaw_pitch_clamped(&look_at_space, Vec3::new(0.2, 0.0, 0.0), min_depth);
+        let (yaw1, _) = calc_yaw_pitch_clamped(&look_at_space, Vec3::new(0.1, 0.0, 0.0), min_depth);
+        let (yaw2, _) = calc_yaw_pitch_clamped(&look_at_space, Vec3::new(0.2, 0.0, 0.0), min_depth);
 
         // yaw2 should be roughly 2x yaw1 for small angles
         let ratio = yaw2 / yaw1;

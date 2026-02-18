@@ -22,7 +22,7 @@ pub struct PlayVrma {
     /// A time until the existing animation fades out.
     pub transition_duration: Duration,
 
-    /// If true, resets all SpringBone velocities on the parent VRM entity
+    /// If true, resets all `SpringBone` velocities on the parent VRM entity
     /// to prevent bouncing caused by sudden bone movements during animation transitions.
     pub reset_spring_bones: bool,
 }
