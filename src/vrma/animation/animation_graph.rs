@@ -195,17 +195,19 @@ fn replace_bone_animation_clips(
         let Some(bone_entity) = searcher.find_by_bone_name(root_bone, bone) else {
             continue;
         };
-        let Ok((_, src_rest_gtf, vrma_bone_target)) = bones.get(vrma_bone_entity) else {
+        let Ok((src_rest_tf, src_rest_gtf, vrma_bone_target)) = bones.get(vrma_bone_entity) else {
             continue;
         };
-        let Ok((_, dist_rest_gtf, bone_target)) = bones.get(bone_entity) else {
+        let Ok((dist_rest_tf, dist_rest_gtf, bone_target)) = bones.get(bone_entity) else {
             continue;
         };
         if bone.as_str() == "hips" {
             register_hips_translation_transformation(
                 node_index,
                 bone_entity,
+                src_rest_tf,
                 src_rest_gtf,
+                dist_rest_tf,
                 dist_rest_gtf,
             );
         }
