@@ -8,6 +8,7 @@
 
 ### Bug Fixes
 
+- Fixed hips retargeting phantom X/Z shift by using local rest positions for delta computation instead of global positions; global positions are now only used for Y-based height scaling
 - Fixed LookAt Cursor mode to use world-space ray casting instead of screen-space normalized coordinates, so gaze calculation now accounts for the avatar's world position
 - Fixed `MorphTargetBind.weight` being parsed but ignored — now correctly applied as `expression_weight × bind.weight`
 - Fixed expression weights using direct assignment instead of additive accumulation per VRM 1.0 spec
