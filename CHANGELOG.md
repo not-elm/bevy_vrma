@@ -1,4 +1,6 @@
-## Unreleased
+## v0.6.0
+
+[Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.6.0)
 
 ### Breaking Changes
 
