@@ -174,10 +174,61 @@ pub(crate) fn find_cursor_world_position(
     head_gtf: &GlobalTransform,
 ) -> Option<Vec3> {
     let (window_entity, cursor_pos) = windows.iter().find_map(|(entity, window)| {
-        let cursor = window.cursor_position()?;
-        Some((entity, cursor))
+        let cursor = window.cursor_position();
+
+        #[cfg(target_os = "windows")]
+        let cursor = {
+            let fallback = fallback_cursor_position(window);
+
+            #[cfg(debug_assertions)]
+            if let (Some(c), Some(f)) = (cursor, fallback)
+                && c.distance(f) > 1.0
+            {
+                #[cfg(feature = "log")]
+                bevy::log::warn!(
+                    "Cursor position mismatch: bevy={c}, winapi={f}, delta={}",
+                    c.distance(f)
+                );
+            }
+
+            cursor.or(fallback)
+        };
+
+        Some((entity, cursor?))
     })?;
     cameras.to_world_by_viewport(window_entity, cursor_pos, head_gtf.translation())
+}
+
+/// Fallback cursor position using `WinAPI` `GetCursorPos` for when
+/// `Window::cursor_position()` returns `None` (e.g. `hit_test = false`).
+#[cfg(target_os = "windows")]
+fn fallback_cursor_position(window: &Window) -> Option<Vec2> {
+    use bevy::window::WindowPosition;
+    use windows::Win32::Foundation::POINT;
+    use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
+
+    let mut point = POINT::default();
+    // SAFETY: GetCursorPos is a safe WinAPI call that writes cursor screen coordinates.
+    unsafe { GetCursorPos(&mut point).ok()? };
+
+    let WindowPosition::At(window_pos) = window.position else {
+        return None;
+    };
+
+    let scale = window.scale_factor();
+    let global_logical = Vec2::new(point.x as f32 / scale, point.y as f32 / scale);
+    let window_logical = global_logical - window_pos.as_vec2();
+
+    let size = window.resolution.size();
+    if window_logical.x >= 0.0
+        && window_logical.y >= 0.0
+        && window_logical.x <= size.x
+        && window_logical.y <= size.y
+    {
+        Some(window_logical)
+    } else {
+        None
+    }
 }
 
 pub(crate) fn calc_yaw_pitch(
