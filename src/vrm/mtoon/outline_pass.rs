@@ -197,9 +197,7 @@ fn queue_outlines(
             // The inverted-hull outline technique assumes back-faces are invisible
             // in the main pass; on double-sided meshes the inflated back-faces
             // overwrite correctly-rendered pixels with the outline color.
-            if !mtoon_key
-                .intersects(MToonMaterialKey::CULL_FRONT | MToonMaterialKey::CULL_BACK)
-            {
+            if !mtoon_key.intersects(MToonMaterialKey::CULL_FRONT | MToonMaterialKey::CULL_BACK) {
                 continue;
             }
 
