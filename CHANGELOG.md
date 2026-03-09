@@ -1,3 +1,11 @@
+## v0.6.2
+
+[Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.6.2)
+
+### Bug Fixes
+
+- Fixed outline rendering for double-sided meshes: skip outline enqueueing when neither CULL_FRONT nor CULL_BACK is set in MToonMaterialKey, preventing magenta-like artifacts on thin meshes such as skirts and sleeves
+
 ## v0.6.1
 
 ### Bug Fixes
