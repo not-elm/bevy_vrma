@@ -1,3 +1,11 @@
+## v0.6.3
+
+[Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.6.3)
+
+### Others
+
+- Removed unnecessary cursor position fallback log output
+
 ## v0.6.2
 
 [Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.6.2)
