@@ -179,18 +179,6 @@ pub(crate) fn find_cursor_world_position(
         #[cfg(target_os = "windows")]
         let cursor = {
             let fallback = fallback_cursor_position(window);
-
-            #[cfg(debug_assertions)]
-            if let (Some(c), Some(f)) = (cursor, fallback)
-                && c.distance(f) > 1.0
-            {
-                #[cfg(feature = "log")]
-                bevy::log::warn!(
-                    "Cursor position mismatch: bevy={c}, winapi={f}, delta={}",
-                    c.distance(f)
-                );
-            }
-
             cursor.or(fallback)
         };
 
