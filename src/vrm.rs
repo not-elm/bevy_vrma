@@ -1,4 +1,5 @@
 pub mod body_tracking;
+pub mod detach;
 pub(crate) mod expressions;
 pub(crate) mod gltf;
 pub(crate) mod humanoid_bone;
@@ -13,6 +14,7 @@ use crate::macros::marker_component;
 use crate::new_type;
 use crate::system_set::VrmSystemSets;
 use crate::vrm::body_tracking::BodyTrackingPlugin;
+use crate::vrm::detach::VrmDetachPlugin;
 use crate::vrm::humanoid_bone::VrmHumanoidBonePlugin;
 use crate::vrm::initialize::VrmInitializePlugin;
 use crate::vrm::loader::{VrmAsset, VrmLoaderPlugin};
@@ -32,6 +34,7 @@ pub mod prelude {
         Initialized, RestGlobalTransform, RestTransform, Vrm, VrmBone, VrmExpression, VrmPath,
         VrmPlugin,
         body_tracking::{BodyTracking, SmoothedGaze},
+        detach::RequestDetachVrm,
         expressions::{
             BinaryExpression, ClearExpressions, ExpressionEntityMap, ExpressionOverride,
             ExpressionOverrideSettings, ExpressionOverrideType, ModifyExpressions, SetExpressions,
@@ -117,6 +120,7 @@ impl Plugin for VrmPlugin {
         app.init_asset::<VrmAsset>().add_plugins((
             VrmLoaderPlugin,
             VrmInitializePlugin,
+            VrmDetachPlugin,
             VrmSpringBonePlugin,
             VrmHumanoidBonePlugin,
             VrmExpressionPlugin,
