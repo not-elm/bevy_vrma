@@ -1,3 +1,11 @@
+## v0.6.4
+
+[Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.6.4)
+
+### Features
+
+- Added VRM detach request handling via `RequestDetachVrm`; detaching now removes VRM-related components and recursively despawns child entities while keeping the root entity alive
+
 ## v0.6.3
 
 [Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.6.3)
