@@ -1,13 +1,17 @@
 use crate::prelude::{ChildSearcher, RestGlobalTransform, RestTransform};
 use crate::vrm::expressions::VrmExpressionRegistry;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
-use crate::vrma::animation::bone_rotation::{RetargetRotationTable, compute_rotation_transformations};
-use crate::vrma::animation::bone_translation::{RetargetTranslationTable, compute_hips_transformation};
-use crate::vrma::{VrmAnimationClipHandle, VrmAnimationNodeIndex};
 use crate::vrma::animation::bake::{bake_rotation_curve, bake_translation_curve};
+use crate::vrma::animation::bone_rotation::{
+    RetargetRotationTable, compute_rotation_transformations,
+};
+use crate::vrma::animation::bone_translation::{
+    RetargetTranslationTable, compute_hips_transformation,
+};
+use crate::vrma::{VrmAnimationClipHandle, VrmAnimationNodeIndex};
 use bevy::animation::{AnimationTargetId, animated_field};
-use bevy::platform::collections::HashMap;
 use bevy::app::App;
+use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 
 /// Marker: VRMA clip needs baking.
@@ -309,8 +313,7 @@ fn apply_bake_clips(world: &mut World) {
                         // Use the specific VRMA's AnimationNodeIndex to get the correct transformation
                         if let Some(table) = world.get::<RetargetRotationTable>(bone)
                             && let Some(transformation) = table.0.get(&node_index).cloned()
-                            && let Some(baked_vc) =
-                                bake_rotation_curve(vc, &transformation, world)
+                            && let Some(baked_vc) = bake_rotation_curve(vc, &transformation, world)
                         {
                             baked_curves.push(baked_vc);
                             baked = true;
@@ -318,8 +321,7 @@ fn apply_bake_clips(world: &mut World) {
                     } else if *target == translation_component
                         && let Some(table) = world.get::<RetargetTranslationTable>(bone)
                         && let Some(transformation) = table.0.get(&node_index).cloned()
-                        && let Some(baked_vc) =
-                            bake_translation_curve(vc, &transformation, world)
+                        && let Some(baked_vc) = bake_translation_curve(vc, &transformation, world)
                     {
                         baked_curves.push(baked_vc);
                         baked = true;

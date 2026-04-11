@@ -3,10 +3,10 @@
 use crate::error::vrm_error;
 use crate::vrm::Initialized;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
+use crate::vrma::animation::animation_graph::RequestUpdateAnimationGraph;
 use crate::vrma::animation::expressions::VrmaExpressionNames;
 use crate::vrma::gltf::extensions::VrmaExtensions;
 use crate::vrma::loader::VrmaAsset;
-use crate::vrma::animation::animation_graph::RequestUpdateAnimationGraph;
 use crate::vrma::{LoadedVrma, VrmAnimationClipHandle, Vrma, VrmaDuration, VrmaHandle, VrmaPath};
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;

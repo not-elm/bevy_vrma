@@ -61,4 +61,3 @@ impl Transformation {
         self.dist_rest * self.dist_rest_g.inverse() * normalized_local_rotation * self.dist_rest_g
     }
 }
-
