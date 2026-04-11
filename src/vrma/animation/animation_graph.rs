@@ -132,6 +132,7 @@ fn insert_animation_graph_into_expressions(
 
 fn apply_replace_humanoid_bone_animation_clips(
     trigger: On<RequestUpdateAnimationClips>,
+    mut commands: Commands,
     mut clips: ResMut<Assets<AnimationClip>>,
     clip_handles: Query<&VrmAnimationClipHandle>,
     parents: Query<&ChildOf>,
@@ -156,7 +157,17 @@ fn apply_replace_humanoid_bone_animation_clips(
     let Some(root_bone) = searcher.find_root_bone(*vrm_entity) else {
         return;
     };
-    let Some(clip) = clips.get_mut(vrm_animation_clip_handle.0.id()) else {
+
+    // Clone the clip to prevent shared-asset mutation (fixes multi-VRM stop bug)
+    let Some(source_clip) = clips.get(vrm_animation_clip_handle.0.id()).cloned() else {
+        return;
+    };
+    let new_handle = clips.add(source_clip);
+    commands
+        .entity(vrma_entity)
+        .insert(VrmAnimationClipHandle(new_handle.clone()));
+
+    let Some(clip) = clips.get_mut(new_handle.id()) else {
         return;
     };
     register_rotate_transformation(
