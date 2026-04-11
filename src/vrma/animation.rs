@@ -1,4 +1,5 @@
 pub(crate) mod animation_graph;
+pub(crate) mod bake;
 mod bone_rotation;
 mod bone_translation;
 pub(crate) mod expressions;

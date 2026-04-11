@@ -1,3 +1,14 @@
+## v0.7.0
+
+### Breaking Changes
+
+- Redesigned VRMA retargeting: replaced custom `AnimationCurve` wrappers with pre-baked clips that apply retarget transformations at initialization time
+
+### Bug Fixes
+
+- Fixed multi-VRM animation stop bug: spawning 2+ VRMs from the same `.vrm` file no longer causes animations to stop
+- Fixed animation transition interpolation for VRMs with different initial poses (Issue #32)
+
 ## v0.6.4
 
 [Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.6.4)
