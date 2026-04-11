@@ -1,9 +1,6 @@
 use crate::prelude::{RestGlobalTransform, RestTransform};
-use bevy::animation::{AnimationEntityMut, AnimationEvaluationError, animated_field};
 use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
-use std::any::TypeId;
-use std::fmt::{Debug, Formatter};
 
 #[derive(Component, Default, Clone, Debug, Deref, DerefMut)]
 pub(crate) struct RetargetTranslationTable(pub HashMap<AnimationNodeIndex, Transformation>);
@@ -26,62 +23,6 @@ pub(crate) fn compute_hips_transformation(
     )
 }
 
-pub(crate) struct HipsTranslationAnimationCurve {
-    pub base: Box<dyn AnimationCurve>,
-}
-
-impl Debug for HipsTranslationAnimationCurve {
-    fn fmt(
-        &self,
-        f: &mut Formatter<'_>,
-    ) -> std::fmt::Result {
-        f.debug_struct("RetargetBoneTranslationAnimationCurve")
-            .finish()
-    }
-}
-
-impl AnimationCurve for HipsTranslationAnimationCurve {
-    fn clone_value(&self) -> Box<dyn AnimationCurve> {
-        Box::new(Self {
-            base: self.base.clone_value(),
-        })
-    }
-
-    #[inline]
-    fn domain(&self) -> Interval {
-        self.base.domain()
-    }
-
-    #[inline]
-    fn evaluator_id(&self) -> EvaluatorId<'_> {
-        EvaluatorId::Type(TypeId::of::<RetargetEvaluator>())
-    }
-
-    fn create_evaluator(&self) -> Box<dyn AnimationCurveEvaluator> {
-        Box::new(RetargetEvaluator {
-            base: self.base.create_evaluator(),
-            property: Box::new(animated_field!(Transform::translation)),
-            last_node: None,
-        })
-    }
-
-    fn apply(
-        &self,
-        curve_evaluator: &mut dyn AnimationCurveEvaluator,
-        t: f32,
-        weight: f32,
-        graph_node: AnimationNodeIndex,
-    ) -> Result<(), AnimationEvaluationError> {
-        let Some(curve_evaluator) = curve_evaluator.downcast_mut::<RetargetEvaluator>() else {
-            let ty = TypeId::of::<RetargetEvaluator>();
-            return Err(AnimationEvaluationError::InconsistentEvaluatorImplementation(ty));
-        };
-        curve_evaluator.last_node = Some(graph_node);
-        self.base
-            .apply(&mut *curve_evaluator.base, t, weight, graph_node)
-    }
-}
-
 #[derive(Debug, Copy, Clone, Reflect)]
 pub(crate) struct Transformation {
     pub(crate) src_rest_local: Vec3,
@@ -102,62 +43,6 @@ impl Transformation {
             self.dist_rest_local,
             self.dist_rest_g,
         )
-    }
-}
-
-struct RetargetEvaluator {
-    base: Box<dyn AnimationCurveEvaluator>,
-    property: Box<dyn AnimatableProperty<Property = Vec3>>,
-    last_node: Option<AnimationNodeIndex>,
-}
-
-impl AnimationCurveEvaluator for RetargetEvaluator {
-    #[inline]
-    fn blend(
-        &mut self,
-        graph_node: AnimationNodeIndex,
-    ) -> std::result::Result<(), AnimationEvaluationError> {
-        self.base.blend(graph_node)
-    }
-
-    #[inline]
-    fn add(
-        &mut self,
-        graph_node: AnimationNodeIndex,
-    ) -> std::result::Result<(), AnimationEvaluationError> {
-        self.base.add(graph_node)
-    }
-
-    #[inline]
-    fn push_blend_register(
-        &mut self,
-        weight: f32,
-        graph_node: AnimationNodeIndex,
-    ) -> std::result::Result<(), AnimationEvaluationError> {
-        self.base.push_blend_register(weight, graph_node)
-    }
-
-    #[inline]
-    fn commit(
-        &mut self,
-        mut entity: AnimationEntityMut,
-    ) -> std::result::Result<(), AnimationEvaluationError> {
-        let hips_bone = entity.id();
-        let node = self.last_node.take();
-        self.base.commit(entity.reborrow())?;
-
-        let Some(node_index) = node else {
-            return Ok(());
-        };
-        let Some(table) = entity.get::<RetargetTranslationTable>() else {
-            return Ok(());
-        };
-        let Some(transformation) = table.0.get(&node_index).cloned() else {
-            return Ok(());
-        };
-        let hips_pos = self.property.get_mut(&mut entity)?;
-        *hips_pos = transformation.transform(*hips_pos);
-        Ok(())
     }
 }
 
