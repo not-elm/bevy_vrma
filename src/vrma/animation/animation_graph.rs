@@ -118,7 +118,7 @@ fn insert_animation_graph_into_expressions(
     };
     for expression in expression_children.iter() {
         let Ok((has_player, previous_handle)) = expressions.get(expression) else {
-            return;
+            continue;
         };
         if let Some(previous_handle) = previous_handle {
             graphs.remove(previous_handle);
@@ -316,10 +316,10 @@ fn apply_regenerate_expression_clips(
             continue;
         };
         let Ok(vrma_target) = animation_targets.get(vrma_expression) else {
-            return;
+            continue;
         };
         let Ok(target) = animation_targets.get(expression_entity) else {
-            return;
+            continue;
         };
         let animation_curves = clip.curves_mut();
         if let Some(curves) = animation_curves.remove(vrma_target) {
