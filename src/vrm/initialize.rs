@@ -33,6 +33,8 @@ fn spawn_vrm(
     mut commands: Commands,
     node_assets: Res<Assets<GltfNode>>,
     vrm_assets: Res<Assets<VrmAsset>>,
+    mut scene_assets: ResMut<Assets<Scene>>,
+    type_registry: Res<AppTypeRegistry>,
     handles: Query<(Entity, &VrmHandle)>,
 ) {
     for (vrm_handle_entity, handle) in handles.iter() {
@@ -41,9 +43,21 @@ fn spawn_vrm(
         };
         commands.entity(vrm_handle_entity).remove::<VrmHandle>();
 
-        let Some(scene) = vrm.gltf.scenes.first() else {
+        let Some(scene_handle) = vrm.gltf.scenes.first() else {
             continue;
         };
+        // Clone the Scene asset to give each VRM instance its own independent copy.
+        // Without this, Bevy's SceneSpawner groups all instances sharing the same
+        // Scene AssetId and respawns them together on AssetEvent::Modified, which
+        // destroys custom components (Name, VrmBone, AnimationPlayer, etc.) that
+        // were inserted during initialization.
+        let Some(source_scene) = scene_assets.get(scene_handle) else {
+            continue;
+        };
+        let Ok(cloned_scene) = source_scene.clone_with(&type_registry) else {
+            continue;
+        };
+        let scene = scene_assets.add(cloned_scene);
         let extensions = match VrmExtensions::from_gltf(&vrm.gltf) {
             Ok(extensions) => extensions,
             Err(e) => {
@@ -55,7 +69,7 @@ fn spawn_vrm(
         cmd.insert((
             Vrm,
             Name::new(extensions.name().unwrap_or_else(|| "VRM".to_string())),
-            SceneRoot(scene.clone()),
+            SceneRoot(scene),
             VrmcMaterialRegistry::new(&vrm.gltf, vrm.images.clone()),
             VrmExpressionRegistry::new(&extensions, &node_assets, &vrm.gltf.nodes),
             HumanoidBoneRegistry::new(
@@ -113,12 +127,9 @@ fn request_initialize(
             .trigger(RequestInitializeSpringBone)
             .trigger(RequestInitializeNodeConstraints);
         if has_vrma {
-            if let Ok(ChildOf(vrm)) = parents.get(root) {
-                commands.trigger(RequestUpdateAnimationGraph {
-                    vrma: root,
-                    vrm: *vrm,
-                });
-            };
+            // RequestUpdateAnimationGraph is now triggered from trigger_loaded
+            // (vrma/initialize.rs) after Added<Initialized> is detected, ensuring
+            // VrmBone components from RequestInitializeHumanoidBones are applied.
         } else {
             commands.entity(root).trigger(RequestInitializeExpressions);
         }
