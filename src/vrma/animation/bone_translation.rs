@@ -4,30 +4,27 @@ use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use std::any::TypeId;
 use std::fmt::{Debug, Formatter};
-use std::sync::Mutex;
 
-pub fn register_hips_translation_transformation(
+#[derive(Component, Default, Clone, Debug, Deref, DerefMut)]
+pub(crate) struct RetargetTranslationTable(pub HashMap<AnimationNodeIndex, Transformation>);
+
+pub(crate) fn compute_hips_transformation(
     node_index: AnimationNodeIndex,
-    hips: Entity,
     src_rest: &RestTransform,
     src_rest_g: &RestGlobalTransform,
     dist_rest: &RestTransform,
     dist_rest_g: &RestGlobalTransform,
-) {
-    let transformations = Transformation {
-        src_rest_local: src_rest.translation,
-        src_rest_g: src_rest_g.translation(),
-        dist_rest_local: dist_rest.translation,
-        dist_rest_g: dist_rest_g.translation(),
-    };
-    HIPS_TRANSFORMATIONS
-        .lock()
-        .expect("Failed to lock HIPS_TRANSFORMATIONS")
-        .insert((hips, node_index), transformations);
+) -> (AnimationNodeIndex, Transformation) {
+    (
+        node_index,
+        Transformation {
+            src_rest_local: src_rest.translation,
+            src_rest_g: src_rest_g.translation(),
+            dist_rest_local: dist_rest.translation,
+            dist_rest_g: dist_rest_g.translation(),
+        },
+    )
 }
-
-static HIPS_TRANSFORMATIONS: Mutex<HashMap<(Entity, AnimationNodeIndex), Transformation>> =
-    Mutex::new(HashMap::new());
 
 pub(crate) struct HipsTranslationAnimationCurve {
     pub base: Box<dyn AnimationCurve>,
@@ -64,8 +61,7 @@ impl AnimationCurve for HipsTranslationAnimationCurve {
         Box::new(RetargetEvaluator {
             base: self.base.create_evaluator(),
             property: Box::new(animated_field!(Transform::translation)),
-            nodes: Vec::new(),
-            transformations: HashMap::new(),
+            last_node: None,
         })
     }
 
@@ -80,19 +76,18 @@ impl AnimationCurve for HipsTranslationAnimationCurve {
             let ty = TypeId::of::<RetargetEvaluator>();
             return Err(AnimationEvaluationError::InconsistentEvaluatorImplementation(ty));
         };
-        curve_evaluator.nodes.push(graph_node);
+        curve_evaluator.last_node = Some(graph_node);
         self.base
-            .apply(&mut *curve_evaluator.base, t, weight, graph_node)?;
-        Ok(())
+            .apply(&mut *curve_evaluator.base, t, weight, graph_node)
     }
 }
 
 #[derive(Debug, Copy, Clone, Reflect)]
-struct Transformation {
-    src_rest_local: Vec3,
-    src_rest_g: Vec3,
-    dist_rest_local: Vec3,
-    dist_rest_g: Vec3,
+pub(crate) struct Transformation {
+    pub(crate) src_rest_local: Vec3,
+    pub(crate) src_rest_g: Vec3,
+    pub(crate) dist_rest_local: Vec3,
+    pub(crate) dist_rest_g: Vec3,
 }
 
 impl Transformation {
@@ -113,8 +108,7 @@ impl Transformation {
 struct RetargetEvaluator {
     base: Box<dyn AnimationCurveEvaluator>,
     property: Box<dyn AnimatableProperty<Property = Vec3>>,
-    nodes: Vec<AnimationNodeIndex>,
-    transformations: HashMap<(Entity, AnimationNodeIndex), Transformation>,
+    last_node: Option<AnimationNodeIndex>,
 }
 
 impl AnimationCurveEvaluator for RetargetEvaluator {
@@ -149,20 +143,18 @@ impl AnimationCurveEvaluator for RetargetEvaluator {
         mut entity: AnimationEntityMut,
     ) -> std::result::Result<(), AnimationEvaluationError> {
         let hips_bone = entity.id();
-        let node = self.nodes.pop().unwrap();
-        let transformation = self
-            .transformations
-            .entry((hips_bone, node))
-            .or_insert_with(|| {
-                let hips_transformations = HIPS_TRANSFORMATIONS
-                    .lock()
-                    .expect("Failed to lock HIPS_TRANSFORMATIONS");
-                hips_transformations
-                    .get(&(hips_bone, node))
-                    .cloned()
-                    .unwrap()
-            });
+        let node = self.last_node.take();
         self.base.commit(entity.reborrow())?;
+
+        let Some(node_index) = node else {
+            return Ok(());
+        };
+        let Some(table) = entity.get::<RetargetTranslationTable>() else {
+            return Ok(());
+        };
+        let Some(transformation) = table.0.get(&node_index).cloned() else {
+            return Ok(());
+        };
         let hips_pos = self.property.get_mut(&mut entity)?;
         *hips_pos = transformation.transform(*hips_pos);
         Ok(())
@@ -175,7 +167,7 @@ impl AnimationCurveEvaluator for RetargetEvaluator {
 /// (matching `Transform::translation` coordinate space), and **global** rest
 /// positions only for the Y-based height scaling ratio.
 #[inline]
-fn calc_hips_position(
+pub(crate) fn calc_hips_position(
     src_rest_local: Vec3,
     src_rest_global: Vec3,
     src_pose: Vec3,
@@ -192,6 +184,9 @@ fn calc_scaling(
     dist_rest_global_pos: Vec3,
     source_rest_global_pos: Vec3,
 ) -> f32 {
+    if source_rest_global_pos.y.abs() < f32::EPSILON {
+        return 1.0;
+    }
     dist_rest_global_pos.y / source_rest_global_pos.y
 }
 

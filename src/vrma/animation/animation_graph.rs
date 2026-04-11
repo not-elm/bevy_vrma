@@ -5,7 +5,7 @@ use crate::vrma::animation::bone_rotation::{
     BoneRotationAnimationCurve, RetargetRotationTable, compute_rotation_transformations,
 };
 use crate::vrma::animation::bone_translation::{
-    HipsTranslationAnimationCurve, register_hips_translation_transformation,
+    HipsTranslationAnimationCurve, RetargetTranslationTable, compute_hips_transformation,
 };
 use crate::vrma::{VrmAnimationClipHandle, VrmAnimationNodeIndex};
 use bevy::animation::{AnimationTargetId, animated_field};
@@ -228,14 +228,22 @@ fn replace_bone_animation_clips(
             continue;
         };
         if bone.as_str() == "hips" {
-            register_hips_translation_transformation(
+            let (node_idx, hips_tf) = compute_hips_transformation(
                 node_index,
-                bone_entity,
                 src_rest_tf,
                 src_rest_gtf,
                 dist_rest_tf,
                 dist_rest_gtf,
             );
+            commands
+                .entity(bone_entity)
+                .entry::<RetargetTranslationTable>()
+                .and_modify(move |mut table| {
+                    table.0.insert(node_idx, hips_tf);
+                })
+                .or_insert(RetargetTranslationTable(HashMap::from([(
+                    node_idx, hips_tf,
+                )])));
         }
         if let Some(curves) = animation_curves.remove(vrma_bone_target) {
             let mut cs = Vec::new();
