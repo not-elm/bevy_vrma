@@ -2,13 +2,14 @@ use crate::prelude::{ChildSearcher, RestGlobalTransform, RestTransform};
 use crate::vrm::expressions::VrmExpressionRegistry;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrma::animation::bone_rotation::{
-    BoneRotationAnimationCurve, register_rotate_transformation,
+    BoneRotationAnimationCurve, RetargetRotationTable, compute_rotation_transformations,
 };
 use crate::vrma::animation::bone_translation::{
     HipsTranslationAnimationCurve, register_hips_translation_transformation,
 };
 use crate::vrma::{VrmAnimationClipHandle, VrmAnimationNodeIndex};
 use bevy::animation::{AnimationTargetId, animated_field};
+use bevy::platform::collections::HashMap;
 use bevy::app::App;
 use bevy::prelude::*;
 
@@ -170,7 +171,7 @@ fn apply_replace_humanoid_bone_animation_clips(
     let Some(clip) = clips.get_mut(new_handle.id()) else {
         return;
     };
-    register_rotate_transformation(
+    let transformations = compute_rotation_transformations(
         vrma_entity,
         vrma_node_index.0,
         root_bone,
@@ -178,7 +179,20 @@ fn apply_replace_humanoid_bone_animation_clips(
         &searcher,
         &bones,
     );
+    for (bone_entity, node_index, transformation) in transformations {
+        commands
+            .entity(bone_entity)
+            .entry::<RetargetRotationTable>()
+            .and_modify(move |mut table| {
+                table.0.insert(node_index, transformation);
+            })
+            .or_insert(RetargetRotationTable(HashMap::from([(
+                node_index,
+                transformation,
+            )])));
+    }
     replace_bone_animation_clips(
+        &mut commands,
         clip,
         vrma_node_index.0,
         vrma_entity,
@@ -190,6 +204,7 @@ fn apply_replace_humanoid_bone_animation_clips(
 }
 
 fn replace_bone_animation_clips(
+    commands: &mut Commands,
     clip: &mut AnimationClip,
     node_index: AnimationNodeIndex,
     vrma_entity: Entity,

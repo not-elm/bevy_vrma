@@ -7,63 +7,43 @@ use bevy::platform::collections::HashMap;
 use bevy::prelude::*;
 use std::any::TypeId;
 use std::fmt::{Debug, Formatter};
-use std::sync::Mutex;
 
-pub(crate) fn register_rotate_transformation(
+/// Per-bone-entity component storing retarget rotation transformations keyed by AnimationNodeIndex.
+/// Automatically cleaned up via `despawn_recursive`.
+#[derive(Component, Default, Clone, Debug, Deref, DerefMut)]
+pub(crate) struct RetargetRotationTable(pub HashMap<AnimationNodeIndex, Transformation>);
+
+pub(crate) fn compute_rotation_transformations(
     vrma: Entity,
     node_index: AnimationNodeIndex,
     root_bone: Entity,
     registry: &HumanoidBoneRegistry,
     searcher: &ChildSearcher,
     bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTargetId)>,
-) {
-    let transformations =
-        BoneRotateTransformations::new(vrma, node_index, root_bone, registry, searcher, bones);
-    BONE_ROTATION_TRANSFORMATIONS
-        .lock()
-        .expect("Failed to lock BONE_ROTATION_TRANSFORMATIONS")
-        .extend(transformations.0);
-}
-
-static BONE_ROTATION_TRANSFORMATIONS: Mutex<HashMap<(Entity, AnimationNodeIndex), Transformation>> =
-    Mutex::new(HashMap::new());
-
-#[derive(Clone, Debug, Deref, DerefMut)]
-struct BoneRotateTransformations(pub HashMap<(Entity, AnimationNodeIndex), Transformation>);
-
-impl BoneRotateTransformations {
-    pub fn new(
-        vrma: Entity,
-        node_index: AnimationNodeIndex,
-        root_bone: Entity,
-        registry: &HumanoidBoneRegistry,
-        searcher: &ChildSearcher,
-        bones: &Query<(&RestTransform, &RestGlobalTransform, &AnimationTargetId)>,
-    ) -> Self {
-        let mut transformations = HashMap::new();
-        for (bone, name) in registry.iter() {
-            let Some(vrma_bone_entity) = searcher.find_from_name(vrma, name) else {
-                continue;
-            };
-            let Some(rig_bone_entity) = searcher.find_by_bone_name(root_bone, bone) else {
-                continue;
-            };
-            let Some((rest, rest_g, _)) = bones.get(rig_bone_entity).ok() else {
-                continue;
-            };
-            let Some((vrma_rest, vrma_rest_g, _)) = bones.get(vrma_bone_entity).ok() else {
-                continue;
-            };
-            let transformation = Transformation {
-                src_rest: vrma_rest.0.rotation,
-                src_rest_g: vrma_rest_g.0.rotation(),
-                dist_rest: rest.0.rotation,
-                dist_rest_g: rest_g.0.rotation(),
-            };
-            transformations.insert((rig_bone_entity, node_index), transformation);
-        }
-        Self(transformations)
+) -> Vec<(Entity, AnimationNodeIndex, Transformation)> {
+    let mut result = Vec::new();
+    for (bone, name) in registry.iter() {
+        let Some(vrma_bone_entity) = searcher.find_from_name(vrma, name) else {
+            continue;
+        };
+        let Some(rig_bone_entity) = searcher.find_by_bone_name(root_bone, bone) else {
+            continue;
+        };
+        let Some((rest, rest_g, _)) = bones.get(rig_bone_entity).ok() else {
+            continue;
+        };
+        let Some((vrma_rest, vrma_rest_g, _)) = bones.get(vrma_bone_entity).ok() else {
+            continue;
+        };
+        let transformation = Transformation {
+            src_rest: vrma_rest.0.rotation,
+            src_rest_g: vrma_rest_g.0.rotation(),
+            dist_rest: rest.0.rotation,
+            dist_rest_g: rest_g.0.rotation(),
+        };
+        result.push((rig_bone_entity, node_index, transformation));
     }
+    result
 }
 
 #[derive(Debug, Copy, Clone, Reflect)]
@@ -118,8 +98,7 @@ impl AnimationCurve for BoneRotationAnimationCurve {
         Box::new(Evaluator {
             base: self.base.create_evaluator(),
             property: Box::new(animated_field!(Transform::rotation)),
-            nodes: Vec::default(),
-            transformations: HashMap::default(),
+            last_node: None,
         })
     }
 
@@ -134,33 +113,16 @@ impl AnimationCurve for BoneRotationAnimationCurve {
             let ty = TypeId::of::<Evaluator>();
             return Err(AnimationEvaluationError::InconsistentEvaluatorImplementation(ty));
         };
-        curve_evaluator.nodes.push(graph_node);
+        curve_evaluator.last_node = Some(graph_node);
         self.base
-            .apply(&mut *curve_evaluator.base, t, weight, graph_node)?;
-        //FIXME: Currently, blending multiple VRMAs with different initial poses results in incorrect interpolation.
-        // To fix this, we need to implement the following at this timing, but we cannot do it due to access scope issues.
-        // let curve_evaluator = curve_evaluator
-        //     .downcast_mut::<AnimatableCurveEvaluator<Quat>>()
-        //     .unwrap();
-        // let e = curve_evaluator
-        //     .evaluator
-        //     .stack
-        //     .pop()
-        //     .unwrap();
-        // curve_evaluator.evaluator.stack.push(BasicAnimationCurveEvaluatorStackElement{
-        //     value: self.transformations.0.get(graph_node).unwrap().transform(e.value),
-        //     weight,
-        //     graph_node,
-        // });
-        Ok(())
+            .apply(&mut *curve_evaluator.base, t, weight, graph_node)
     }
 }
 
 struct Evaluator {
     base: Box<dyn AnimationCurveEvaluator>,
     property: Box<dyn AnimatableProperty<Property = Quat>>,
-    nodes: Vec<AnimationNodeIndex>,
-    transformations: HashMap<(Entity, AnimationNodeIndex), Transformation>,
+    last_node: Option<AnimationNodeIndex>,
 }
 
 impl AnimationCurveEvaluator for Evaluator {
@@ -190,16 +152,17 @@ impl AnimationCurveEvaluator for Evaluator {
         &mut self,
         mut entity: AnimationEntityMut,
     ) -> std::result::Result<(), AnimationEvaluationError> {
-        let bone_entity = entity.id();
         self.base.commit(entity.reborrow())?;
-        let node_index = self.nodes.pop().unwrap();
-        let transformation = self
-            .transformations
-            .entry((bone_entity, node_index))
-            .or_insert_with(|| {
-                let t = BONE_ROTATION_TRANSFORMATIONS.lock().unwrap();
-                t.get(&(bone_entity, node_index)).cloned().unwrap()
-            });
+
+        let Some(node_index) = self.last_node.take() else {
+            return Ok(());
+        };
+        let Some(table) = entity.get::<RetargetRotationTable>() else {
+            return Ok(());
+        };
+        let Some(transformation) = table.0.get(&node_index).cloned() else {
+            return Ok(());
+        };
         let rotate = self.property.get_mut(&mut entity)?;
         *rotate = transformation.transform(*rotate);
         Ok(())
