@@ -6,6 +6,7 @@ use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrma::animation::expressions::VrmaExpressionNames;
 use crate::vrma::gltf::extensions::VrmaExtensions;
 use crate::vrma::loader::VrmaAsset;
+use crate::vrma::animation::animation_graph::RequestUpdateAnimationGraph;
 use crate::vrma::{LoadedVrma, VrmAnimationClipHandle, Vrma, VrmaDuration, VrmaHandle, VrmaPath};
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;
@@ -28,6 +29,8 @@ fn spawn_vrma(
     vrma_assets: Res<Assets<VrmaAsset>>,
     node_assets: Res<Assets<GltfNode>>,
     mut clip_assets: ResMut<Assets<AnimationClip>>,
+    mut scene_assets: ResMut<Assets<Scene>>,
+    type_registry: Res<AppTypeRegistry>,
     vrma_handles: Query<(Entity, &VrmaHandle, &ChildOf)>,
     vrms: Query<Has<Initialized>>,
 ) {
@@ -49,10 +52,21 @@ fn spawn_vrma(
         };
         commands.entity(handle_entity).remove::<VrmaHandle>();
 
-        let Some(scene_root) = vrma.gltf.scenes.first().cloned() else {
+        let Some(scene_handle) = vrma.gltf.scenes.first() else {
             vrm_error!("[VRMA] Not found vrma scene in {name}");
             continue;
         };
+        // Clone the Scene asset per-VRMA instance to prevent SceneSpawner
+        // from grouping instances by shared AssetId and respawning them together.
+        let Some(source_scene) = scene_assets.get(scene_handle) else {
+            vrm_error!("[VRMA] Not found scene data for {name}");
+            continue;
+        };
+        let Ok(cloned_scene) = source_scene.clone_with(&type_registry) else {
+            vrm_error!("[VRMA] Failed to clone scene for {name}");
+            continue;
+        };
+        let scene_root = scene_assets.add(cloned_scene);
         let extensions = match VrmaExtensions::from_gltf(&vrma.gltf) {
             Ok(extensions) => extensions,
             Err(_e) => {
@@ -103,8 +117,15 @@ fn trigger_loaded(
     vrmas: Query<(Entity, &ChildOf), (Added<Initialized>, With<Vrma>)>,
 ) {
     for (vrma_entity, child_of) in vrmas.iter() {
+        let vrm_entity = child_of.parent();
+        // Trigger animation graph setup first (deferred from request_initialize
+        // to ensure VrmBone components are fully applied on the parent VRM's bones)
+        commands.trigger(RequestUpdateAnimationGraph {
+            vrma: vrma_entity,
+            vrm: vrm_entity,
+        });
         commands.trigger(LoadedVrma {
-            vrm: child_of.parent(),
+            vrm: vrm_entity,
             vrma: vrma_entity,
         });
     }
