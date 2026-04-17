@@ -229,7 +229,13 @@ fn calc_shade_color(in: MToonInput) -> vec3<f32>{
 
 fn apply_emissive_light(in: MToonInput) -> vec3<f32> {
     let emissive = in.pbr.material.emissive.rgb;
-    if ((in.pbr.flags & EMISSIVE_TEXTURE) != 0u) {
+    // Read MToon's own `material.flags`, not `in.pbr.flags`. Custom materials
+    // do not populate the standard `PbrInput.flags` field, so reading it
+    // yields undefined data and causes the emissive texture branch to fire
+    // or skip unpredictably. All other texture flag checks in this shader
+    // (BASE_COLOR_TEXTURE, SHADE_MULTIPLY_TEXTURE, etc.) already use
+    // `material.flags` — this brings emissive in line with them.
+    if ((material.flags & EMISSIVE_TEXTURE) != 0u) {
         return emissive * textureSampleBias(emissive_texture, emissive_sampler, in.uv, view.mip_bias).rgb;
     } else {
         return emissive;

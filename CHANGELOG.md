@@ -1,3 +1,9 @@
+## Unreleased
+
+### Bug Fixes
+
+- Fixed MToon emissive texture never being sampled: `MtoonFlags::from` did not set the `EMISSIVE_TEXTURE` bit, and `apply_emissive_light` read `in.pbr.flags` (Bevy's standard `PbrInput.flags`, which is not populated for custom materials) instead of `material.flags`. Emissive maps now mask the emissive factor correctly instead of always applying a flat, unmasked color
+
 ## v0.7.0
 
 ### Breaking Changes
