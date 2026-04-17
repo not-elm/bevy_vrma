@@ -1,3 +1,9 @@
+## Unreleased
+
+### Bug Fixes
+
+- Fixed MToon characters not being lit by directional lights that have `shadows_enabled: false`: the MToon shader was using `shadows_enabled` to gate the entire light contribution, which is inconsistent with Bevy PBR where `shadows_enabled` only controls shadow-map sampling. `apply_directional_lights` now accumulates every directional light's contribution, and `calc_mtoon_lighting_shading` defaults `shadow` to `1.0` when the light has no shadow map
+
 ## v0.7.0
 
 ### Breaking Changes
