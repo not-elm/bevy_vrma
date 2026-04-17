@@ -77,12 +77,20 @@ impl VrmcMaterialRegistry {
         gltf: &Gltf,
         images: Vec<Handle<Image>>,
     ) -> Option<Self> {
+        // Match glTF materials to Bevy `StandardMaterial` handles by index,
+        // not by name. The glTF spec does not require material names to be
+        // unique, and some exporters (e.g. VRoid) produce multiple materials
+        // that share a name. `Gltf::named_materials` is a `HashMap` keyed by
+        // name, so duplicates collapse to a single entry and any meshes bound
+        // to the overwritten materials skip the MToon conversion entirely,
+        // rendering with the default `StandardMaterial` instead.
         let materials = gltf
             .source
             .as_ref()?
             .materials()
             .flat_map(|m| {
-                let asset_id = gltf.named_materials.get(m.name()?)?.id();
+                let index = m.index()?;
+                let asset_id = gltf.materials.get(index)?.id();
                 let extensions = m.extensions()?;
                 match serde_json::from_value(extensions.get("VRMC_materials_mtoon")?.clone()) {
                     Ok(properties) => Some((asset_id, properties)),
