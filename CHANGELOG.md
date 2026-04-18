@@ -1,7 +1,10 @@
 ## Unreleased
 
+[Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v)
+
 ### Bug Fixes
 
+- Fixed MToon conversion skipping meshes whose glTF material name collided with another material: `VrmcMaterialRegistry` now resolves material handles by index instead of by name, so VRMs exported with duplicate material names (e.g. VRoid models with multiple `Body_mtoon` entries) no longer fall back to the default `StandardMaterial` for the collided meshes
 - Fixed MToon characters not being lit by directional lights that have `shadows_enabled: false`: the MToon shader was using `shadows_enabled` to gate the entire light contribution, which is inconsistent with Bevy PBR where `shadows_enabled` only controls shadow-map sampling. `apply_directional_lights` now accumulates every directional light's contribution, and `calc_mtoon_lighting_shading` defaults `shadow` to `1.0` when the light has no shadow map
 
 ## v0.7.0
