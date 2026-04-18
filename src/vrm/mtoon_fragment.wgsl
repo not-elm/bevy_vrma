@@ -152,9 +152,12 @@ fn apply_directional_lights(in: MToonInput) -> vec3<f32>{
     var shade_color: vec3<f32> = calc_shade_color(in);
     var shading: f32 = 0.0;
     for (var i: u32 = 0u; i < lights.n_directional_lights; i = i + 1u) {
-        if (lights.directional_lights[i].flags & DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BIT) == 0u {
-            continue;
-        }
+        // Keep the light's direct contribution regardless of whether shadow
+        // maps are enabled for it. `shadows_enabled` gates shadow-map
+        // sampling only; Bevy PBR treats it the same way. Previously this
+        // loop skipped the entire light when shadows were disabled, which
+        // made shadow-less directional lights fail to illuminate MToon
+        // characters at all.
         shading += calc_mtoon_lighting_shading(in, i);
     }
     return mix(shade_color, in.lit_color.rgb, shading);
@@ -174,12 +177,18 @@ fn calc_mtoon_lighting_shading(
         view.view_from_world[2].z,
         view.view_from_world[3].z
     ), input.world_position);
-    var shadow = fetch_directional_shadow(
-        light_id,
-        input.world_position,
-        input.world_normal,
-        view_z,
-    );
+    // Only sample the shadow map when this light actually casts shadows;
+    // default to full illumination otherwise so the light still contributes
+    // to MToon shading.
+    var shadow = 1.0;
+    if ((*light).flags & DIRECTIONAL_LIGHT_FLAGS_SHADOWS_ENABLED_BIT) != 0u {
+        shadow = fetch_directional_shadow(
+            light_id,
+            input.world_position,
+            input.world_normal,
+            view_z,
+        );
+    }
     let shading =  mtoon_linearstep(-1.0 + material.shading_toony_factor, 1.0 - material.shading_toony_factor, shade_input + shade_shift) * shadow;
    return shading;
 }
