@@ -1,5 +1,7 @@
 ## Unreleased
 
+[Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v)
+
 ### Bug Fixes
 
 - Fixed MToon conversion skipping meshes whose glTF material name collided with another material: `VrmcMaterialRegistry` now resolves material handles by index instead of by name, so VRMs exported with duplicate material names (e.g. VRoid models with multiple `Body_mtoon` entries) no longer fall back to the default `StandardMaterial` for the collided meshes
