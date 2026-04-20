@@ -259,6 +259,10 @@ impl From<&MToonMaterial> for MtoonFlags {
         );
         flags.set(MtoonFlags::MATCAP_TEXTURE, value.matcap_texture.is_some());
         flags.set(
+            MtoonFlags::EMISSIVE_TEXTURE,
+            value.emissive_texture.is_some(),
+        );
+        flags.set(
             MtoonFlags::ALPHA_MODE_MASK,
             matches!(value.alpha_mode, AlphaMode::Mask(_)),
         );
