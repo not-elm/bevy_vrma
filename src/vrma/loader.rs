@@ -54,8 +54,9 @@ impl Plugin for VrmaLoaderPlugin {
             supported_compressed_formats,
             custom_vertex_attributes: Default::default(),
             default_sampler,
-            default_convert_coordinates: default(),
+            default_convert_coordinates: Default::default(),
             extensions,
+            default_skinned_mesh_bounds_policy: Default::default(),
         }));
     }
 }

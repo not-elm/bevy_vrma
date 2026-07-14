@@ -5,9 +5,10 @@ mod uv_animation;
 
 use crate::vrm::mtoon::material::outline::{MToonOutline, OutlineWidthMode};
 use crate::vrm::mtoon::{MTOON_FRAGMENT_SHADER_HANDLE, MTOON_VERTEX_SHADER_HANDLE};
+use bevy::material::OpaqueRendererMethod;
 use bevy::math::Affine2;
 use bevy::mesh::MeshVertexBufferLayoutRef;
-use bevy::pbr::{MaterialPipeline, MaterialPipelineKey, OpaqueRendererMethod};
+use bevy::pbr::{MaterialPipeline, MaterialPipelineKey};
 use bevy::prelude::*;
 use bevy::render::render_asset::RenderAssets;
 use bevy::render::render_resource::{
@@ -160,7 +161,7 @@ impl Material for MToonMaterial {
                 .bind_group_data
                 .intersects(MToonMaterialKey::TRANSPARENT_WITH_Z_WRITE)
         {
-            stencil.depth_write_enabled = true;
+            stencil.depth_write_enabled = Some(true);
         }
         Ok(())
     }

@@ -1,3 +1,4 @@
+use bevy::ecs::entity::EntityHash;
 use bevy::math::FloatOrd;
 use bevy::prelude::Entity;
 use bevy::render::render_phase::{
@@ -5,6 +6,8 @@ use bevy::render::render_phase::{
 };
 use bevy::render::render_resource::CachedRenderPipelineId;
 use bevy::render::sync_world::MainEntity;
+use bevy::render::view::ExtractedView;
+use indexmap::IndexMap;
 use std::ops::Range;
 
 pub(super) struct OutlinePhaseItem {
@@ -63,8 +66,14 @@ impl SortedPhaseItem for OutlinePhaseItem {
     }
 
     #[inline]
-    fn sort(items: &mut [Self]) {
-        items.sort_by_key(SortedPhaseItem::sort_key);
+    fn sort(items: &mut IndexMap<(Entity, MainEntity), Self, EntityHash>) {
+        items.sort_by_key(|_, item| item.sort_key());
+    }
+
+    fn recalculate_sort_keys(
+        _items: &mut IndexMap<(Entity, MainEntity), Self, EntityHash>,
+        _view: &ExtractedView,
+    ) {
     }
 
     #[inline]

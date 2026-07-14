@@ -11,7 +11,7 @@ use crate::vrm::spring_bone::registry::{
 };
 use crate::vrm::{Initialized, RestGlobalTransform, RestTransform, Vrm, VrmPath};
 use bevy::prelude::*;
-use bevy::scene::SceneRoot;
+use bevy::world_serialization::{WorldAsset, WorldAssetRoot};
 
 /// Triggers VRM detachment on the target entity.
 ///
@@ -70,7 +70,7 @@ fn remove_vrm_components(
         .try_remove::<Initialized>()
         .try_remove::<VrmHandle>()
         .try_remove::<Name>()
-        .try_remove::<SceneRoot>()
+        .try_remove::<WorldAssetRoot>()
         // Rest transforms
         .try_remove::<RestTransform>()
         .try_remove::<RestGlobalTransform>()

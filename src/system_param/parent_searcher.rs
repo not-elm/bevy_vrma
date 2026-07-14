@@ -42,6 +42,7 @@ mod tests {
     use crate::prelude::*;
     use crate::system_param::parent_searcher::ParentSearcher;
     use crate::tests::test_app;
+    use bevy::ecs::system::RunSystemOnce;
     use bevy_test_helper::system::SystemExt;
 
     #[test]
@@ -53,7 +54,10 @@ mod tests {
         app.world_mut().commands().entity(vrm).add_child(child);
         app.update();
 
-        let actual = app.run_system_once(move |s: ParentSearcher| s.find_vrm(child));
+        let actual = app
+            .world_mut()
+            .run_system_once(move |s: ParentSearcher| s.find_vrm(child))
+            .unwrap();
         assert_eq!(actual, Some(vrm));
     }
 
@@ -68,7 +72,10 @@ mod tests {
         app.world_mut().commands().entity(vrm).add_child(child);
         app.update();
 
-        let actual = app.run_system_once(move |s: ParentSearcher| s.find_vrm(child));
+        let actual = app
+            .world_mut()
+            .run_system_once(move |s: ParentSearcher| s.find_vrm(child))
+            .unwrap();
         assert_eq!(actual, Some(vrm));
     }
 }

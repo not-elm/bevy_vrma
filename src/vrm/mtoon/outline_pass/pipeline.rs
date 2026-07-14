@@ -71,7 +71,7 @@ impl SpecializedMeshPipeline for MToonOutlinePipeline {
             .push(material_bind_group_def.clone());
         descriptor.vertex.shader_defs.push(PASS_NAME.into());
         if let Some(depth_stencil) = descriptor.depth_stencil.as_mut() {
-            depth_stencil.depth_compare = CompareFunction::GreaterEqual;
+            depth_stencil.depth_compare = Some(CompareFunction::GreaterEqual);
         }
         descriptor.primitive.cull_mode.replace(Face::Front);
         if let Some(fragment) = descriptor.fragment.as_mut() {

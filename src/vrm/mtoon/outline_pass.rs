@@ -7,18 +7,18 @@ use crate::error::vrm_error;
 use crate::vrm::mtoon::outline_pass::phase_item::OutlinePhaseItem;
 use crate::vrm::mtoon::outline_pass::pipeline::{MToonOutlinePipeline, OutlinePipelineKey};
 use crate::vrm::mtoon::outline_pass::render_command::DrawOutline;
-use crate::vrm::mtoon::outline_pass::view_node::{OutlineDrawNode, OutlineDrawPassLabel};
 use crate::vrm::mtoon::{MToonMaterial, MToonMaterialKey};
+use bevy::core_pipeline::core_3d::main_transparent_pass_3d;
+use bevy::core_pipeline::{Core3d, Core3dSystems};
 use bevy::pbr::{
     MaterialBindGroupAllocators, MaterialPipeline, MaterialPipelineKey, PreparedMaterial,
     RenderMeshInstanceFlags, ViewKeyCache, alpha_mode_pipeline_key, init_material_pipeline,
     queue_material_meshes,
 };
-use bevy::render::RenderStartup;
 use bevy::render::sync_world::MainEntityHashMap;
 use bevy::render::view::RenderVisibilityRanges;
+use bevy::render::{GpuResourceAppExt, RenderStartup};
 use bevy::{
-    core_pipeline::core_3d::graph::{Core3d, Node3d},
     math::FloatOrd,
     pbr::{MeshPipeline, MeshPipelineKey, RenderMeshInstances},
     platform::collections::HashSet,
@@ -28,7 +28,6 @@ use bevy::{
         erased_render_asset::ErasedRenderAssets,
         mesh::RenderMesh,
         render_asset::RenderAssets,
-        render_graph::{RenderGraphExt, ViewNodeRunner},
         render_phase::{
             AddRenderCommand, DrawFunctions, PhaseItemExtraIndex, SortedRenderPhasePlugin,
             ViewSortedRenderPhases, sort_phase_system,
@@ -55,7 +54,7 @@ impl Plugin for MToonOutlinePlugin {
             return;
         };
         render_app
-            .init_resource::<SpecializedMeshPipelines<MToonOutlinePipeline>>()
+            .init_gpu_resource::<SpecializedMeshPipelines<MToonOutlinePipeline>>()
             .init_resource::<DrawFunctions<OutlinePhaseItem>>()
             .add_render_command::<OutlinePhaseItem, DrawOutline>()
             .init_resource::<ViewSortedRenderPhases<OutlinePhaseItem>>()
@@ -77,16 +76,12 @@ impl Plugin for MToonOutlinePlugin {
             )
             .add_systems(Render, queue_outlines.after(queue_material_meshes));
 
-        render_app
-            .add_render_graph_node::<ViewNodeRunner<OutlineDrawNode>>(Core3d, OutlineDrawPassLabel)
-            .add_render_graph_edges(
-                Core3d,
-                (
-                    Node3d::MainTransparentPass,
-                    OutlineDrawPassLabel,
-                    Node3d::EndMainPass,
-                ),
-            );
+        render_app.add_systems(
+            Core3d,
+            view_node::outline_draw_pass
+                .in_set(Core3dSystems::MainPass)
+                .after(main_transparent_pass_3d),
+        );
     }
 }
 
@@ -105,7 +100,7 @@ fn extract_camera_phases(
         }
 
         let retained_view_entity = RetainedViewEntity::new(main_entity.into(), None, 0);
-        outline_phases.insert_or_clear(retained_view_entity);
+        outline_phases.prepare_for_new_frame(retained_view_entity);
         live_entities.insert(retained_view_entity);
     }
 
@@ -144,12 +139,15 @@ fn queue_outlines(
             continue;
         };
         let draw_function_id = draw_functions.read().id::<DrawOutline>();
-        for (render_entity, visible_entity) in visible_entities.iter::<Mesh3d>() {
+        let Some(visible_mesh_entities) = visible_entities.get::<Mesh3d>() else {
+            continue;
+        };
+        for (render_entity, visible_entity) in &visible_mesh_entities.entities_cpu_culling {
             let Some(mesh_instance) = render_mesh_instances.render_mesh_queue_data(*visible_entity)
             else {
                 continue;
             };
-            let Some(mesh) = render_meshes.get(mesh_instance.mesh_asset_id) else {
+            let Some(mesh) = render_meshes.get(mesh_instance.mesh_asset_id()) else {
                 continue;
             };
             let Some(asset_id) = instances.get(visible_entity) else {
@@ -159,7 +157,8 @@ fn queue_outlines(
                 continue;
             };
 
-            let mut mesh_pipeline_key_bits = material.properties.mesh_pipeline_key_bits;
+            let mut mesh_pipeline_key_bits: MeshPipelineKey =
+                material.properties.mesh_pipeline_key_bits.downcast();
             mesh_pipeline_key_bits.insert(alpha_mode_pipeline_key(
                 material.properties.alpha_mode,
                 &Msaa::from_samples(view_key.msaa_samples()),
@@ -174,13 +173,13 @@ fn queue_outlines(
 
             if view_key.contains(MeshPipelineKey::MOTION_VECTOR_PREPASS) {
                 if mesh_instance
-                    .flags
+                    .flags()
                     .contains(RenderMeshInstanceFlags::HAS_PREVIOUS_SKIN)
                 {
                     mesh_key |= MeshPipelineKey::HAS_PREVIOUS_SKIN;
                 }
                 if mesh_instance
-                    .flags
+                    .flags()
                     .contains(RenderMeshInstanceFlags::HAS_PREVIOUS_MORPH)
                 {
                     mesh_key |= MeshPipelineKey::HAS_PREVIOUS_MORPH;
@@ -220,7 +219,7 @@ fn queue_outlines(
             };
             let distance = material.properties.depth_bias;
             {
-                outline_phase.add(OutlinePhaseItem {
+                outline_phase.add_transient(OutlinePhaseItem {
                     sort_key: FloatOrd(distance),
                     entity: (*render_entity, *visible_entity),
                     pipeline: pipeline_id,

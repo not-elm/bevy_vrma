@@ -165,7 +165,7 @@ fn apply_replace_humanoid_bone_animation_clips(
         return;
     };
     // Note: AnimationClip is already cloned per-VRMA in initialize.rs:67-71
-    let Some(clip) = clips.get_mut(vrm_animation_clip_handle.0.id()) else {
+    let Some(mut clip) = clips.get_mut(vrm_animation_clip_handle.0.id()) else {
         return;
     };
     let transformations = compute_rotation_transformations(
@@ -190,7 +190,7 @@ fn apply_replace_humanoid_bone_animation_clips(
     }
     replace_bone_animation_clips(
         &mut commands,
-        clip,
+        &mut clip,
         vrma_node_index.0,
         vrma_entity,
         root_bone,
@@ -337,7 +337,7 @@ fn apply_bake_clips(world: &mut World) {
 
         // Replace the clip's curves with baked ones
         let mut clip_assets = world.resource_mut::<Assets<AnimationClip>>();
-        if let Some(clip) = clip_assets.get_mut(clip_handle.id()) {
+        if let Some(mut clip) = clip_assets.get_mut(clip_handle.id()) {
             let curves = clip.curves_mut();
             curves.clear();
             for (target_id, variable_curves) in new_curves {
@@ -368,7 +368,7 @@ fn apply_regenerate_expression_clips(
     let Ok(vrm_animation_clip_handle) = clip_handles.get(vrma_entity) else {
         return;
     };
-    let Some(clip) = clips.get_mut(vrm_animation_clip_handle.0.id()) else {
+    let Some(mut clip) = clips.get_mut(vrm_animation_clip_handle.0.id()) else {
         return;
     };
     let Ok(registry) = expressions.get(vrm_entity) else {

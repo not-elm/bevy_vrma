@@ -69,13 +69,15 @@ impl VrmcMaterialRegistry {
     pub fn new(
         gltf: &Gltf,
         images: Vec<Handle<Image>>,
+        asset_server: &AssetServer,
     ) -> Self {
-        Self::try_new(gltf, images).unwrap_or_default()
+        Self::try_new(gltf, images, asset_server).unwrap_or_default()
     }
 
     fn try_new(
         gltf: &Gltf,
         images: Vec<Handle<Image>>,
+        asset_server: &AssetServer,
     ) -> Option<Self> {
         // Match glTF materials to Bevy `StandardMaterial` handles by index,
         // not by name. The glTF spec does not require material names to be
@@ -90,7 +92,10 @@ impl VrmcMaterialRegistry {
             .materials()
             .flat_map(|m| {
                 let index = m.index()?;
-                let asset_id = gltf.materials.get(index)?.id();
+                let gltf_material_path = gltf.materials.get(index)?.path()?;
+                let std_label = format!("{}/std", gltf_material_path.label()?);
+                let std_path = gltf_material_path.clone().with_label(std_label);
+                let asset_id = asset_server.load::<StandardMaterial>(std_path).id();
                 let extensions = m.extensions()?;
                 match serde_json::from_value(extensions.get("VRMC_materials_mtoon")?.clone()) {
                     Ok(properties) => Some((asset_id, properties)),

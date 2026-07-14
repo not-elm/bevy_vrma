@@ -212,6 +212,7 @@ mod tests {
     use crate::tests::test_app;
     use crate::vrma::VrmAnimationNodeIndex;
     use crate::vrma::animation::play::VrmaAnimationPlayPlugin;
+    use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::*;
     use bevy_test_helper::system::SystemExt;
 
@@ -237,10 +238,12 @@ mod tests {
             .trigger(PlayVrma::new);
         app.update();
 
-        app.run_system_once(|player: Query<&AnimationPlayer>| {
-            let player = player.single().expect("Failed to find AnimationPlayer");
-            assert!(!player.all_finished());
-        });
+        app.world_mut()
+            .run_system_once(|player: Query<&AnimationPlayer>| {
+                let player = player.single().expect("Failed to find AnimationPlayer");
+                assert!(!player.all_finished());
+            })
+            .unwrap();
     }
 
     #[test]
@@ -270,9 +273,11 @@ mod tests {
             .trigger(|entity| StopVrma { entity });
         app.update();
 
-        app.run_system_once(|player: Query<&AnimationPlayer>| {
-            let player = player.single().expect("Failed to find AnimationPlayer");
-            assert!(player.all_finished());
-        });
+        app.world_mut()
+            .run_system_once(|player: Query<&AnimationPlayer>| {
+                let player = player.single().expect("Failed to find AnimationPlayer");
+                assert!(player.all_finished());
+            })
+            .unwrap();
     }
 }
