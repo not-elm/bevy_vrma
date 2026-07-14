@@ -10,7 +10,7 @@ use crate::vrma::loader::VrmaAsset;
 use crate::vrma::{LoadedVrma, VrmAnimationClipHandle, Vrma, VrmaDuration, VrmaHandle, VrmaPath};
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;
-use bevy::scene::SceneRoot;
+use bevy::world_serialization::{WorldAsset, WorldAssetRoot};
 use std::time::Duration;
 
 pub(super) struct VrmaInitializePlugin;
@@ -29,7 +29,7 @@ fn spawn_vrma(
     vrma_assets: Res<Assets<VrmaAsset>>,
     node_assets: Res<Assets<GltfNode>>,
     mut clip_assets: ResMut<Assets<AnimationClip>>,
-    mut scene_assets: ResMut<Assets<Scene>>,
+    mut scene_assets: ResMut<Assets<WorldAsset>>,
     type_registry: Res<AppTypeRegistry>,
     vrma_handles: Query<(Entity, &VrmaHandle, &ChildOf)>,
     vrms: Query<Has<Initialized>>,
@@ -87,7 +87,7 @@ fn spawn_vrma(
             Vrma,
             Name::new(name),
             VrmAnimationClipHandle(animation_clip_handle.clone()),
-            SceneRoot(scene_root),
+            WorldAssetRoot(scene_root),
             VrmaDuration(obtain_vrma_duration(&clip_assets, &vrma.gltf.animations)),
             VrmaPath(vrma_path),
             VrmaExpressionNames::new(&extensions),

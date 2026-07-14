@@ -55,6 +55,7 @@ impl Plugin for VrmLoaderPlugin {
             default_sampler,
             default_convert_coordinates: Default::default(),
             extensions,
+            default_skinned_mesh_bounds_policy: Default::default(),
         }));
     }
 }
@@ -68,7 +69,7 @@ impl Plugin for VrmLoaderPlugin {
 /// - [`VrmPath`](crate::prelude::VrmPath)
 /// - [`BoneRestTransform`](crate::prelude::RestTransform)
 /// - [`BoneRestGlobalTransform`](crate::prelude::RestGlobalTransform)
-/// - [`SceneRoot`](bevy::scene::SceneRoot)
+/// - [`WorldAssetRoot`](bevy::world_serialization::WorldAssetRoot)
 /// - Components hold the entity of each bone, refer to [here](crate::vrm::humanoid_bone) for more details.
 ///
 /// ```no_run

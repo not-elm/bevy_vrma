@@ -16,7 +16,7 @@ use bevy::app::{App, Update};
 use bevy::asset::Assets;
 use bevy::gltf::GltfNode;
 use bevy::prelude::*;
-use bevy::scene::SceneRoot;
+use bevy::world_serialization::{WorldAsset, WorldAssetRoot};
 
 pub(crate) struct VrmInitializePlugin;
 
@@ -31,9 +31,10 @@ impl Plugin for VrmInitializePlugin {
 
 fn spawn_vrm(
     mut commands: Commands,
+    asset_server: Res<AssetServer>,
     node_assets: Res<Assets<GltfNode>>,
     vrm_assets: Res<Assets<VrmAsset>>,
-    mut scene_assets: ResMut<Assets<Scene>>,
+    mut scene_assets: ResMut<Assets<WorldAsset>>,
     type_registry: Res<AppTypeRegistry>,
     handles: Query<(Entity, &VrmHandle)>,
 ) {
@@ -69,8 +70,8 @@ fn spawn_vrm(
         cmd.insert((
             Vrm,
             Name::new(extensions.name().unwrap_or_else(|| "VRM".to_string())),
-            SceneRoot(scene),
-            VrmcMaterialRegistry::new(&vrm.gltf, vrm.images.clone()),
+            WorldAssetRoot(scene),
+            VrmcMaterialRegistry::new(&vrm.gltf, vrm.images.clone(), &asset_server),
             VrmExpressionRegistry::new(&extensions, &node_assets, &vrm.gltf.nodes),
             HumanoidBoneRegistry::new(
                 &extensions.vrmc_vrm.humanoid.human_bones,

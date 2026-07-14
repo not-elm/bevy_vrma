@@ -187,6 +187,7 @@ fn calc_mtoon_lighting_shading(
             input.world_position,
             input.world_normal,
             view_z,
+            input.pbr.frag_coord.xy,
         );
     }
     let shading =  mtoon_linearstep(-1.0 + material.shading_toony_factor, 1.0 - material.shading_toony_factor, shade_input + shade_shift) * shadow;

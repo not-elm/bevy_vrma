@@ -1,6 +1,6 @@
 [package]
 name = "bevy_vrm1"
-version = "0.7.1"
+version = "0.8.0"
 edition = "2024"
 authors = ["notelm <elmprograminfo@gmail.com>"]
 description = "Allows you to use VRM and VRMA in Bevy"
@@ -12,7 +12,7 @@ readme = "README.md"
 exclude = ["assets/"]
 
 [dependencies]
-bevy = { version = "0.18", default-features = false, features = [
+bevy = { version = "0.19", default-features = false, features = [
     "bevy_render",
     "bevy_window",
     "bevy_asset",
@@ -21,12 +21,14 @@ bevy = { version = "0.18", default-features = false, features = [
     "gltf_animation",
     "bevy_mesh",
     "bevy_shader",
+    "bevy_pbr",
 ] }
 serde = "1"
 serde_json = "1"
 anyhow = "1"
 bitflags = { version = "2.9" }
 paste = "1"
+indexmap = "2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.59", features = [
@@ -35,9 +37,9 @@ windows = { version = "0.59", features = [
 ] }
 
 [dev-dependencies]
-bevy = { version = "0.18" }
+bevy = { version = "0.19" }
 bevy_test_helper = { git = "https://github.com/not-elm/bevy_test_helper", branch = "v0.18" }
-bevy_panorbit_camera = "0.34.0"
+bevy_panorbit_camera = "0.35.0"
 
 [lints.clippy]
 type_complexity = "allow"

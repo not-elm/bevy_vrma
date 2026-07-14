@@ -38,7 +38,7 @@ impl Plugin for VrmaAnimationPlayersPlugin {
                 PostUpdate,
                 request_redraw
                     .in_set(VrmSystemSets::DetermineRedraw)
-                    .run_if(any_playing_animations.or(any_update_spring_joints)),
+                    .run_if(any_playing_animations.or_else(any_update_spring_joints)),
             );
     }
 }

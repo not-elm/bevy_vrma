@@ -99,6 +99,7 @@ All constraint types use spherical linear interpolation (slerp) based on the wei
 
 | bevy_vrm1 | bevy |
 |-----------|------|
+| 0.8.0 ~   | 0.19 |
 | 0.5.0 ~   | 0.18 |
 | 0.4.0 ~   | 0.17 |
 | 0.1.0 ~   | 0.16 |

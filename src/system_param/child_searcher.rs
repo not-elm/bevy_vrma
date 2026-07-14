@@ -87,6 +87,7 @@ fn find_entity(
 mod tests {
     use crate::prelude::*;
     use crate::tests::test_app;
+    use bevy::ecs::system::RunSystemOnce;
     use bevy::prelude::*;
     use bevy_test_helper::system::SystemExt;
 
@@ -101,7 +102,9 @@ mod tests {
             .with_child(Name::new(Vrm::ROOT_BONE));
         app.update();
 
-        app.run_system_once(move |s: ChildSearcher| s.find_root_bone(vrm))
+        app.world_mut()
+            .run_system_once(move |s: ChildSearcher| s.find_root_bone(vrm))
+            .unwrap()
             .expect("Failed to find root bone");
     }
 }

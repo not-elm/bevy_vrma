@@ -55,7 +55,7 @@ impl Plugin for VrmaPlugin {
 /// - [`VrmaDuration`]
 /// - [`BoneRestTransform`](crate::prelude::RestTransform)
 /// - [`BoneRestGlobalTransform`](crate::prelude::RestGlobalTransform)
-/// - [`SceneRoot`](bevy::scene::SceneRoot)
+/// - [`WorldAssetRoot`](bevy::world_serialization::WorldAssetRoot)
 /// - [`VrmaAnimationPlayers`](crate::prelude::VrmaAnimationPlayers)
 /// - Components hold the entity of each bone, refer to [here](crate::vrm::humanoid_bone) for more details.
 #[derive(Debug, Component, Reflect)]
