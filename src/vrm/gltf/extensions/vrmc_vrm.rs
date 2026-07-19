@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize)]
 pub struct VrmcVrm {
     pub expressions: Option<Expressions>,
-    // #[serde(rename = "firstPerson")]
-    // pub first_person: Option<FirstPerson>,
+    #[serde(rename = "firstPerson", default)]
+    pub first_person: Option<FirstPerson>,
     pub humanoid: Humanoid,
     #[serde(rename = "lookAt")]
     pub look_at: Option<LookAtProperties>,
@@ -49,17 +49,27 @@ pub struct Humanoid {
     pub human_bones: HashMap<String, VrmNode>,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Struct6 {
-    pub node: i64,
-    #[serde(rename = "type")]
-    pub r#type: String,
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Default, Reflect)]
+#[serde(rename_all = "camelCase")]
+pub enum FirstPersonFlag {
+    #[default]
+    Auto,
+    Both,
+    ThirdPersonOnly,
+    FirstPersonOnly,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct MeshAnnotation {
+    pub node: usize,
+    #[serde(rename = "firstPersonFlag", default)]
+    pub first_person_flag: FirstPersonFlag,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
 pub struct FirstPerson {
-    #[serde(rename = "meshAnnotations")]
-    pub mesh_annotations: Vec<Struct6>,
+    #[serde(rename = "meshAnnotations", default)]
+    pub mesh_annotations: Vec<MeshAnnotation>,
 }
 
 #[derive(Serialize, Deserialize)]

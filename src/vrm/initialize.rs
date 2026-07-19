@@ -1,6 +1,7 @@
 use crate::error::vrm_error;
 use crate::prelude::ChildSearcher;
 use crate::vrm::expressions::{RequestInitializeExpressions, VrmExpressionRegistry};
+use crate::vrm::first_person::FirstPersonRegistry;
 use crate::vrm::gltf::extensions::VrmExtensions;
 use crate::vrm::humanoid_bone::{HumanoidBoneRegistry, RequestInitializeHumanoidBones};
 use crate::vrm::loader::{VrmAsset, VrmHandle};
@@ -79,6 +80,11 @@ fn spawn_vrm(
                 &vrm.gltf.nodes,
             ),
             NodeConstraintRegistry::new(&vrm.gltf, &node_assets),
+            FirstPersonRegistry::new(
+                extensions.vrmc_vrm.first_person.as_ref(),
+                &node_assets,
+                &vrm.gltf.nodes,
+            ),
         ));
 
         if let Some(spring_bone) = extensions.vrmc_spring_bone.as_ref() {
