@@ -1,3 +1,9 @@
+## v0.9.0
+
+### Features
+
+- Added `VRMC_vrm.firstPerson` support: attach `FirstPersonCamera` or `ThirdPersonCamera` to a camera and trigger `RequestEnableFirstPerson` on the VRM entity to assign `RenderLayers` from the model's `meshAnnotations`. Meshes without an annotation are split by head bone weights, `RequestDisableFirstPerson` restores the default visibility, and the layers used for the separation are configurable through the `FirstPersonLayers` resource
+
 ## v0.8.0
 
 [Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.8,0)
