@@ -1,5 +1,6 @@
 use crate::vrm::body_tracking::{BodyTracking, SmoothedGaze};
 use crate::vrm::expressions::{ExpressionEntityMap, VrmExpressionRegistry};
+use crate::vrm::first_person::FirstPersonRegistry;
 use crate::vrm::gltf::extensions::vrmc_vrm::LookAtProperties;
 use crate::vrm::humanoid_bone::HumanoidBoneRegistry;
 use crate::vrm::loader::VrmHandle;
@@ -84,6 +85,7 @@ fn remove_vrm_components(
         .try_remove::<SpringJointPropsRegistry>()
         .try_remove::<SpringColliderRegistry>()
         .try_remove::<SpringNodeRegistry>()
+        .try_remove::<FirstPersonRegistry>()
         // Gaze/Body
         .try_remove::<LookAtProperties>()
         .try_remove::<LookAt>()

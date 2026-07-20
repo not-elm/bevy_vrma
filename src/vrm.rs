@@ -1,6 +1,7 @@
 pub mod body_tracking;
 pub mod detach;
 pub(crate) mod expressions;
+pub(crate) mod first_person;
 pub(crate) mod gltf;
 pub(crate) mod humanoid_bone;
 mod initialize;
@@ -26,6 +27,7 @@ use bevy::asset::AssetApp;
 use bevy::prelude::*;
 use bevy::transform::systems::{propagate_parent_transforms, sync_simple_transforms};
 use expressions::VrmExpressionPlugin;
+use first_person::VrmFirstPersonPlugin;
 use mtoon::MtoonMaterialPlugin;
 use std::path::PathBuf;
 
@@ -38,6 +40,10 @@ pub mod prelude {
         expressions::{
             BinaryExpression, ClearExpressions, ExpressionEntityMap, ExpressionOverride,
             ExpressionOverrideSettings, ExpressionOverrideType, ModifyExpressions, SetExpressions,
+        },
+        first_person::{
+            FirstPersonCamera, FirstPersonLayers, FirstPersonRegistry, RequestDisableFirstPerson,
+            RequestEnableFirstPerson, ThirdPersonCamera,
         },
         gltf::prelude::*,
         humanoid_bone::prelude::*,
@@ -128,6 +134,7 @@ impl Plugin for VrmPlugin {
             MtoonMaterialPlugin,
             LookAtPlugin,
             BodyTrackingPlugin,
+            VrmFirstPersonPlugin,
         ));
 
         // Add manual transform propagation systems to follow VRM spec update order
