@@ -14,12 +14,12 @@ This crate allows you to use [VRM1.0](https://vrm.dev/en/vrm/vrm_about/) and [VR
 ## Usage
 
 | Name            | currently supported |
-|-----------------|---------------------|
-| Spring Bone     | ✅                   |
-| Look At         | ✅                   |
-| Animation(vrma) | ✅                   |
-| Node Constraint | ✅                   |
-| First Person    | ❌                   |
+| --------------- | ------------------- |
+| Spring Bone     | ✅                  |
+| Look At         | ✅                  |
+| Animation(vrma) | ✅                  |
+| Node Constraint | ✅                  |
+| First Person    | ✅                  |
 
 ### Spring Bone
 
@@ -58,7 +58,7 @@ You can play animations using VRMA.
 - [vrma specification(en)](https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_vrm_animation-1.0/README.md)
 - [vrma specification(ja)](https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_vrm_animation-1.0/README.ja.md)
 
-### examples
+#### examples
 
 - [vrma.rs](./examples/vrma.rs)
 
@@ -72,33 +72,54 @@ Node Constraint is a feature for constraining node transformations in real-time,
 #### Constraint Types
 
 **Rotation Constraint**
+
 - Transfers the entire local rotation from a source node to destination nodes
 - Typical use case: Sub-arms and auxiliary bones
 - Supports weight parameter for interpolation (0.0 - 1.0)
 
 **Roll Constraint**
+
 - Transfers rotation around a specific axis (X, Y, or Z)
 - Typical use case: Twist bones for arms and legs
 - Supports weight parameter and configurable roll axis
 
 **Aim Constraint**
+
 - Rotates a node to face a target node
 - Typical use case: Clothing sleeves and accessories
 - Supports weight parameter and configurable aim axis (PositiveX, NegativeX, PositiveY, NegativeY, PositiveZ, NegativeZ)
 
 All constraint types use spherical linear interpolation (slerp) based on the weight parameter to blend between the rest rotation and the constrained rotation.
 
+### First Person
+
+This is a feature for hiding the avatar's head from a camera placed at its viewpoint, so that it does not block the view.
+
+To use it, attach `FirstPersonCamera` or `ThirdPersonCamera` to your cameras and trigger `RequestEnableFirstPerson` on the VRM entity.
+The meshes are then assigned `RenderLayers` according to the model's `meshAnnotations`, and meshes without an annotation are split by head bone weights.
+
+`RequestDisableFirstPerson` makes all meshes visible from every camera again, and the layers used for the separation can be changed through the `FirstPersonLayers` resource.
+
+#### examples
+
+- [first_person.rs](./examples/first_person.rs)
+
+#### Specification
+
+- [first person specification(en)](https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_vrm-1.0/firstPerson.md)
+- [first person specification(ja)](https://github.com/vrm-c/vrm-specification/blob/master/specification/VRMC_vrm-1.0/firstPerson.ja.md)
+
 ### Features
 
 | Feature | Description                                         | default |
-|---------|-----------------------------------------------------|---------|
+| ------- | --------------------------------------------------- | ------- |
 | serde   | derive `Serialize` and `Deserialize` for components | no      |
 | log     | enable log for debugging                            | no      |
 
 ## Versions
 
 | bevy_vrm1 | bevy |
-|-----------|------|
+| --------- | ---- |
 | 0.8.0 ~   | 0.19 |
 | 0.5.0 ~   | 0.18 |
 | 0.4.0 ~   | 0.17 |
