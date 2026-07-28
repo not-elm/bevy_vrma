@@ -1,3 +1,9 @@
+## Unreleased
+
+### Bug Fixes
+
+- Fixed spring-bone chains disappearing when an inverse point transform rounded a very short tail direction to zero
+
 ## v0.9.0
 
 ### Features
