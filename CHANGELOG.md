@@ -1,4 +1,6 @@
-## Unreleased
+## v0.9.1
+
+[Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.9.1)
 
 ### Bug Fixes
 
