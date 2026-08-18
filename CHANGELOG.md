@@ -1,3 +1,9 @@
+## Unreleased
+
+### Bug Fixes
+
+- Allowed `VRMC_springBone` to omit the optional `colliders`, `colliderGroups`, and `springs` arrays, defaulting them to empty collections as specified
+
 ## v0.9.1
 
 [Release Notes](https://github.com/not-elm/bevy_vrm1/releases/tag/v0.9.1)

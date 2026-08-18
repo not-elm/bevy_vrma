@@ -8,13 +8,15 @@ pub struct VRMCSpringBone {
     pub spec_version: String,
 
     /// [Collider]
+    #[serde(default)]
     pub colliders: Vec<Collider>,
 
     /// [`ColliderGroup`]
-    #[serde(rename = "colliderGroups")]
+    #[serde(rename = "colliderGroups", default)]
     pub collider_groups: Vec<ColliderGroup>,
 
     /// [Spring]
+    #[serde(default)]
     pub springs: Vec<Spring>,
 }
 
@@ -173,5 +175,27 @@ mod tests {
         let _spring_bone: VRMCSpringBone =
             serde_json::from_str(include_str!("vrmc_spring_bone.json"))?;
         success!()
+    }
+
+    #[test]
+    fn deserialize_vrmc_spring_bone_without_optional_collections() -> TestResult {
+        let spring_bone: VRMCSpringBone = serde_json::from_str(r#"{"specVersion":"1.0"}"#)?;
+
+        assert!(spring_bone.colliders.is_empty());
+        assert!(spring_bone.collider_groups.is_empty());
+        assert!(spring_bone.springs.is_empty());
+        success!()
+    }
+
+    #[test]
+    fn reject_invalid_vrmc_spring_bone_collections() {
+        for invalid in [
+            "{}",
+            r#"{"specVersion":"1.0","colliders":null}"#,
+            r#"{"specVersion":"1.0","colliderGroups":null}"#,
+            r#"{"specVersion":"1.0","springs":null}"#,
+        ] {
+            assert!(serde_json::from_str::<VRMCSpringBone>(invalid).is_err());
+        }
     }
 }
